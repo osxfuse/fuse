@@ -6,6 +6,11 @@
   See the file COPYING.LIB.
 */
 
+/*
+ * Copyright (c) 2006-2008 Amit Singh/Google Inc.
+ * Copyright (c) 2011-2012 Benjamin Fleischer
+ */
+
 #ifndef _FUSE_H_
 #define _FUSE_H_
 
@@ -257,10 +262,18 @@ struct fuse_operations {
 	int (*fsync) (const char *, int, struct fuse_file_info *);
 
 	/** Set extended attributes */
+#ifdef __APPLE__
+	int (*setxattr) (const char *, const char *, const char *, size_t, int, uint32_t);
+#else
 	int (*setxattr) (const char *, const char *, const char *, size_t, int);
+#endif
 
 	/** Get extended attributes */
+#ifdef __APPLE__
+	int (*getxattr) (const char *, const char *, char *, size_t, uint32_t);
+#else
 	int (*getxattr) (const char *, const char *, char *, size_t);
+#endif
 
 	/** List extended attributes */
 	int (*listxattr) (const char *, char *, size_t);
@@ -496,6 +509,45 @@ struct fuse_operations {
 	 */
 	int (*poll) (const char *, struct fuse_file_info *,
 		     struct fuse_pollhandle *ph, unsigned *reventsp);
+
+#ifdef __APPLE__
+	int (*reserved00)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved01)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved02)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved03)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved04)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved05)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved06)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved07)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+
+	int (*setvolname) (const char *);
+
+	int (*exchange) (const char *, const char *, unsigned long);
+
+	int (*getxtimes) (const char *, struct timespec *bkuptime,
+			  struct timespec *crtime);
+
+	int (*setbkuptime) (const char *, const struct timespec *tv);
+
+	int (*setchgtime) (const char *, const struct timespec *tv);
+
+	int (*setcrtime) (const char *, const struct timespec *tv);
+
+	int (*chflags) (const char *, uint32_t);
+
+	int (*setattr_x) (const char *, struct setattr_x *);
+
+	int (*fsetattr_x) (const char *, struct setattr_x *,
+			   struct fuse_file_info *);
+#endif /* __APPLE__ */
 };
 
 /** Extra context that may be needed by some filesystems
@@ -696,6 +748,11 @@ int fuse_fs_fgetattr(struct fuse_fs *fs, const char *path, struct stat *buf,
 		     struct fuse_file_info *fi);
 int fuse_fs_rename(struct fuse_fs *fs, const char *oldpath,
 		   const char *newpath);
+#ifdef __APPLE__
+int fuse_fs_setvolname(struct fuse_fs *fs, const char *volname);
+int fuse_fs_exchange(struct fuse_fs *fs, const char *oldpath,
+		     const char *newpath, unsigned long flags);
+#endif
 int fuse_fs_unlink(struct fuse_fs *fs, const char *path);
 int fuse_fs_rmdir(struct fuse_fs *fs, const char *path);
 int fuse_fs_symlink(struct fuse_fs *fs, const char *linkname,
@@ -727,6 +784,17 @@ int fuse_fs_create(struct fuse_fs *fs, const char *path, mode_t mode,
 		   struct fuse_file_info *fi);
 int fuse_fs_lock(struct fuse_fs *fs, const char *path,
 		 struct fuse_file_info *fi, int cmd, struct flock *lock);
+#ifdef __APPLE__
+int fuse_fs_chflags(struct fuse_fs *fs, const char *path, uint32_t flags);
+int fuse_fs_getxtimes(struct fuse_fs *fs, const char *path,
+		      struct timespec *bkuptime, struct timespec *crtime);
+int fuse_fs_setbkuptime(struct fuse_fs *fs, const char *path,
+			const struct timespec *tv);
+int fuse_fs_setchgtime(struct fuse_fs *fs, const char *path,
+		       const struct timespec *tv);
+int fuse_fs_setcrtime(struct fuse_fs *fs, const char *path,
+		      const struct timespec *tv);
+#endif /* __APPLE__ */
 int fuse_fs_chmod(struct fuse_fs *fs, const char *path, mode_t mode);
 int fuse_fs_chown(struct fuse_fs *fs, const char *path, uid_t uid, gid_t gid);
 int fuse_fs_truncate(struct fuse_fs *fs, const char *path, off_t size);
@@ -740,10 +808,17 @@ int fuse_fs_readlink(struct fuse_fs *fs, const char *path, char *buf,
 int fuse_fs_mknod(struct fuse_fs *fs, const char *path, mode_t mode,
 		  dev_t rdev);
 int fuse_fs_mkdir(struct fuse_fs *fs, const char *path, mode_t mode);
+#ifdef __APPLE__
+int fuse_fs_setxattr(struct fuse_fs *fs, const char *path, const char *name,
+		     const char *value, size_t size, int flags, uint32_t position);
+int fuse_fs_getxattr(struct fuse_fs *fs, const char *path, const char *name,
+		     char *value, size_t size, uint32_t position);
+#else /* !__APPLE__ */
 int fuse_fs_setxattr(struct fuse_fs *fs, const char *path, const char *name,
 		     const char *value, size_t size, int flags);
 int fuse_fs_getxattr(struct fuse_fs *fs, const char *path, const char *name,
 		     char *value, size_t size);
+#endif /* __APPLE__ */
 int fuse_fs_listxattr(struct fuse_fs *fs, const char *path, char *list,
 		      size_t size);
 int fuse_fs_removexattr(struct fuse_fs *fs, const char *path,

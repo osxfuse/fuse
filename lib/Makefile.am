@@ -3,11 +3,29 @@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
  -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26
 
+if DARWIN
+AM_CPPFLAGS += -O -gdwarf-2
+endif
+
+if DARWIN
+lib_LTLIBRARIES = libosxfuse_i32.la
+else
 lib_LTLIBRARIES = libfuse.la libulockmgr.la
+endif
 
 if BSD
 mount_source = mount_bsd.c
-else
+endif
+
+if DARWIN
+mount_source =			\
+	mount_darwin.c		\
+	fuse_darwin.c		\
+	modules/threadid.c	\
+	modules/volicon.c
+endif
+
+if LINUX
 mount_source = mount.c mount_util.c mount_util.h
 endif
 
@@ -35,10 +53,17 @@ libfuse_la_SOURCES = 		\
 	$(iconv_source)		\
 	$(mount_source)
 
-libfuse_la_LDFLAGS = @libfuse_libs@ -version-number 2:8:0 \
+fuse_version_number=2:8:0
+
+if DARWIN
+libosxfuse_i32_la_SOURCES = $(libfuse_la_SOURCES)
+libosxfuse_i32_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number)
+else
+libfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number) \
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
 
 libulockmgr_la_SOURCES = ulockmgr.c
 libulockmgr_la_LDFLAGS = -pthread -version-number 1:0:1
 
 EXTRA_DIST = fuse_versionscript
+endif

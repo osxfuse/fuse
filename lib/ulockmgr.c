@@ -6,6 +6,11 @@
   See the file COPYING.LIB
 */
 
+/*
+ * Copyright (c) 2006-2008 Amit Singh/Google Inc.
+ * Copyright (c) 2011-2012 Benjamin Fleischer
+ */
+
 /* #define DEBUG 1 */
 
 #include "ulockmgr.h"
@@ -18,8 +23,18 @@
 #include <assert.h>
 #include <signal.h>
 #include <sys/stat.h>
+#ifdef __APPLE__
+#undef _POSIX_C_SOURCE
 #include <sys/socket.h>
+#define _POSIX_C_SOURCE 200112L
+#else
+#include <sys/socket.h>
+#endif
 #include <sys/wait.h>
+
+#ifdef __APPLE__
+#define MSG_NOSIGNAL 0
+#endif
 
 struct message {
 	unsigned intr : 1;
@@ -139,6 +154,13 @@ static int ulockmgr_start_daemon(void)
 		close(sv[1]);
 		return -1;
 	}
+#ifdef __APPLE__
+	{
+		int on = 1;
+		res = setsockopt(ulockmgr_cfd, SOL_SOCKET, SO_NOSIGPIPE,
+				 (void *)&on, sizeof(on));
+	}
+#endif /* __APPLE__ */
 	ulockmgr_cfd = sv[1];
 	return 0;
 }

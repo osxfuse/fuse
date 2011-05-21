@@ -6,6 +6,12 @@
   See the file COPYING.LIB
 */
 
+/*
+ * Copyright (c) 2006-2008 Amit Singh/Google Inc.
+ * Copyright (c) 2011-2012 Benjamin Fleischer
+ */
+
+#include "config.h"
 #include "fuse_i.h"
 #include "fuse_kernel.h"
 #include "fuse_opt.h"
@@ -47,7 +53,41 @@ static void convert_stat(const struct stat *stbuf, struct fuse_attr *attr)
 	attr->atimensec = ST_ATIM_NSEC(stbuf);
 	attr->mtimensec = ST_MTIM_NSEC(stbuf);
 	attr->ctimensec = ST_CTIM_NSEC(stbuf);
+#ifdef __APPLE__
+	attr->flags	= stbuf->st_flags;
+#if __DARWIN_64_BIT_INO_T
+	attr->crtime	= stbuf->st_birthtime;
+	attr->crtimensec= (uint32_t)(stbuf->st_birthtimensec);
+#else
+	attr->crtime	= (__u64)-1;
+	attr->crtimensec= (__u32)-1;
+#endif
+#endif /* __APPLE__ */
 }
+
+#ifdef __APPLE__
+
+static void convert_attr_x(const struct fuse_setattr_in *attr,
+			   struct setattr_x *stbuf)
+{
+	stbuf->mode		= attr->mode;
+	stbuf->uid		= attr->uid;
+	stbuf->gid		= attr->gid;
+	stbuf->size		= attr->size;
+	stbuf->acctime.tv_sec	= attr->atime;
+	stbuf->modtime.tv_sec	= attr->mtime;
+	stbuf->crtime.tv_sec	= attr->crtime;
+	stbuf->chgtime.tv_sec	= attr->chgtime;
+	stbuf->bkuptime.tv_sec	= attr->bkuptime;
+	stbuf->acctime.tv_nsec	= attr->atimensec;
+	stbuf->modtime.tv_nsec	= attr->mtimensec;
+	stbuf->crtime.tv_nsec	= attr->crtimensec;
+	stbuf->chgtime.tv_nsec	= attr->chgtimensec;
+	stbuf->bkuptime.tv_nsec	= attr->bkuptimensec;
+	stbuf->flags		= attr->flags;
+}
+
+#endif /* __APPLE__ */
 
 static void convert_attr(const struct fuse_setattr_in *attr, struct stat *stbuf)
 {
@@ -59,6 +99,12 @@ static void convert_attr(const struct fuse_setattr_in *attr, struct stat *stbuf)
 	stbuf->st_mtime	       = attr->mtime;
 	ST_ATIM_NSEC_SET(stbuf, attr->atimensec);
 	ST_MTIM_NSEC_SET(stbuf, attr->mtimensec);
+#ifdef __APPLE__
+	stbuf->st_flags = attr->flags;
+
+	stbuf->st_ctime = attr->chgtime;
+	stbuf->st_ctimensec = attr->chgtimensec;
+#endif
 }
 
 static	size_t iov_length(const struct iovec *iov, size_t count)
@@ -297,7 +343,30 @@ static void fill_open(struct fuse_open_out *arg,
 		arg->open_flags |= FOPEN_KEEP_CACHE;
 	if (f->nonseekable)
 		arg->open_flags |= FOPEN_NONSEEKABLE;
+#ifdef __APPLE__
+	if (f->purge_attr)
+		arg->open_flags |= FOPEN_PURGE_ATTR;
+	if (f->purge_ubc)
+		arg->open_flags |= FOPEN_PURGE_UBC;
+#endif
 }
+
+#ifdef __APPLE__
+
+int fuse_reply_xtimes(fuse_req_t req, const struct timespec *bkuptime,
+		      const struct timespec *crtime)
+{
+	struct fuse_getxtimes_out arg;
+
+	arg.bkuptime = bkuptime->tv_sec;
+	arg.bkuptimensec = bkuptime->tv_nsec;
+	arg.crtime = crtime->tv_sec;
+	arg.crtimensec = crtime->tv_nsec;
+
+	return send_reply_ok(req, &arg, sizeof(arg));
+}
+
+#endif
 
 int fuse_reply_entry(fuse_req_t req, const struct fuse_entry_param *e)
 {
@@ -556,6 +625,24 @@ static void do_setattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 {
 	struct fuse_setattr_in *arg = (struct fuse_setattr_in *) inarg;
 
+#ifdef __APPLE__
+	if (req->f->op.setattr_x) {
+		struct fuse_file_info *fi = NULL;
+		struct fuse_file_info fi_store;
+		struct setattr_x stbuf;
+		memset(&stbuf, 0, sizeof(stbuf));
+		convert_attr_x(arg, &stbuf);
+		if (arg->valid & FATTR_FH) {
+			arg->valid &= ~FATTR_FH;
+			memset(&fi_store, 0, sizeof(fi_store));
+			fi = &fi_store;
+			fi->fh = arg->fh;
+			fi->fh_old = fi->fh;
+		}
+		stbuf.valid = arg->valid;
+		req->f->op.setattr_x(req, nodeid, &stbuf, arg->valid, fi);
+	} else
+#endif
 	if (req->f->op.setattr) {
 		struct fuse_file_info *fi = NULL;
 		struct fuse_file_info fi_store;
@@ -675,6 +762,42 @@ static void do_rename(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	else
 		fuse_reply_err(req, ENOSYS);
 }
+
+#ifdef __APPLE__
+
+static void do_setvolname(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
+{
+	const char *volname = (const char *)inarg;
+	if (req->f->op.setvolname)
+		req->f->op.setvolname(req, volname);
+	else
+		fuse_reply_err(req, ENOSYS);
+}
+
+static void do_exchange(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
+{
+	struct fuse_exchange_in *arg = (struct fuse_exchange_in *) inarg;
+	char *oldname = PARAM(arg);
+	char *newname = oldname + strlen(oldname) + 1;
+
+	if (req->f->op.exchange)
+		req->f->op.exchange(req, arg->olddir, oldname, arg->newdir,
+				    newname, (unsigned long)(arg->options));
+	else
+		fuse_reply_err(req, ENOSYS);
+}
+
+static void do_getxtimes(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
+{
+	(void) inarg;
+
+	if (req->f->op.getxtimes)
+		req->f->op.getxtimes(req, nodeid, NULL);
+	else
+		fuse_reply_err(req, ENOSYS);
+}
+
+#endif /* __APPLE__ */
 
 static void do_link(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 {
@@ -902,8 +1025,13 @@ static void do_setxattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	char *value = name + strlen(name) + 1;
 
 	if (req->f->op.setxattr)
+#ifdef __APPLE__
+		req->f->op.setxattr(req, nodeid, name, value, arg->size,
+				    arg->flags, arg->position);
+#else
 		req->f->op.setxattr(req, nodeid, name, value, arg->size,
 				    arg->flags);
+#endif
 	else
 		fuse_reply_err(req, ENOSYS);
 }
@@ -913,7 +1041,11 @@ static void do_getxattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	struct fuse_getxattr_in *arg = (struct fuse_getxattr_in *) inarg;
 
 	if (req->f->op.getxattr)
+#ifdef __APPLE__
+		req->f->op.getxattr(req, nodeid, PARAM(arg), arg->size, arg->position);
+#else
 		req->f->op.getxattr(req, nodeid, PARAM(arg), arg->size);
+#endif
 	else
 		fuse_reply_err(req, ENOSYS);
 }
@@ -1237,6 +1369,13 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	outarg.max_readahead = f->conn.max_readahead;
 	outarg.max_write = f->conn.max_write;
 
+#ifdef __APPLE__
+	if (f->conn.enable.setvolname)
+		outarg.flags |= FUSE_VOL_RENAME;
+	if (f->conn.enable.xtimes)
+		outarg.flags |= FUSE_XTIMES;
+#endif
+
 	if (f->debug) {
 		fprintf(stderr, "   INIT: %u.%u\n", outarg.major, outarg.minor);
 		fprintf(stderr, "   flags=0x%08x\n", outarg.flags);
@@ -1367,7 +1506,9 @@ const struct fuse_ctx *fuse_req_ctx_compat24(fuse_req_t req)
 {
 	return fuse_req_ctx(req);
 }
+#ifndef __APPLE__
 FUSE_SYMVER(".symver fuse_req_ctx_compat24,fuse_req_ctx@FUSE_2.4");
+#endif
 
 
 void fuse_req_interrupt_func(fuse_req_t req, fuse_interrupt_func_t func,
@@ -1436,6 +1577,11 @@ static struct {
 	[FUSE_IOCTL]	   = { do_ioctl,       "IOCTL"	     },
 	[FUSE_POLL]	   = { do_poll,        "POLL"	     },
 	[FUSE_DESTROY]	   = { do_destroy,     "DESTROY"     },
+#ifdef __APPLE__
+	[FUSE_SETVOLNAME]  = { do_setvolname,  "SETVOLNAME"  },
+	[FUSE_EXCHANGE]    = { do_exchange,    "EXCHANGE"    },
+	[FUSE_GETXTIMES]   = { do_getxtimes,   "GETXTIMES"   },
+#endif
 	[CUSE_INIT]	   = { cuse_lowlevel_init, "CUSE_INIT"   },
 };
 
@@ -1544,8 +1690,13 @@ static struct fuse_opt fuse_ll_opts[] = {
 
 static void fuse_ll_version(void)
 {
+#if __APPLE__
+	fprintf(stderr, "using OSXFUSE kernel interface version %i.%i\n",
+		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
+#else
 	fprintf(stderr, "using FUSE kernel interface version %i.%i\n",
 		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
+#endif
 }
 
 static void fuse_ll_help(void)
@@ -1728,13 +1879,13 @@ out_free:
 /*
  * This is currently not implemented on other than Linux...
  */
-int fuse_req_getgroups(fuse_req_t req, int size, gid_t list[]);
+int fuse_req_getgroups(fuse_req_t req, int size, gid_t list[])
 {
 	return -ENOSYS;
 }
 #endif
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 
 static void fill_open_compat(struct fuse_open_out *arg,
 			     const struct fuse_file_info_compat *f)
@@ -1836,7 +1987,7 @@ FUSE_SYMVER(".symver fuse_reply_statfs_compat,fuse_reply_statfs@FUSE_2.4");
 FUSE_SYMVER(".symver fuse_reply_open_compat,fuse_reply_open@FUSE_2.4");
 FUSE_SYMVER(".symver fuse_lowlevel_new_compat,fuse_lowlevel_new@FUSE_2.4");
 
-#else /* __FreeBSD__ */
+#else /* __FreeBSD__ || __APPLE__ */
 
 int fuse_sync_compat_args(struct fuse_args *args)
 {
@@ -1844,7 +1995,7 @@ int fuse_sync_compat_args(struct fuse_args *args)
 	return 0;
 }
 
-#endif /* __FreeBSD__ */
+#endif /* !__FreeBSD__ && !__APPLE__ */
 
 struct fuse_session *fuse_lowlevel_new_compat25(struct fuse_args *args,
 				const struct fuse_lowlevel_ops_compat25 *op,
@@ -1858,4 +2009,6 @@ struct fuse_session *fuse_lowlevel_new_compat25(struct fuse_args *args,
 					op_size, userdata);
 }
 
+#ifndef __APPLE__
 FUSE_SYMVER(".symver fuse_lowlevel_new_compat25,fuse_lowlevel_new@FUSE_2.5");
+#endif

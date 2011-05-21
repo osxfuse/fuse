@@ -9,6 +9,18 @@
   gcc -Wall `pkg-config fuse --cflags --libs` fioc.c -o fioc
 */
 
+#ifdef __APPLE__
+#include <stdio.h>
+
+int
+main(void)
+{
+    fprintf(stderr, "This example is not supported on this platform.\n");
+    return 1;
+}
+
+#else /* !__APPLE__ */
+
 #define FUSE_USE_VERSION 26
 
 #include <fuse.h>
@@ -209,3 +221,5 @@ int main(int argc, char *argv[])
 {
 	return fuse_main(argc, argv, &fioc_oper, NULL);
 }
+
+#endif /* __APPLE__ */

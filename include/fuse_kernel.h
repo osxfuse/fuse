@@ -106,16 +106,25 @@ struct fuse_attr {
 	__u64	atime;
 	__u64	mtime;
 	__u64	ctime;
+#ifdef __APPLE__
+	__u64	crtime;
+#endif
 	__u32	atimensec;
 	__u32	mtimensec;
 	__u32	ctimensec;
+#ifdef __APPLE__
+	__u32	crtimensec;
+#endif
 	__u32	mode;
 	__u32	nlink;
 	__u32	uid;
 	__u32	gid;
 	__u32	rdev;
-	__u32	blksize;
-	__u32	padding;
+#ifdef __APPLE__
+	__u32	flags; /* file flags; see chflags(2) */
+#endif
+    __u32	blksize;
+    __u32	padding;
 };
 
 struct fuse_kstatfs {
@@ -151,6 +160,12 @@ struct fuse_file_lock {
 #define FATTR_ATIME_NOW	(1 << 7)
 #define FATTR_MTIME_NOW	(1 << 8)
 #define FATTR_LOCKOWNER	(1 << 9)
+#ifdef __APPLE__
+#define FATTR_CRTIME	(1 << 28)
+#define FATTR_CHGTIME	(1 << 29)
+#define FATTR_BKUPTIME	(1 << 30)
+#define FATTR_FLAGS	(1 << 31)
+#endif
 
 /**
  * Flags returned by the OPEN request
@@ -162,6 +177,10 @@ struct fuse_file_lock {
 #define FOPEN_DIRECT_IO		(1 << 0)
 #define FOPEN_KEEP_CACHE	(1 << 1)
 #define FOPEN_NONSEEKABLE	(1 << 2)
+#ifdef __APPLE__
+#define FOPEN_PURGE_ATTR	(1 << 30)
+#define FOPEN_PURGE_UBC		(1 << 31)
+#endif
 
 /**
  * INIT request/reply flags
@@ -176,6 +195,11 @@ struct fuse_file_lock {
 #define FUSE_EXPORT_SUPPORT	(1 << 4)
 #define FUSE_BIG_WRITES		(1 << 5)
 #define FUSE_DONT_MASK		(1 << 6)
+#ifdef __APPLE__
+#  define FUSE_CASE_INSENSITIVE	(1 << 29)
+#  define FUSE_VOL_RENAME	(1 << 30)
+#  define FUSE_XTIMES		(1 << 31)
+#endif
 
 /**
  * CUSE INIT request/reply flags
@@ -274,6 +298,11 @@ enum fuse_opcode {
 	FUSE_DESTROY       = 38,
 	FUSE_IOCTL         = 39,
 	FUSE_POLL          = 40,
+#ifdef __APPLE__
+	FUSE_SETVOLNAME    = 61,
+	FUSE_GETXTIMES     = 62,
+	FUSE_EXCHANGE      = 63,
+#endif
 
 	/* CUSE specific operations */
 	CUSE_INIT          = 4096,
@@ -289,7 +318,11 @@ enum fuse_notify_code {
 /* The read buffer is required to be at least 8k, but may be much larger */
 #define FUSE_MIN_READ_BUFFER 8192
 
-#define FUSE_COMPAT_ENTRY_OUT_SIZE 120
+#ifdef __APPLE__
+#  define FUSE_COMPAT_ENTRY_OUT_SIZE 136
+#else
+#  define FUSE_COMPAT_ENTRY_OUT_SIZE 120
+#endif
 
 struct fuse_entry_out {
 	__u64	nodeid;		/* Inode ID */
@@ -312,7 +345,11 @@ struct fuse_getattr_in {
 	__u64	fh;
 };
 
-#define FUSE_COMPAT_ATTR_OUT_SIZE 96
+#ifdef __APPLE__
+#  define FUSE_COMPAT_ATTR_OUT_SIZE 112
+#else
+#  define FUSE_COMPAT_ATTR_OUT_SIZE 96
+#endif
 
 struct fuse_attr_out {
 	__u64	attr_valid;	/* Cache timeout for the attributes */
@@ -320,6 +357,15 @@ struct fuse_attr_out {
 	__u32	dummy;
 	struct fuse_attr attr;
 };
+
+#ifdef __APPLE__
+struct fuse_getxtimes_out {
+	__u64	bkuptime;
+	__u64	crtime;
+	__u32	bkuptimensec;
+	__u32	crtimensec;
+};
+#endif /* __APPLE__ */
 
 #define FUSE_COMPAT_MKNOD_IN_SIZE 8
 
@@ -338,6 +384,14 @@ struct fuse_mkdir_in {
 struct fuse_rename_in {
 	__u64	newdir;
 };
+
+#ifdef __APPLE__
+struct fuse_exchange_in {
+	__u64	olddir;
+	__u64	newdir;
+	__u64	options;
+};
+#endif /* __APPLE__ */
 
 struct fuse_link_in {
 	__u64	oldnodeid;
@@ -360,6 +414,15 @@ struct fuse_setattr_in {
 	__u32	uid;
 	__u32	gid;
 	__u32	unused5;
+#ifdef __APPLE__
+	__u64	bkuptime;
+	__u64	chgtime;
+	__u64	crtime;
+	__u32	bkuptimensec;
+	__u32	chgtimensec;
+	__u32	crtimensec;
+	__u32	flags; /* file flags; see chflags(2) */
+#endif /* __APPLE__ */
 };
 
 struct fuse_open_in {
@@ -436,11 +499,19 @@ struct fuse_fsync_in {
 struct fuse_setxattr_in {
 	__u32	size;
 	__u32	flags;
+#ifdef __APPLE__
+	__u32	position;
+	__u32	padding;
+#endif
 };
 
 struct fuse_getxattr_in {
 	__u32	size;
 	__u32	padding;
+#ifdef __APPLE__
+	__u32	position;
+	__u32	padding2;
+#endif
 };
 
 struct fuse_getxattr_out {

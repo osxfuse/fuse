@@ -13,6 +13,7 @@ compile
 libtool
 INSTALL
 fuse.pc
+fuse_ino64.pc
 .pc
 patches
 m4

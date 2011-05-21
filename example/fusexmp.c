@@ -8,6 +8,18 @@
   gcc -Wall `pkg-config fuse --cflags --libs` fusexmp.c -o fusexmp
 */
 
+#ifdef __APPLE__
+#include <stdio.h>
+
+int
+main(void)
+{
+	fprintf(stderr, "Please use fusexmp_fh instead of this example.\n");
+	return 1;
+}
+
+#else /* !__APPLE__ */
+
 #define FUSE_USE_VERSION 26
 
 #ifdef HAVE_CONFIG_H
@@ -383,3 +395,5 @@ int main(int argc, char *argv[])
 	umask(0);
 	return fuse_main(argc, argv, &xmp_oper, NULL);
 }
+
+#endif /* __APPLE__ */

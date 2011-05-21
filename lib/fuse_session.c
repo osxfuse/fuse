@@ -6,6 +6,11 @@
   See the file COPYING.LIB
 */
 
+/*
+ * Copyright (c) 2006-2008 Amit Singh/Google Inc.
+ * Copyright (c) 2011-2012 Benjamin Fleischer
+ */
+
 #include "fuse_i.h"
 #include "fuse_misc.h"
 #include "fuse_common_compat.h"
@@ -16,6 +21,9 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef __APPLE__
+#  include <sys/param.h>
+#endif
 
 struct fuse_chan {
 	struct fuse_chan_ops op;
@@ -200,6 +208,6 @@ void fuse_chan_destroy(struct fuse_chan *ch)
 	free(ch);
 }
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 FUSE_SYMVER(".symver fuse_chan_new_compat24,fuse_chan_new@FUSE_2.4");
 #endif

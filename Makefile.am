@@ -6,6 +6,7 @@ SUBDIRS = @subdirs2@
 
 EXTRA_DIST =			\
 	fuse.pc.in		\
+	osxfuse.pc.in		\
 	README*			\
 	Filesystems		\
 	FAQ			\
@@ -14,6 +15,10 @@ EXTRA_DIST =			\
 	doc/Doxyfile
 
 pkgconfigdir = @pkgconfigdir@
+if DARWIN
+pkgconfig_DATA = osxfuse.pc
+else
 pkgconfig_DATA = fuse.pc
+endif
 
 $(pkgconfig_DATA): config.status

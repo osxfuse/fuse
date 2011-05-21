@@ -9,6 +9,18 @@
   gcc -Wall fioclient.c -o fioclient
 */
 
+#ifdef __APPLE__
+#include <stdio.h>
+
+int
+main(void)
+{
+    fprintf(stderr, "This example is not supported on this platform.\n");
+    return 1;
+}
+
+#else /* !__APPLE__ */
+
 #include <sys/types.h>
 #include <sys/fcntl.h>
 #include <sys/stat.h>
@@ -117,6 +129,8 @@ int main(int argc, char **argv)
 	}
 
  usage:
-	fprintf(stderr, usage);
+	fprintf(stderr, "%s", usage);
 	return 1;
 }
+
+#endif /* __APPLE__ */

@@ -6,6 +6,11 @@
   See the file COPYING.LIB.
 */
 
+/*
+ * Copyright (c) 2006-2008 Amit Singh/Google Inc.
+ * Copyright (c) 2011-2012 Benjamin Fleischer
+ */
+
 #include "fuse_lowlevel.h"
 #include "fuse_misc.h"
 #include "fuse_kernel.h"
@@ -15,7 +20,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
-#include <semaphore.h>
+#ifdef __APPLE__
+#  define DARWIN_SEMAPHORE_COMPAT 1
+#  include "fuse_darwin_private.h"
+#else
+#  include <semaphore.h>
+#endif
 #include <errno.h>
 #include <sys/time.h>
 
@@ -128,8 +138,16 @@ static void *fuse_do_work(void *data)
 	}
 
 	sem_post(&mt->finish);
+#ifdef __APPLE__
+	{
+		sigset_t set;
+		(void) sigprocmask(0, NULL, &set);
+		(void) sigsuspend(&set); /* want cancelable */
+	}
+#else /* !__APPLE__ */
 	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 	pause();
+#endif /* __APPLE__ */
 
 	return NULL;
 }

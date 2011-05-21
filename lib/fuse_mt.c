@@ -6,6 +6,11 @@
   See the file COPYING.LIB.
 */
 
+/*
+ * Copyright (c) 2006-2008 Amit Singh/Google Inc.
+ * Copyright (c) 2011-2012 Benjamin Fleischer
+ */
+
 #include "fuse_i.h"
 #include "fuse_misc.h"
 #include "fuse_lowlevel.h"
@@ -113,4 +118,6 @@ int fuse_loop_mt(struct fuse *f)
 	return fuse_session_loop_mt(fuse_get_session(f));
 }
 
+#ifndef __APPLE__
 FUSE_SYMVER(".symver fuse_loop_mt_proc,__fuse_loop_mt@");
+#endif

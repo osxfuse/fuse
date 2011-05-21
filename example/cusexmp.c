@@ -9,6 +9,18 @@
   gcc -Wall `pkg-config fuse --cflags --libs` cusexmp.c -o cusexmp
 */
 
+#ifdef __APPLE__
+#include <stdio.h>
+
+int
+main(void)
+{
+    fprintf(stderr, "This example is not supported on this platform.\n");
+    return 1;
+}
+
+#else /* !__APPLE__ */
+
 #define FUSE_USE_VERSION 29
 
 #include <cuse_lowlevel.h>
@@ -292,3 +304,5 @@ int main(int argc, char **argv)
 	return cuse_lowlevel_main(args.argc, args.argv, &ci, &cusexmp_clop,
 				  NULL);
 }
+
+#endif /* __APPLE__ */

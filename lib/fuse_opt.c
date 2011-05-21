@@ -6,6 +6,11 @@
   See the file COPYING.LIB
 */
 
+/*
+ * Copyright (c) 2006-2008 Amit Singh/Google Inc.
+ * Copyright (c) 2011-2012 Benjamin Fleischer
+ */
+
 #include "fuse_opt.h"
 #include "fuse_misc.h"
 
@@ -405,5 +410,7 @@ int fuse_opt_parse(struct fuse_args *args, void *data,
 	return res;
 }
 
+#ifndef __APPLE__
 /* This symbol version was mistakenly added to the version script */
 FUSE_SYMVER(".symver fuse_opt_insert_arg_compat,fuse_opt_insert_arg@FUSE_2.5");
+#endif

@@ -6,6 +6,11 @@
   See the file COPYING.LIB.
 */
 
+/*
+ * Copyright (c) 2006-2008 Amit Singh/Google Inc.
+ * Copyright (c) 2011-2012 Benjamin Fleischer
+ */
+
 /** @file */
 
 #if !defined(_FUSE_H_) && !defined(_FUSE_LOWLEVEL_H_)
@@ -35,6 +40,39 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifdef __APPLE__
+
+#include <sys/stat.h>
+
+/* The following bits must be in lockstep with those in fuse_lowlevel.h */
+
+#define SETATTR_WANTS_MODE(attr)	((attr)->valid & (1 << 0))
+#define SETATTR_WANTS_UID(attr)		((attr)->valid & (1 << 1))
+#define SETATTR_WANTS_GID(attr)		((attr)->valid & (1 << 2))
+#define SETATTR_WANTS_SIZE(attr)	((attr)->valid & (1 << 3))
+#define SETATTR_WANTS_ACCTIME(attr)	((attr)->valid & (1 << 4))
+#define SETATTR_WANTS_MODTIME(attr)	((attr)->valid & (1 << 5))
+#define SETATTR_WANTS_CRTIME(attr)	((attr)->valid & (1 << 28))
+#define SETATTR_WANTS_CHGTIME(attr)	((attr)->valid & (1 << 29))
+#define SETATTR_WANTS_BKUPTIME(attr)	((attr)->valid & (1 << 30))
+#define SETATTR_WANTS_FLAGS(attr)	((attr)->valid & (1 << 31))
+
+struct setattr_x {
+	int32_t valid;
+	mode_t mode;
+	uid_t uid;
+	gid_t gid;
+	off_t size;
+	struct timespec acctime;
+	struct timespec modtime;
+	struct timespec crtime;
+	struct timespec chgtime;
+	struct timespec bkuptime;
+	uint32_t flags;
+};
+
+#endif /* __APPLE__ */
 
 /**
  * Information about open files
@@ -69,8 +107,15 @@ struct fuse_file_info {
 	    seekable.  Introduced in version 2.9 */
 	unsigned int nonseekable : 1;
 
+#ifdef __APPLE__
+	/** Padding.  Do not use*/
+	unsigned int padding : 26;
+	unsigned int purge_attr : 1;
+	unsigned int purge_ubc : 1;
+#else /* !__APPLE__ */
 	/** Padding.  Do not use*/
 	unsigned int padding : 28;
+#endif /* __APPLE__ */
 
 	/** File handle.  May be filled in by filesystem in open().
 	    Available in all other file operations */
@@ -145,6 +190,14 @@ struct fuse_conn_info {
 	 */
 	unsigned max_readahead;
 
+#ifdef __APPLE__
+	struct {
+		unsigned case_insensitive	:1;
+		unsigned setvolname		:1;
+		unsigned xtimes			:1;
+	} enable;
+#endif /* __APPLE__ */
+
 	/**
 	 * Capability flags, that the kernel supports
 	 */
@@ -158,8 +211,17 @@ struct fuse_conn_info {
 	/**
 	 * For future use.
 	 */
+#ifdef __APPLE__
+	unsigned reserved[24];
+#else
 	unsigned reserved[25];
+#endif
 };
+
+#ifdef __APPLE__
+#  define FUSE_ENABLE_SETVOLNAME(i)	(i)->enable.setvolname = 1
+#  define FUSE_ENABLE_XTIMES(i)		(i)->enable.xtimes = 1
+#endif
 
 struct fuse_session;
 struct fuse_chan;
@@ -266,6 +328,11 @@ void fuse_remove_signal_handlers(struct fuse_session *se);
 #	     error On FreeBSD API version 25 or greater must be used
 #	 endif
 #    endif
+#    ifdef __APPLE__
+#	 if FUSE_USE_VERSION < 25
+#	     error On Darwin API version 25 or greater must be used
+#	 endif
+#    endif /* __APPLE__ */
 #    include "fuse_common_compat.h"
 #    undef FUSE_MINOR_VERSION
 #    undef fuse_main

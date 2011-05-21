@@ -1,22 +1,35 @@
 #! /bin/sh
 
-echo Running libtoolize...
-libtoolize --automake -c -f
+test "`uname -s`" != "Darwin"
+DARWIN=$?
 
-CONFIG_RPATH=/usr/share/gettext/config.rpath
-if ! [ -f $CONFIG_RPATH ]; then
-    CONFIG_RPATH=/usr/local/share/gettext/config.rpath
+if test $DARWIN -eq 1; then
+    LIBTOOLIZE=glibtoolize
+else
+    LIBTOOLIZE=libtoolize
 fi
-if ! [ -f $CONFIG_RPATH ]; then
-    if  [ -f config.rpath ]; then
-        CONFIG_RPATH=
-    else
-        echo "config.rpath not found!" >&2
-        exit 1
+
+echo Running libtoolize...
+$LIBTOOLIZE --automake -c -f
+
+if test $DARWIN -eq 1; then
+    touch config.rpath
+else
+    CONFIG_RPATH=/usr/share/gettext/config.rpath
+    if ! [ -f $CONFIG_RPATH ]; then
+        CONFIG_RPATH=/usr/local/share/gettext/config.rpath
     fi
-fi
-if ! [ -z "$CONFIG_RPATH" ]; then
-    cp "$CONFIG_RPATH" .
+    if ! [ -f $CONFIG_RPATH ]; then
+        if  [ -f config.rpath ]; then
+            CONFIG_RPATH=
+        else
+            echo "config.rpath not found!" >&2
+            exit 1
+        fi
+    fi
+    if ! [ -z "$CONFIG_RPATH" ]; then
+        cp "$CONFIG_RPATH" .
+    fi
 fi
 
 if test ! -z "`which autoreconf`"; then

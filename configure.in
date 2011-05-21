@@ -17,6 +17,7 @@ fi
 case $target_os in
      *linux*)	arch=linux;;
      *bsd*)	arch=bsd;;
+     *darwin*)	arch=darwin;;
      *)		arch=unknown;;
 esac
 
@@ -52,6 +53,9 @@ if test "$enable_example" != "no"; then
 fi
 if test "$enable_mtab" = "no"; then
 	AC_DEFINE(IGNORE_MTAB, 1, [Don't update /etc/mtab])
+fi
+if test "$arch" = darwin; then
+	AC_DEFINE(_POSIX_C_SOURCE, 200112L, [Set _POSIX_C_SOURCE])
 fi
 AC_CHECK_FUNCS([fork setxattr fdatasync])
 AC_CHECK_MEMBERS([struct stat.st_atim])
@@ -92,6 +96,13 @@ AC_SUBST(subdirs2)
 
 AM_CONDITIONAL(LINUX, test "$arch" = linux)
 AM_CONDITIONAL(BSD, test "$arch" = bsd)
+AM_CONDITIONAL(DARWIN, test "$arch" = darwin)
 
-AC_CONFIG_FILES([fuse.pc Makefile lib/Makefile util/Makefile example/Makefile include/Makefile])
+if test "$arch" = darwin; then
+	fuse_pc=osxfuse.pc
+else
+	fuse_pc=fuse.pc
+fi
+
+AC_CONFIG_FILES([$fuse_pc Makefile lib/Makefile util/Makefile example/Makefile include/Makefile])
 AC_OUTPUT
