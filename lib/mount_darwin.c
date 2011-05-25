@@ -545,9 +545,11 @@ fuse_unmount_compat22(const char *mountpoint)
 static int
 fuse_mount_core(const char *mountpoint, const char *opts)
 {
-	int fd, pid;
+	int fd;
 	int result;
 	char *fdnam, *dev;
+	pid_t pid;
+	int status;
 	const char *mountprog = OSXFUSE_MOUNT_PROG;
 
 	if (!mountpoint) {
@@ -689,55 +691,47 @@ mount:
 	if (getenv("FUSE_NO_MOUNT") || ! mountpoint)
 		goto out;
 
-	signal(SIGCHLD, SIG_IGN);
-
 	pid = fork();
 
 	if (pid == -1) {
 		perror("fuse: fork() failed");
 		close(fd);
-		return -1;
+		exit(1);
 	}
 
 	if (pid == 0) {
+		const char *argv[32];
+		int a = 0;
 
-		pid = fork();
-		if (pid == -1) {
-			perror("fuse: fork() failed");
-			close(fd);
-			exit(1);
+		if (! fdnam)
+			asprintf(&fdnam, "%d", fd);
+
+		argv[a++] = mountprog;
+		if (opts) {
+			argv[a++] = "-o";
+			argv[a++] = opts;
 		}
+		argv[a++] = fdnam;
+		argv[a++] = mountpoint;
+		argv[a++] = NULL;
 
-		if (pid == 0) {
-			const char *argv[32];
-			int a = 0;
-
-			if (! fdnam)
-				asprintf(&fdnam, "%d", fd);
-
-			argv[a++] = mountprog;
-			if (opts) {
-				argv[a++] = "-o";
-				argv[a++] = opts;
+		{
+			char title[MAXPATHLEN + 1] = { 0 };
+			u_int32_t len = MAXPATHLEN;
+			int ret = proc_pidpath(getpid(), title, len);
+			if (ret) {
+				setenv("MOUNT_FUSEFS_DAEMON_PATH", title, 1);
 			}
-			argv[a++] = fdnam;
-			argv[a++] = mountpoint;
-			argv[a++] = NULL;
-
-			{
-				char title[MAXPATHLEN + 1] = { 0 };
-				u_int32_t len = MAXPATHLEN;
-				int ret = proc_pidpath(getpid(), title, len);
-				if (ret) {
-					setenv("MOUNT_FUSEFS_DAEMON_PATH", title, 1);
-				}
-			}
-			execvp(mountprog, (char **) argv);
-			perror("fuse: failed to exec mount program");
-			exit(1);
 		}
+		execvp(mountprog, (char **) argv);
+		perror("fuse: failed to exec mount program");
+		exit(1);
+	}
 
-		_exit(0);
+	if (waitpid(pid, &status, 0) == -1 || WEXITSTATUS(status) != 0) {
+		perror("fuse: failed to mount file system");
+		close(fd);
+		return -1;
 	}
 
 out:
