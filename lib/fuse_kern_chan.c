@@ -75,12 +75,26 @@ static int fuse_kern_chan_send(struct fuse_chan *ch, const struct iovec iov[],
 	return 0;
 }
 
+#if (__FreeBSD__ >= 10)
+#include "fuse_darwin_private.h"
+#endif
+
 static void fuse_kern_chan_destroy(struct fuse_chan *ch)
 {
+#if (__FreeBSD__ >= 10)
+	int fd = fuse_chan_fd(ch);
+	(void)ioctl(fd, FUSEDEVIOCSETDAEMONDEAD, &fd);
+	close(fd);
+#else
 	close(fuse_chan_fd(ch));
+#endif
 }
 
+#if (__FreeBSD__ >= 10)
+#define MIN_BUFSIZE ((FUSE_DEFAULT_USERKERNEL_BUFSIZE) + 0x1000)
+#else
 #define MIN_BUFSIZE 0x21000
+#endif
 
 struct fuse_chan *fuse_kern_chan_new(int fd)
 {

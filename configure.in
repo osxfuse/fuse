@@ -16,6 +16,7 @@ fi
 case $target_os in
      *linux*)	arch=linux;;
      *bsd*)	arch=bsd;;
+     *darwin*)	arch=darwin;;
      *)		arch=unknown;;
 esac
 
@@ -75,7 +76,7 @@ AC_ARG_WITH([libiconv-prefix],
       if test -d $dir/lib; then LDFLAGS="$LDFLAGS -L$dir/lib"; fi
     done
    ])
-AM_ICONV
+#AM_ICONV
 libfuse_libs="$libfuse_libs $LIBICONV"
 AM_CONDITIONAL(ICONV, test "$am_cv_func_iconv" = yes)
 AC_SUBST(libfuse_libs)
@@ -97,6 +98,7 @@ AC_SUBST(subdirs2)
 
 AM_CONDITIONAL(LINUX, test "$arch" = linux)
 AM_CONDITIONAL(BSD, test "$arch" = bsd)
+AM_CONDITIONAL(DARWIN, test "$arch" = darwin)
 
 AC_CONFIG_FILES([fuse.pc Makefile lib/Makefile util/Makefile example/Makefile include/Makefile])
 AC_OUTPUT

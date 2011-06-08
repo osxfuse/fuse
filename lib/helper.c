@@ -12,6 +12,9 @@
 #include "fuse_opt.h"
 #include "fuse_lowlevel.h"
 #include "fuse_common_compat.h"
+#if (__FreeBSD__ >= 10)
+#include "fuse_darwin_private.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,7 +84,12 @@ static void helper_help(void)
 
 static void helper_version(void)
 {
+#if (__FreeBSD__ >= 10)
+	fprintf(stderr, "MacFUSE library version: FUSE %s / MacFUSE %s\n",
+ 		PACKAGE_VERSION, MACFUSE_VERSION);
+#else
 	fprintf(stderr, "FUSE library version: %s\n", PACKAGE_VERSION);
+#endif
 }
 
 static int fuse_helper_opt_proc(void *data, const char *arg, int key,
@@ -111,6 +119,19 @@ static int fuse_helper_opt_proc(void *data, const char *arg, int key,
 					arg, strerror(errno));
 				return -1;
 			}
+#if (__FreeBSD__ >= 10)
+			else {
+				struct stat sb;
+				if (stat(mountpoint, &sb) != 0) {
+					fprintf(stderr, "fuse: failed to stat mount point `%s': %s\n", mountpoint, strerror(errno));
+					return -1;
+				}
+				if ((sb.st_mode & S_IFMT) != S_IFDIR) {
+					fprintf(stderr, "fuse: mount point is not a directory `%s'\n", mountpoint);
+					return -1;
+				}
+			}
+#endif
 			return fuse_opt_add_opt(&hopts->mountpoint, mountpoint);
 		} else {
 			fprintf(stderr, "fuse: invalid argument `%s'\n", arg);
@@ -186,6 +207,9 @@ int fuse_daemonize(int foreground)
 			perror("fuse: failed to daemonize program\n");
 			return -1;
 		}
+#if (__FreeBSD__ >= 10)
+		did_daemonize = 1;
+#endif /* __FreeBSD__ >= 10 */
 	}
 	return 0;
 }
@@ -252,6 +276,13 @@ static struct fuse *fuse_setup_common(int argc, char *argv[],
 	res = fuse_parse_cmdline(&args, mountpoint, multithreaded, &foreground);
 	if (res == -1)
 		return NULL;
+
+#if (__FreeBSD__ >= 10)
+	if (!*mountpoint) {
+		fprintf(stderr, "no mount point\n");
+		return NULL;
+	}
+#endif /* __FreeBSD__ >= 10 */
 
 	ch = fuse_mount_common(*mountpoint, &args);
 	if (!ch) {
@@ -408,11 +439,13 @@ int fuse_mount_compat1(const char *mountpoint, const char *args[])
 	return fuse_mount_compat22(mountpoint, NULL);
 }
 
+#if !(__FreeBSD__ >= 10)
 FUSE_SYMVER(".symver fuse_setup_compat2,__fuse_setup@");
 FUSE_SYMVER(".symver fuse_setup_compat22,fuse_setup@FUSE_2.2");
 FUSE_SYMVER(".symver fuse_teardown,__fuse_teardown@");
 FUSE_SYMVER(".symver fuse_main_compat2,fuse_main@");
 FUSE_SYMVER(".symver fuse_main_real_compat22,fuse_main_real@FUSE_2.2");
+#endif
 
 #endif /* __FreeBSD__ */
 
@@ -446,7 +479,9 @@ int fuse_mount_compat25(const char *mountpoint, struct fuse_args *args)
 	return fuse_kern_mount(mountpoint, args);
 }
 
+#if !(__FreeBSD__ >= 10)
 FUSE_SYMVER(".symver fuse_setup_compat25,fuse_setup@FUSE_2.5");
 FUSE_SYMVER(".symver fuse_teardown_compat22,fuse_teardown@FUSE_2.2");
 FUSE_SYMVER(".symver fuse_main_real_compat25,fuse_main_real@FUSE_2.5");
 FUSE_SYMVER(".symver fuse_mount_compat25,fuse_mount@FUSE_2.5");
+#endif

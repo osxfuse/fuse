@@ -16,6 +16,9 @@
 #include "fuse_misc.h"
 #include "fuse_common_compat.h"
 #include "fuse_compat.h"
+#if (__FreeBSD__ >= 10)
+#include "fuse_darwin_private.h"
+#endif /* __FreeBSD__ >= 10 */
 
 #include <stdio.h>
 #include <string.h>
@@ -69,6 +72,9 @@ struct fuse_fs {
 	struct fuse_module *m;
 	void *user_data;
 	int compat;
+#if (__FreeBSD__ >= 10)
+	struct fuse *fuse;
+#endif /* __FreeBSD__ >= 10 */
 };
 
 struct fusemod_so {
@@ -747,6 +753,26 @@ static inline int fuse_compat_statfs(struct fuse_fs *fs, const char *path,
 	return fs->op.statfs(fs->compat == 25 ? "/" : path, buf);
 }
 
+int fuse_fs_setattr_x(struct fuse_fs *fs, const char *path,
+      		      struct setattr_x *attr)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.setattr_x)
+		return fs->op.setattr_x(path, attr);
+	else
+		return -ENOSYS;
+}
+
+int fuse_fs_fsetattr_x(struct fuse_fs *fs, const char *path,
+      		       struct setattr_x *attr, struct fuse_file_info *fi)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.fsetattr_x)
+		return fs->op.fsetattr_x(path, attr, fi);
+	else
+		return -ENOSYS;
+}
+
 #endif /* __FreeBSD__ */
 
 int fuse_fs_getattr(struct fuse_fs *fs, const char *path, struct stat *buf)
@@ -779,6 +805,69 @@ int fuse_fs_rename(struct fuse_fs *fs, const char *oldpath,
 	else
 		return -ENOSYS;
 }
+
+#if (__FreeBSD__ >= 10)
+
+int fuse_fs_setvolname(struct fuse_fs *fs, const char *volname)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.setvolname)
+		return fs->op.setvolname(volname);
+	else
+		return -ENOSYS;
+}
+
+int fuse_fs_exchange(struct fuse_fs *fs, const char *path1,
+		     const char *path2, unsigned long options)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.exchange)
+		return fs->op.exchange(path1, path2, options);
+	else
+		return -ENOSYS;
+}
+
+int fuse_fs_getxtimes(struct fuse_fs *fs, const char *path,
+		      struct timespec *bkuptime, struct timespec *crtime)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.getxtimes)
+		return fs->op.getxtimes(path, bkuptime, crtime);
+	else
+		return -ENOSYS;
+}
+
+int fuse_fs_setbkuptime(struct fuse_fs *fs, const char *path,
+			const struct timespec *tv)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.setbkuptime)
+		return fs->op.setbkuptime(path, tv);
+	else
+		return -ENOSYS;
+}
+
+int fuse_fs_setchgtime(struct fuse_fs *fs, const char *path,
+		       const struct timespec *tv)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.setchgtime)
+		return fs->op.setchgtime(path, tv);
+	else
+		return -ENOSYS;
+}
+
+int fuse_fs_setcrtime(struct fuse_fs *fs, const char *path,
+		      const struct timespec *tv)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.setcrtime)
+		return fs->op.setcrtime(path, tv);
+	else
+		return -ENOSYS;
+}
+
+#endif /* __FreeBSD__ >= 10 */
 
 int fuse_fs_unlink(struct fuse_fs *fs, const char *path)
 {
@@ -841,7 +930,7 @@ int fuse_fs_open(struct fuse_fs *fs, const char *path,
 {
 	fuse_get_context()->private_data = fs->user_data;
 	if (fs->op.open)
-		return fuse_compat_open(fs, path, fi);
+		return fuse_compat_open(fs, (char *)path, fi);
 	else
 		return 0;
 }
@@ -1052,21 +1141,37 @@ int fuse_fs_mkdir(struct fuse_fs *fs, const char *path, mode_t mode)
 }
 
 int fuse_fs_setxattr(struct fuse_fs *fs, const char *path, const char *name,
-		     const char *value, size_t size, int flags)
+#if (__FreeBSD__ >= 10)
+  	             const char *value, size_t size, int flags, uint32_t position)
+#else
+  	             const char *value, size_t size, int flags);
+#endif /* __FreeBSD__ >= 10 */
 {
 	fuse_get_context()->private_data = fs->user_data;
 	if (fs->op.setxattr)
+#if (__FreeBSD__ >= 10)
+		return fs->op.setxattr(path, name, value, size, flags, position);
+#else
 		return fs->op.setxattr(path, name, value, size, flags);
+#endif /* __FreeBSD__ >= 10 */
 	else
 		return -ENOSYS;
 }
 
 int fuse_fs_getxattr(struct fuse_fs *fs, const char *path, const char *name,
-		     char *value, size_t size)
+#if (__FreeBSD__ >= 10)
+		     char *value, size_t size, uint32_t position)
+#else
+		     char *value, size_t size);
+#endif /* __FreeBSD__ >= 10 */
 {
 	fuse_get_context()->private_data = fs->user_data;
 	if (fs->op.getxattr)
+#if (__FreeBSD__ >= 10)
+		return fs->op.getxattr(path, name, value, size, position);
+#else
 		return fs->op.getxattr(path, name, value, size);
+#endif /* __FreeBSD__ >= 10 */
 	else
 		return -ENOSYS;
 }
@@ -1180,6 +1285,16 @@ static int mtime_eq(const struct stat *stbuf, const struct timespec *ts)
 
 static void curr_time(struct timespec *now)
 {
+#if (__FreeBSD__ >= 10)
+#define MACFUSE_TIMEVAL_TO_TIMESPEC(tv, ts) {		\
+		(ts)->tv_sec = (tv)->tv_sec;		\
+		(ts)->tv_nsec = (tv)->tv_usec * 1000;	\
+	}
+	struct timeval tp;
+	gettimeofday(&tp, NULL);
+	/* XXX: TBD: We are losing resolution here. */
+	MACFUSE_TIMEVAL_TO_TIMESPEC(&tp, now);
+#else
 	static clockid_t clockid = CLOCK_MONOTONIC;
 	int res = clock_gettime(clockid, now);
 	if (res == -1 && errno == EINVAL) {
@@ -1190,6 +1305,7 @@ static void curr_time(struct timespec *now)
 		perror("fuse: clock_gettime");
 		abort();
 	}
+#endif
 }
 
 static void update_stat(struct node *node, const struct stat *stbuf)
@@ -1444,6 +1560,108 @@ int fuse_fs_chmod(struct fuse_fs *fs, const char *path, mode_t mode)
 		return -ENOSYS;
 }
 
+#if (__FreeBSD__ >= 10)
+
+int fuse_fs_chflags(struct fuse_fs *fs, const char *path, uint32_t flags)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.chflags)
+		return fs->op.chflags(path, flags);
+	else
+		return -ENOSYS;
+}
+
+static void fuse_lib_setattr_x(fuse_req_t req, fuse_ino_t ino,
+			       struct setattr_x *attr,
+			       int valid, struct fuse_file_info *fi)
+{
+	struct fuse *f = req_fuse_prepare(req);
+	struct stat buf;
+	char *path;
+	int err;
+
+	err = -ENOENT;
+	pthread_rwlock_rdlock(&f->tree_lock);
+	path = get_path(f, ino);
+	if (path != NULL) {
+		struct fuse_intr_data d;
+		fuse_prepare_interrupt(f, req, &d);
+		err = 0;
+		if (!err && valid) {
+			if (fi)
+				err = fuse_fs_fsetattr_x(f->fs, path, attr, fi);
+			else
+				err = fuse_fs_setattr_x(f->fs, path, attr);
+			if (err == -ENOSYS)
+				err = 0;
+			else
+				goto done;
+		}
+		if (!err && (valid & FUSE_SET_ATTR_FLAGS)) {
+			err = fuse_fs_chflags(f->fs, path, attr->flags);
+			/* XXX: don't complain if flags couldn't be written */
+			if (err == -ENOSYS)
+				err = 0;
+		}
+		if (!err && (valid & FUSE_SET_ATTR_BKUPTIME)) {
+			err = fuse_fs_setbkuptime(f->fs, path, &attr->bkuptime);
+		}
+		if (!err && (valid & FUSE_SET_ATTR_CHGTIME)) {
+			err = fuse_fs_setchgtime(f->fs, path, &attr->chgtime);
+		}
+		if (!err && (valid & FUSE_SET_ATTR_CRTIME)) {
+			err = fuse_fs_setcrtime(f->fs, path, &attr->crtime);
+		}
+		if (!err && (valid & FUSE_SET_ATTR_MODE))
+			err = fuse_fs_chmod(f->fs, path, attr->mode);
+		if (!err && (valid & (FUSE_SET_ATTR_UID | FUSE_SET_ATTR_GID))) {
+			uid_t uid = (valid & FUSE_SET_ATTR_UID) ?
+				attr->uid : (uid_t) -1;
+			gid_t gid = (valid & FUSE_SET_ATTR_GID) ?
+				attr->gid : (gid_t) -1;
+			err = fuse_fs_chown(f->fs, path, uid, gid);
+		}
+		if (!err && (valid & FUSE_SET_ATTR_SIZE)) {
+			if (fi)
+				err = fuse_fs_ftruncate(f->fs, path,
+							attr->size, fi);
+			else
+				err = fuse_fs_truncate(f->fs, path, attr->size);
+		}
+		if (!err && (valid & FUSE_SET_ATTR_MTIME)) {
+			struct timespec tv[2];
+			if (valid & FUSE_SET_ATTR_ATIME) {
+				tv[0] = attr->acctime;
+			} else {
+				struct timeval now;
+				gettimeofday(&now, NULL);
+				tv[0].tv_sec = now.tv_sec;
+				tv[0].tv_nsec = now.tv_usec * 1000;
+			}
+			tv[1] = attr->modtime;
+			err = fuse_fs_utimens(f->fs, path, tv);
+		}
+done:
+		if (!err)
+			err = fuse_fs_getattr(f->fs,  path, &buf);
+		fuse_finish_interrupt(f, req, &d);
+		free(path);
+	}
+	pthread_rwlock_unlock(&f->tree_lock);
+	if (!err) {
+		if (f->conf.auto_cache) {
+			pthread_mutex_lock(&f->lock);
+			update_stat(get_node(f, ino), &buf);
+			pthread_mutex_unlock(&f->lock);
+		}
+		set_stat(f, ino, &buf);
+		fuse_reply_attr(req, &buf, f->conf.attr_timeout);
+	} else
+		reply_err(req, err);
+}
+
+#endif /* __FreeBSD__ >= 10 */
+
 static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 			     int valid, struct fuse_file_info *fi)
 {
@@ -1459,6 +1677,32 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
 		err = 0;
+#if (__FreeBSD__ >= 10)
+		if (!err && (valid & FUSE_SET_ATTR_FLAGS)) {
+			err = fuse_fs_chflags(f->fs, path, attr->st_flags);
+			/* XXX: don't complain if flags couldn't be written */
+			if (err == -ENOSYS)
+				err = 0;
+		}
+		if (!err && (valid & FUSE_SET_ATTR_BKUPTIME)) {
+			struct timespec tv;
+			tv.tv_sec = (uint64_t)(attr->st_qspare[0]);
+			tv.tv_nsec = (uint32_t)(attr->st_lspare);
+			err = fuse_fs_setbkuptime(f->fs, path, &tv);
+		}
+		if (!err && (valid & FUSE_SET_ATTR_CHGTIME)) {
+			struct timespec tv;
+			tv.tv_sec = (uint64_t)(attr->st_ctime);
+			tv.tv_nsec = (uint32_t)(attr->st_ctimensec);
+			err = fuse_fs_setchgtime(f->fs, path, &tv);
+		}
+		if (!err && (valid & FUSE_SET_ATTR_CRTIME)) {
+			struct timespec tv;
+			tv.tv_sec = (uint64_t)(attr->st_qspare[1]);
+			tv.tv_nsec = (uint32_t)(attr->st_gen);
+			err = fuse_fs_setcrtime(f->fs, path, &tv);
+		}
+#endif /* __FreeBSD__ >= 10 */
 		if (!err && (valid & FUSE_SET_ATTR_MODE))
 			err = fuse_fs_chmod(f->fs, path, attr->st_mode);
 		if (!err && (valid & (FUSE_SET_ATTR_UID | FUSE_SET_ATTR_GID))) {
@@ -1476,6 +1720,23 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 				err = fuse_fs_truncate(f->fs, path,
 						       attr->st_size);
 		}
+#if (__FreeBSD__ >= 10)
+		if (!err && (valid & FUSE_SET_ATTR_MTIME)) {
+			struct timespec tv[2];
+			if (valid & FUSE_SET_ATTR_ATIME) {
+				tv[0].tv_sec = attr->st_atime;
+				tv[0].tv_nsec = ST_ATIM_NSEC(attr);
+			} else {
+				struct timeval now;
+				gettimeofday(&now, NULL);
+				tv[0].tv_sec = now.tv_sec;
+				tv[0].tv_nsec = now.tv_usec * 1000;
+			}
+			tv[1].tv_sec = attr->st_mtime;
+			tv[1].tv_nsec = ST_MTIM_NSEC(attr);
+			err = fuse_fs_utimens(f->fs, path, tv);
+		}
+#else
 		if (!err &&
 		    (valid & (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME)) ==
 		    (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME)) {
@@ -1486,6 +1747,7 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 			tv[1].tv_nsec = ST_MTIM_NSEC(attr);
 			err = fuse_fs_utimens(f->fs, path, tv);
 		}
+#endif /* __FreeBSD__ >= 10 */
 		if (!err)
 			err = fuse_fs_getattr(f->fs,  path, &buf);
 		fuse_finish_interrupt(f, req, &d);
@@ -1736,6 +1998,134 @@ static void fuse_lib_rename(fuse_req_t req, fuse_ino_t olddir,
 	reply_err(req, err);
 }
 
+#if (__FreeBSD__ >= 10)
+
+static int exchange_node(struct fuse *f, fuse_ino_t olddir, const char *oldname,
+		         fuse_ino_t newdir, const char *newname,
+                         unsigned long options)
+{
+	struct node *node;
+	struct node *newnode;
+	int err = 0;
+
+	pthread_mutex_lock(&f->lock);
+	node  = lookup_node(f, olddir, oldname);
+	newnode	 = lookup_node(f, newdir, newname);
+	if (node == NULL)
+		goto out;
+
+	if (newnode != NULL) {
+
+		off_t tmpsize;
+		struct timespec tmpspec;
+
+		tmpsize = node->size;
+		node->size = newnode->size;
+		newnode->size = tmpsize;
+
+		tmpspec.tv_sec = node->mtime.tv_sec;
+		tmpspec.tv_nsec = node->mtime.tv_nsec;
+		node->mtime.tv_sec = newnode->mtime.tv_sec;
+		node->mtime.tv_nsec = newnode->mtime.tv_nsec;
+		newnode->mtime.tv_sec = tmpspec.tv_sec;
+		newnode->mtime.tv_nsec = tmpspec.tv_nsec;
+
+		node->cache_valid = newnode->cache_valid = 0;
+
+		curr_time(&node->stat_updated);
+		curr_time(&newnode->stat_updated);
+	}
+
+out:
+	pthread_mutex_unlock(&f->lock);
+	return err;
+}
+
+static void fuse_lib_setvolname(fuse_req_t req, const char *volname)
+{
+	struct fuse *f = req_fuse_prepare(req);
+	int err;
+
+	pthread_rwlock_rdlock(&f->tree_lock);
+	struct fuse_intr_data d;
+	fuse_prepare_interrupt(f, req, &d);
+	err = fuse_fs_setvolname(f->fs, volname);
+	fuse_finish_interrupt(f, req, &d);
+	pthread_rwlock_unlock(&f->tree_lock);
+
+	reply_err(req, err);
+}
+
+static void fuse_lib_exchange(fuse_req_t req, fuse_ino_t olddir,
+			      const char *oldname, fuse_ino_t newdir,
+			      const char *newname, unsigned long options)
+{
+	struct fuse *f = req_fuse_prepare(req);
+	char *oldpath;
+	char *newpath;
+	int err;
+
+	err = -ENOENT;
+	pthread_rwlock_wrlock(&f->tree_lock);
+	oldpath = get_path_name(f, olddir, oldname);
+	if (oldpath != NULL) {
+		newpath = get_path_name(f, newdir, newname);
+		if (newpath != NULL) {
+			struct fuse_intr_data d;
+			if (f->conf.debug)
+				fprintf(stderr, "EXCHANGE %s -> %s\n", oldpath,
+					newpath);
+			err = 0;
+			fuse_prepare_interrupt(f, req, &d);
+			if (!err) {
+				err = fuse_fs_exchange(f->fs, oldpath, newpath,
+                                                       options);
+				if (!err)
+					err = exchange_node(f, olddir, oldname,
+							    newdir, newname,
+                                                            options);
+			}
+			fuse_finish_interrupt(f, req, &d);
+			free(newpath);
+		}
+		free(oldpath);
+	}
+	pthread_rwlock_unlock(&f->tree_lock);
+	reply_err(req, err);
+}
+
+static void fuse_lib_getxtimes(fuse_req_t req, fuse_ino_t ino,
+			       struct fuse_file_info *fi)
+{
+	struct fuse *f = req_fuse_prepare(req);
+	struct timespec bkuptime;
+	struct timespec crtime;
+	char *path;
+	int err;
+
+	(void) fi;
+	memset(&bkuptime, 0, sizeof(bkuptime));
+	memset(&crtime, 0, sizeof(crtime));
+
+	err = -ENOENT;
+	pthread_rwlock_rdlock(&f->tree_lock);
+	path = get_path(f, ino);
+	if (path != NULL) {
+		struct fuse_intr_data d;
+		fuse_prepare_interrupt(f, req, &d);
+		err = fuse_fs_getxtimes(f->fs, path, &bkuptime, &crtime);
+		fuse_finish_interrupt(f, req, &d);
+		free(path);
+	}
+	pthread_rwlock_unlock(&f->tree_lock);
+	if (!err) {
+		fuse_reply_xtimes(req, &bkuptime, &crtime);
+	} else
+		reply_err(req, err);
+}
+
+#endif /* __FreeBSD__ >= 10 */
+
 static void fuse_lib_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
 			  const char *newname)
 {
@@ -1873,14 +2263,27 @@ static void open_auto_cache(struct fuse *f, fuse_ino_t ino, const char *path,
 			pthread_mutex_unlock(&f->lock);
 			err = fuse_fs_fgetattr(f->fs, path, &stbuf, fi);
 			pthread_mutex_lock(&f->lock);
+#if (__FreeBSD__ >= 10)
+			if (!err) {
+				if (stbuf.st_size != node->size)
+					fi->purge_attr = 1;
+				update_stat(node, &stbuf);
+			} else
+				node->cache_valid = 0;
+#else
 			if (!err)
 				update_stat(node, &stbuf);
 			else
 				node->cache_valid = 0;
+#endif
 		}
 	}
 	if (node->cache_valid)
 		fi->keep_cache = 1;
+#if (__FreeBSD__ >= 10)
+	else
+		fi->purge_ubc = 1;
+#endif
 
 	node->cache_valid = 1;
 	pthread_mutex_unlock(&f->lock);
@@ -2097,6 +2500,7 @@ static void fuse_lib_opendir(fuse_req_t req, fuse_ino_t ino,
 		}
 	} else {
 		reply_err(req, err);
+		pthread_mutex_destroy(&dh->lock);
 		free(dh);
 	}
 	free(path);
@@ -2320,7 +2724,11 @@ static void fuse_lib_statfs(fuse_req_t req, fuse_ino_t ino)
 }
 
 static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+#if (__FreeBSD__ >= 10)
+			      const char *value, size_t size, int flags, uint32_t position)
+#else
 			      const char *value, size_t size, int flags)
+#endif /* __FreeBSD__ >= 10 */
 {
 	struct fuse *f = req_fuse_prepare(req);
 	char *path;
@@ -2332,7 +2740,11 @@ static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	if (path != NULL) {
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
+#if (__FreeBSD__ >= 10)
+		err = fuse_fs_setxattr(f->fs, path, name, value, size, flags, position);
+#else
 		err = fuse_fs_setxattr(f->fs, path, name, value, size, flags);
+#endif /* __FreeBSD__ >= 10 */
 		fuse_finish_interrupt(f, req, &d);
 		free(path);
 	}
@@ -2341,7 +2753,11 @@ static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 }
 
 static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
+#if (__FreeBSD__ >= 10)
+			   const char *name, char *value, size_t size, uint32_t position)
+#else
 			   const char *name, char *value, size_t size)
+#endif /* __FreeBSD__ >= 10 */
 {
 	int err;
 	char *path;
@@ -2352,7 +2768,11 @@ static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
 	if (path != NULL) {
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
+#if (__FreeBSD__ >= 10)
+		err = fuse_fs_getxattr(f->fs, path, name, value, size, position);
+#else
 		err = fuse_fs_getxattr(f->fs, path, name, value, size);
+#endif /* __FreeBSD__ >= 10 */
 		fuse_finish_interrupt(f, req, &d);
 		free(path);
 	}
@@ -2361,7 +2781,11 @@ static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
 }
 
 static void fuse_lib_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+#if (__FreeBSD__ >= 10)
+			      size_t size, uint32_t position)
+#else
 			      size_t size)
+#endif /* __FreeBSD__ >= 10 */
 {
 	struct fuse *f = req_fuse_prepare(req);
 	int res;
@@ -2372,14 +2796,22 @@ static void fuse_lib_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 			reply_err(req, -ENOMEM);
 			return;
 		}
+#if (__FreeBSD__ >= 10)
+		res = common_getxattr(f, req, ino, name, value, size, position);
+#else
 		res = common_getxattr(f, req, ino, name, value, size);
+#endif /* __FreeBSD__ >= 10 */
 		if (res > 0)
 			fuse_reply_buf(req, value, res);
 		else
 			reply_err(req, res);
 		free(value);
 	} else {
+#if (__FreeBSD__ >= 10)
+		res = common_getxattr(f, req, ino, name, NULL, 0, position);
+#else
 		res = common_getxattr(f, req, ino, name, NULL, 0);
+#endif /* __FreeBSD__ >= 10 */
 		if (res >= 0)
 			fuse_reply_xattr(req, res);
 		else
@@ -2777,6 +3209,12 @@ static struct fuse_lowlevel_ops fuse_path_ops = {
 	.getlk = fuse_lib_getlk,
 	.setlk = fuse_lib_setlk,
 	.bmap = fuse_lib_bmap,
+#if (__FreeBSD__ >= 10)
+        .setvolname = fuse_lib_setvolname,
+        .exchange = fuse_lib_exchange,
+	.getxtimes = fuse_lib_getxtimes,
+	.setattr_x = fuse_lib_setattr_x,
+#endif
 };
 
 static void free_cmd(struct fuse_cmd *cmd)
@@ -3043,6 +3481,9 @@ struct fuse_fs *fuse_fs_new(const struct fuse_operations *op, size_t op_size,
 	}
 
 	fs->user_data = user_data;
+#if (__FreeBSD__ >= 10)
+	fs->fuse = NULL;
+#endif /* __FreeBSD__ >= 10 */
 	if (op)
 		memcpy(&fs->op, op, op_size);
 	return fs;
@@ -3174,6 +3615,11 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	root->nlookup = 1;
 	hash_id(f, root);
 
+#if (__FreeBSD__ >= 10)
+	f->fs->fuse = f;
+        fuse_set_fuse_internal_np(fuse_chan_fd(ch), f);
+#endif /* __FreeBSD__ >= 10 */
+
 	return f;
 
 out_free_root_name:
@@ -3210,6 +3656,10 @@ struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
 void fuse_destroy(struct fuse *f)
 {
 	size_t i;
+
+#if (__FreeBSD__ >= 10)
+        fuse_unset_fuse_internal_np(f);
+#endif /* __FreeBSD__ >= 10 */
 
 	if (f->conf.intr && f->intr_installed)
 		fuse_restore_intr_signal(f->conf.intr_signal);
@@ -3279,6 +3729,185 @@ void fuse_register_module(struct fuse_module *mod)
 	fuse_modules = mod;
 }
 
+#if (__FreeBSD__ >= 10)
+
+struct find_mountpoint_arg {
+    struct fuse *fuse;
+    const char *mountpoint;
+};
+
+static int
+find_mountpoint_helper(const char *mountpoint, struct mount_info *mi,
+                       struct find_mountpoint_arg *arg)
+{
+    if (mi->fuse == arg->fuse) {
+        arg->mountpoint = mountpoint;
+        return 0;
+    }
+
+    return 1;
+}
+
+const char *
+fuse_mountpoint_for_fs_np(struct fuse_fs *fs)
+{
+    if (!fs) {
+        return (const char *)0;
+    }
+
+    struct find_mountpoint_arg arg;
+
+    arg.fuse = fs->fuse;
+    arg.mountpoint = NULL;
+
+    pthread_mutex_lock(&mount_lock);
+    hash_traverse(mount_hash, (int(*)())find_mountpoint_helper, &arg);
+    pthread_mutex_unlock(&mount_lock);
+    
+    return arg.mountpoint;
+}
+
+struct fuse *
+fuse_get_internal_np(const char *mountpoint)
+{
+    struct fuse *fuse = NULL;
+    if (mountpoint) {
+        pthread_mutex_lock(&mount_lock);
+        struct mount_info *mi =
+            hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
+        if (mi) {
+            fuse = mi->fuse;
+            pthread_mutex_lock(&fuse->lock);
+        }
+        pthread_mutex_unlock(&mount_lock);
+    }
+    return fuse;
+}
+
+void
+fuse_put_internal_np(struct fuse *fuse)
+{
+    if (fuse) {
+        pthread_mutex_unlock(&fuse->lock);
+    }
+}
+
+fuse_ino_t
+fuse_lookup_inode_internal_np(const char *mountpoint, const char *path)
+{
+	fuse_ino_t ino = 0; /* invalid */
+	fuse_ino_t parent_ino = FUSE_ROOT_ID;
+	char scratch[MAXPATHLEN];
+
+	if (!path) {
+		return ino;
+	}
+
+	if (*path != '/') {
+		return ino;
+	}
+
+	strncpy(scratch, path + 1, sizeof(scratch));
+	char* p = scratch;
+	char* q = p; /* First (and maybe last) path component */
+
+	struct node *node = NULL;
+
+        struct fuse *f = fuse_get_internal_np(mountpoint);
+	if (f == NULL) {
+		return ino;
+	}
+
+	while (p) {
+		p = strchr(p, '/');
+		if (p) {
+			*p = '\0'; /* Terminate string for use by q */
+			++p;	   /* One past the NULL (or former '/') */
+		}
+		if (*q == '.' && *(q+1) == '\0') {
+			fuse_put_internal_np(f);
+			goto out;
+		}
+		if (*q) { /* ignore consecutive '/'s */
+			node = lookup_node(f, parent_ino, q);
+			if (!node) {
+				fuse_put_internal_np(f);
+				goto out;
+			}
+			parent_ino = node->nodeid;
+		}
+		q = p;
+	}
+	if (node) {
+		ino = node->nodeid;
+	}
+	fuse_put_internal_np(f);
+
+out:
+	return ino;
+}
+
+__private_extern__
+int
+fuse_resize_node_internal_np(const char *mountpoint, const char *path,
+			     off_t newsize)
+{
+	int ret = ENOENT;
+	fuse_ino_t parent_ino = FUSE_ROOT_ID;
+	char scratch[MAXPATHLEN];
+
+	if (!path) {
+		return EINVAL;
+	}
+
+	if (*path != '/') {
+		return EINVAL;
+	}
+
+	strncpy(scratch, path + 1, sizeof(scratch));
+	char* p = scratch;
+	char* q = p; /* First (and maybe last) path component */
+
+	struct node *node = NULL;
+
+        struct fuse *f = fuse_get_internal_np(mountpoint);
+	if (f == NULL) {
+		return EINVAL;
+	}
+
+	while (p) {
+		p = strchr(p, '/');
+		if (p) {
+			*p = '\0'; /* Terminate string for use by q */
+			++p;	   /* One past the NULL (or former '/') */
+		}
+		if (*q == '.' && *(q+1) == '\0') {
+			fuse_put_internal_np(f);
+			goto out;
+		}
+		if (*q) { /* ignore consecutive '/'s */
+			node = lookup_node(f, parent_ino, q);
+			if (!node) {
+				fuse_put_internal_np(f);
+				goto out;
+			}
+			parent_ino = node->nodeid;
+		}
+		q = p;
+	}
+	if (node) {
+		node->size = newsize;
+		node->cache_valid = 0;
+		ret = 0;
+	}
+	fuse_put_internal_np(f);
+
+out:
+	return ret;
+}
+
+#endif /* __FreeBSD__ >= 10 */
+
 #ifndef __FreeBSD__
 
 static struct fuse *fuse_new_common_compat(int fd, const char *opts,
@@ -3329,12 +3958,14 @@ struct fuse *fuse_new_compat1(int fd, int flags,
 				      11);
 }
 
+#if !(__FreeBSD__ >= 10)
 FUSE_SYMVER(".symver fuse_exited,__fuse_exited@");
 FUSE_SYMVER(".symver fuse_process_cmd,__fuse_process_cmd@");
 FUSE_SYMVER(".symver fuse_read_cmd,__fuse_read_cmd@");
 FUSE_SYMVER(".symver fuse_set_getcontext_func,__fuse_set_getcontext_func@");
 FUSE_SYMVER(".symver fuse_new_compat2,fuse_new@");
 FUSE_SYMVER(".symver fuse_new_compat22,fuse_new@FUSE_2.2");
+#endif
 
 #endif /* __FreeBSD__ */
 
@@ -3346,4 +3977,6 @@ struct fuse *fuse_new_compat25(int fd, struct fuse_args *args,
 					op_size, 25);
 }
 
+#if !(__FreeBSD__ >= 10)
 FUSE_SYMVER(".symver fuse_new_compat25,fuse_new@FUSE_2.5");
+#endif

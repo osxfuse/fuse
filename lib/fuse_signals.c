@@ -7,18 +7,24 @@
 */
 
 #include "fuse_lowlevel.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
+#if (__FreeBSD__ >= 10)
+#include "fuse_darwin_private.h"
+#endif /* __FreeBSD__ >= 10 */
 
 static struct fuse_session *fuse_instance;
 
 static void exit_handler(int sig)
 {
 	(void) sig;
+#if (__FreeBSD__ >= 10)
+	fuse_exit_handler_internal_np();
+#else
 	if (fuse_instance)
 		fuse_session_exit(fuse_instance);
+#endif
 }
 
 static int set_one_signal_handler(int sig, void (*handler)(int))
@@ -58,12 +64,17 @@ int fuse_set_signal_handlers(struct fuse_session *se)
 
 void fuse_remove_signal_handlers(struct fuse_session *se)
 {
+#if (__FreeBSD__ >= 10)
+	if (fuse_remove_signal_handlers_internal_np() != 0) {
+		return;
+	}
+#else
 	if (fuse_instance != se)
 		fprintf(stderr,
 			"fuse: fuse_remove_signal_handlers: unknown session\n");
 	else
 		fuse_instance = NULL;
-
+#endif /* __FreeBSD__ >= 10 */
 	set_one_signal_handler(SIGHUP, SIG_DFL);
 	set_one_signal_handler(SIGINT, SIG_DFL);
 	set_one_signal_handler(SIGTERM, SIG_DFL);

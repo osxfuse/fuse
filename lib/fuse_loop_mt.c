@@ -15,7 +15,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#if (__FreeBSD__ >= 10)
+#define DARWIN_SEMAPHORE_COMPAT 1
+#include "fuse_darwin_private.h"
+#else
 #include <semaphore.h>
+#endif
 #include <errno.h>
 #include <sys/time.h>
 
@@ -121,7 +126,15 @@ static void *fuse_do_work(void *data)
 	}
 
 	sem_post(&mt->finish);
+#if (__FreeBSD__ >= 10)
+	{
+		sigset_t set;
+		(void)sigprocmask(0, NULL, &set);
+		(void)sigsuspend(&set); /* want cancelable */
+	}
+#else
 	pause();
+#endif /* __FreeBSD__ >= 10 */
 
 	return NULL;
 }

@@ -31,6 +31,8 @@
 #include <sys/xattr.h>
 #endif
 
+#if !(__FreeBSD__ >= 10)
+
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
@@ -383,3 +385,14 @@ int main(int argc, char *argv[])
 	umask(0);
 	return fuse_main(argc, argv, &xmp_oper, NULL);
 }
+
+#else
+
+int
+main(void)
+{
+    fprintf(stderr, "Please use fusexmp_fh instead of this program.\n");
+    return 1;
+}
+
+#endif

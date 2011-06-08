@@ -16,6 +16,9 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#if (__FreeBSD__ >= 10)
+#include <sys/param.h>
+#endif
 
 struct fuse_session {
 	struct fuse_session_ops op;

@@ -78,7 +78,42 @@ static void convert_stat(const struct stat *stbuf, struct fuse_attr *attr)
 	attr->atimensec = ST_ATIM_NSEC(stbuf);
 	attr->mtimensec = ST_MTIM_NSEC(stbuf);
 	attr->ctimensec = ST_CTIM_NSEC(stbuf);
+#if (__FreeBSD__ >= 10)
+	attr->flags	= stbuf->st_flags;
+#if __DARWIN_64_BIT_INO_T
+	attr->crtime	= stbuf->st_birthtime;
+	attr->crtimensec= (uint32_t)(stbuf->st_birthtimensec);
+#else
+	attr->crtime	= (__u64)-1;
+	attr->crtimensec= (__u32)-1;
+#endif /* __DARWIN_64_BIT_INO_T */
+#endif /* __FreeBSD__ >= 10 */
+
 }
+
+#if (__FreeBSD__ >= 10)
+
+static void convert_attr_x(const struct fuse_setattr_in *attr,
+			   struct setattr_x *stbuf)
+{
+	stbuf->mode		= attr->mode;
+	stbuf->uid		= attr->uid;
+	stbuf->gid		= attr->gid;
+	stbuf->size		= attr->size;
+	stbuf->acctime.tv_sec	= attr->atime;
+	stbuf->modtime.tv_sec	= attr->mtime;
+	stbuf->crtime.tv_sec	= attr->crtime;
+	stbuf->chgtime.tv_sec	= attr->chgtime;
+	stbuf->bkuptime.tv_sec	= attr->bkuptime;
+	stbuf->acctime.tv_nsec	= attr->atimensec;
+	stbuf->modtime.tv_nsec	= attr->mtimensec;
+	stbuf->crtime.tv_nsec	= attr->crtimensec;
+	stbuf->chgtime.tv_nsec	= attr->chgtimensec;
+	stbuf->bkuptime.tv_nsec	= attr->bkuptimensec;
+	stbuf->flags		= attr->flags;
+}
+
+#endif /* __FreeBSD__ >= 10 */
 
 static void convert_attr(const struct fuse_setattr_in *attr, struct stat *stbuf)
 {
@@ -90,6 +125,20 @@ static void convert_attr(const struct fuse_setattr_in *attr, struct stat *stbuf)
 	stbuf->st_mtime	       = attr->mtime;
 	ST_ATIM_NSEC_SET(stbuf, attr->atimensec);
 	ST_MTIM_NSEC_SET(stbuf, attr->mtimensec);
+#if (__FreeBSD__ >= 10)
+
+	stbuf->st_flags = attr->flags;
+
+	stbuf->st_ctime = attr->chgtime;
+	stbuf->st_ctimensec = attr->chgtimensec;
+
+	/* XXX: aaaaaaaaaaaargh */
+	stbuf->st_qspare[0] = attr->bkuptime;
+	stbuf->st_lspare = attr->bkuptimensec;
+	stbuf->st_qspare[1] = attr->crtime;
+	stbuf->st_gen = attr->crtimensec;
+
+#endif /* __FreeBSD__ >= 10 */
 }
 
 static	size_t iov_length(const struct iovec *iov, size_t count)
@@ -315,7 +364,30 @@ static void fill_open(struct fuse_open_out *arg,
 		arg->open_flags |= FOPEN_DIRECT_IO;
 	if (f->keep_cache)
 		arg->open_flags |= FOPEN_KEEP_CACHE;
+#if (__FreeBSD__ >= 10)
+	if (f->purge_attr)
+		arg->open_flags |= FOPEN_PURGE_ATTR;
+	if (f->purge_ubc)
+		arg->open_flags |= FOPEN_PURGE_UBC;
+#endif
 }
+
+#if (__FreeBSD__ >= 10)
+
+int fuse_reply_xtimes(fuse_req_t req, const struct timespec *bkuptime,
+		      const struct timespec *crtime)
+{
+	struct fuse_getxtimes_out arg;
+
+	arg.bkuptime = bkuptime->tv_sec;
+	arg.bkuptimensec = bkuptime->tv_nsec;
+	arg.crtime = crtime->tv_sec;
+	arg.crtimensec = crtime->tv_nsec;
+
+	return send_reply_ok(req, &arg, sizeof(arg));
+}
+
+#endif /* __FreeBSD__ >= 10 */
 
 int fuse_reply_entry(fuse_req_t req, const struct fuse_entry_param *e)
 {
@@ -470,6 +542,24 @@ static void do_setattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 {
 	struct fuse_setattr_in *arg = (struct fuse_setattr_in *) inarg;
 
+#if (__FreeBSD__ >= 10)
+	if (req->f->op.setattr_x) {
+		struct fuse_file_info *fi = NULL;
+		struct fuse_file_info fi_store;
+		struct setattr_x stbuf;
+		memset(&stbuf, 0, sizeof(stbuf));
+		convert_attr_x(arg, &stbuf);
+		if (arg->valid & FATTR_FH) {
+			arg->valid &= ~FATTR_FH;
+			memset(&fi_store, 0, sizeof(fi_store));
+			fi = &fi_store;
+			fi->fh = arg->fh;
+			fi->fh_old = fi->fh;
+		}
+		stbuf.valid = arg->valid;
+		req->f->op.setattr_x(req, nodeid, &stbuf, arg->valid, fi);
+	} else
+#endif /* __FreeBSD__ >= 10 */
 	if (req->f->op.setattr) {
 		struct fuse_file_info *fi = NULL;
 		struct fuse_file_info fi_store;
@@ -570,6 +660,41 @@ static void do_rename(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	else
 		fuse_reply_err(req, ENOSYS);
 }
+
+#if (__FreeBSD__ >= 10)
+
+static void do_setvolname(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
+{
+	const char *volname = (const char *)inarg;
+	if (req->f->op.setvolname)
+		req->f->op.setvolname(req, volname);
+	else
+		fuse_reply_err(req, ENOSYS);
+}
+
+static void do_exchange(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
+{
+	struct fuse_exchange_in *arg = (struct fuse_exchange_in *) inarg;
+	char *oldname = PARAM(arg);
+	char *newname = oldname + strlen(oldname) + 1;
+
+	if (req->f->op.exchange)
+		req->f->op.exchange(req, arg->olddir, oldname, arg->newdir,
+				    newname, (unsigned long)(arg->options));
+	else
+		fuse_reply_err(req, ENOSYS);
+}
+
+static void do_getxtimes(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
+{
+	(void) inarg;
+
+	if (req->f->op.getxtimes)
+		req->f->op.getxtimes(req, nodeid, NULL);
+	else
+		fuse_reply_err(req, ENOSYS);
+}
+#endif /* __FreeBSD__ >= 10 */
 
 static void do_link(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 {
@@ -779,7 +904,11 @@ static void do_setxattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 
 	if (req->f->op.setxattr)
 		req->f->op.setxattr(req, nodeid, name, value, arg->size,
+#if (__FreeBSD__ >= 10)
+				    arg->flags, arg->position);
+#else
 				    arg->flags);
+#endif /* __FreeBSD__ >= 10 */
 	else
 		fuse_reply_err(req, ENOSYS);
 }
@@ -789,7 +918,11 @@ static void do_getxattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	struct fuse_getxattr_in *arg = (struct fuse_getxattr_in *) inarg;
 
 	if (req->f->op.getxattr)
+#if (__FreeBSD__ >= 10)
+		req->f->op.getxattr(req, nodeid, PARAM(arg), arg->size, arg->position);
+#else
 		req->f->op.getxattr(req, nodeid, PARAM(arg), arg->size);
+#endif /* __FreeBSD__ >= 10 */
 	else
 		fuse_reply_err(req, ENOSYS);
 }
@@ -1019,6 +1152,13 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	outarg.max_readahead = f->conn.max_readahead;
 	outarg.max_write = f->conn.max_write;
 
+#if (__FreeBSD__ >= 10)
+	if (f->conn.enable.setvolname)
+		outarg.flags |= FUSE_VOL_RENAME;
+	if (f->conn.enable.xtimes)
+		outarg.flags |= FUSE_XTIMES;
+#endif /* __FreeBSD__ >= 10 */
+
 	if (f->debug) {
 		fprintf(stderr, "   INIT: %u.%u\n", outarg.major, outarg.minor);
 		fprintf(stderr, "   flags=0x%08x\n", outarg.flags);
@@ -1116,6 +1256,11 @@ static struct {
 	[FUSE_INTERRUPT]   = { do_interrupt,   "INTERRUPT"   },
 	[FUSE_BMAP]	   = { do_bmap,	       "BMAP"	     },
 	[FUSE_DESTROY]	   = { do_destroy,     "DESTROY"     },
+#if (__FreeBSD__ >= 10)
+	[FUSE_SETVOLNAME]  = { do_setvolname,  "SETVOLNAME"  },
+	[FUSE_EXCHANGE]    = { do_exchange,    "EXCHANGE"    },
+	[FUSE_GETXTIMES]   = { do_getxtimes,   "GETXTIMES"   },
+#endif /* __FreeBSD__ >= 10 */
 };
 
 #define FUSE_MAXOP (sizeof(fuse_ll_ops) / sizeof(fuse_ll_ops[0]))
@@ -1206,8 +1351,13 @@ static struct fuse_opt fuse_ll_opts[] = {
 
 static void fuse_ll_version(void)
 {
+#if (__FreeBSD__ >= 10)
+	fprintf(stderr, "MacFUSE kernel interface version %i.%i\n",
+		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
+#else
 	fprintf(stderr, "using FUSE kernel interface version %i.%i\n",
 		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
+#endif
 }
 
 static void fuse_ll_help(void)
@@ -1419,9 +1569,11 @@ int fuse_sync_compat_args(struct fuse_args *args)
 	return 0;
 }
 
+#if !(__FreeBSD__ >= 10)
 FUSE_SYMVER(".symver fuse_reply_statfs_compat,fuse_reply_statfs@FUSE_2.4");
 FUSE_SYMVER(".symver fuse_reply_open_compat,fuse_reply_open@FUSE_2.4");
 FUSE_SYMVER(".symver fuse_lowlevel_new_compat,fuse_lowlevel_new@FUSE_2.4");
+#endif
 
 #else /* __FreeBSD__ */
 
@@ -1445,4 +1597,6 @@ struct fuse_session *fuse_lowlevel_new_compat25(struct fuse_args *args,
 					op_size, userdata);
 }
 
+#if !(__FreeBSD__ >= 10)
 FUSE_SYMVER(".symver fuse_lowlevel_new_compat25,fuse_lowlevel_new@FUSE_2.5");
+#endif

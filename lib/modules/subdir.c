@@ -256,6 +256,29 @@ static int subdir_symlink(const char *from, const char *path)
 	return err;
 }
 
+#if (__FreeBSD__ >= 10)
+
+static int subdir_setvolname(const char *volname)
+{
+	return fuse_fs_setvolname(subdir_get()->next, volname);
+}
+
+static int subdir_exchange(const char *path1, const char *path2,
+			   unsigned long options)
+{
+	struct subdir *d = subdir_get();
+	char *new1 = subdir_addpath(d, path1);
+	char *new2 = subdir_addpath(d, path2);
+	int err = -ENOMEM;
+	if (new1 && new2)
+		err = fuse_fs_exchange(d->next, new1, new2, options);
+	free(new1);
+	free(new2);
+	return err;
+}
+
+#endif /* __FreeBSD__ >= 10 */
+
 static int subdir_rename(const char *from, const char *to)
 {
 	struct subdir *d = subdir_get();
@@ -281,6 +304,94 @@ static int subdir_link(const char *from, const char *to)
 	free(newto);
 	return err;
 }
+
+#if (__FreeBSD__ >= 10)
+static int subdir_setattr_x(const char *path, struct setattr_x *attr)
+{
+	struct subdir *d = subdir_get();
+	char *newpath = subdir_addpath(d, path);
+	int err = -ENOMEM;
+	if (newpath) {
+		err = fuse_fs_setattr_x(d->next, newpath, attr);
+		free(newpath);
+	}
+	return err;
+}
+
+static int subdir_fsetattr_x(const char *path, struct setattr_x *attr,
+			     struct fuse_file_info *fi)
+{
+	struct subdir *d = subdir_get();
+	char *newpath = subdir_addpath(d, path);
+	int err = -ENOMEM;
+	if (newpath) {
+		err = fuse_fs_fsetattr_x(d->next, newpath, attr, fi);
+		free(newpath);
+	}
+	return err;
+}
+
+static int subdir_chflags(const char *path, uint32_t flags)
+{
+	struct subdir *d = subdir_get();
+	char *newpath = subdir_addpath(d, path);
+	int err = -ENOMEM;
+	if (newpath) {
+		err = fuse_fs_chflags(d->next, newpath, flags);
+		free(newpath);
+	}
+	return err;
+}
+
+static int subdir_getxtimes(const char *path, struct timespec *bkuptime,
+			    struct timespec *crtime)
+{
+	struct subdir *d = subdir_get();
+	char *newpath = subdir_addpath(d, path);
+	int err = -ENOMEM;
+	if (newpath) {
+		err = fuse_fs_getxtimes(d->next, newpath, bkuptime, crtime);
+		free(newpath);
+	}
+	return err;
+}
+
+static int subdir_setbkuptime(const char *path, const struct timespec *bkuptime)
+{
+	struct subdir *d = subdir_get();
+	char *newpath = subdir_addpath(d, path);
+	int err = -ENOMEM;
+	if (newpath) {
+		err = fuse_fs_setbkuptime(d->next, newpath, bkuptime);
+		free(newpath);
+	}
+	return err;
+}
+
+static int subdir_setchgtime(const char *path, const struct timespec *chgtime)
+{
+	struct subdir *d = subdir_get();
+	char *newpath = subdir_addpath(d, path);
+	int err = -ENOMEM;
+	if (newpath) {
+		err = fuse_fs_setchgtime(d->next, newpath, chgtime);
+		free(newpath);
+	}
+	return err;
+}
+
+static int subdir_setcrtime(const char *path, const struct timespec *crtime)
+{
+	struct subdir *d = subdir_get();
+	char *newpath = subdir_addpath(d, path);
+	int err = -ENOMEM;
+	if (newpath) {
+		err = fuse_fs_setcrtime(d->next, newpath, crtime);
+		free(newpath);
+	}
+	return err;
+}
+#endif /* __FreeBSD__ >= 10 */
 
 static int subdir_chmod(const char *path, mode_t mode)
 {
@@ -457,27 +568,43 @@ static int subdir_fsyncdir(const char *path, int isdatasync,
 }
 
 static int subdir_setxattr(const char *path, const char *name,
+#if (__FreeBSD__ >= 10)
+			   const char *value, size_t size, int flags, uint32_t position)
+#else
 			   const char *value, size_t size, int flags)
+#endif
 {
 	struct subdir *d = subdir_get();
 	char *newpath = subdir_addpath(d, path);
 	int err = -ENOMEM;
 	if (newpath) {
 		err = fuse_fs_setxattr(d->next, newpath, name, value, size,
+#if (__FreeBSD__ >= 10)
+				       flags, position);
+#else
 				       flags);
+#endif
 		free(newpath);
 	}
 	return err;
 }
 
 static int subdir_getxattr(const char *path, const char *name, char *value,
+#if (__FreeBSD__ >= 10)
+			   size_t size, uint32_t position)
+#else
 			   size_t size)
+#endif
 {
 	struct subdir *d = subdir_get();
 	char *newpath = subdir_addpath(d, path);
 	int err = -ENOMEM;
 	if (newpath) {
+#if (__FreeBSD__ >= 10)
+		err = fuse_fs_getxattr(d->next, newpath, name, value, size, position);
+#else
 		err = fuse_fs_getxattr(d->next, newpath, name, value, size);
+#endif
 		free(newpath);
 	}
 	return err;
@@ -584,6 +711,17 @@ static struct fuse_operations subdir_oper = {
 	.removexattr	= subdir_removexattr,
 	.lock		= subdir_lock,
 	.bmap		= subdir_bmap,
+#if (__FreeBSD__ >= 10)
+	.setvolname	= subdir_setvolname,
+	.exchange	= subdir_exchange,
+	.getxtimes	= subdir_getxtimes,
+	.setbkuptime	= subdir_setbkuptime,
+	.setchgtime	= subdir_setchgtime,
+	.setcrtime	= subdir_setcrtime,
+	.chflags	= subdir_chflags,
+	.setattr_x	= subdir_setattr_x,
+	.fsetattr_x	= subdir_fsetattr_x,
+#endif /* __FreeBSD__ >= 10 */
 };
 
 static struct fuse_opt subdir_opts[] = {
