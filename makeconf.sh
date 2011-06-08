@@ -1,11 +1,30 @@
 #! /bin/sh
 
-echo Running libtoolize...
-libtoolize --automake -c -f
+DARWIN=""
+is_darwin() {
+    if [ -z "$DARWIN" ]; then
+        test "`uname`" = "Darwin"
+        DARWIN=$?
+    fi
+    return $DARWIN
+}
 
-CONFIG_RPATH=/usr/share/gettext/config.rpath
-if ! [ -f $CONFIG_RPATH ]; then
-    CONFIG_RPATH=/usr/local/share/gettext/config.rpath
+if is_darwin; then
+    LIBTOOLIZE=glibtoolize
+else
+    LIBTOOLIZE=libtoolize
+fi
+
+echo Running libtoolize...
+$LIBTOOLIZE --automake -c -f
+
+if is_darwin; then
+    CONFIG_RPATH=/opt/local/share/gettext/config.rpath
+else
+    CONFIG_RPATH=/usr/share/gettext/config.rpath
+    if ! [ -f $CONFIG_RPATH ]; then
+        CONFIG_RPATH=/usr/local/share/gettext/config.rpath
+    fi
 fi
 if ! [ -f $CONFIG_RPATH ]; then
     if  [ -f config.rpath ]; then
