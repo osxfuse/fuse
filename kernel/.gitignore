@@ -1,0 +1,6 @@
+/configure
+/*.cache/
+/*.mod.c
+/*.ko
+/*.s
+/*.symvers
