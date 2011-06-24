@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: osxfuse
+Description: OSXFUSE Userspace Library (Filesystem in Userspace)
+Version: @VERSION@
+Libs: -L${libdir} -losxfuse @libfuse_libs@
+Cflags: -I${includedir}/fuse -D__DARWIN_64_BIT_INO_T=0 -D__FreeBSD__=10 -D_FILE_OFFSET_BITS=64

@@ -72,21 +72,6 @@ fuse_os_version_major_np(void)
     return major;
 }
 
-int
-fuse_running_under_rosetta(void)
-{
-    int result = 0;
-    int is_native = 1;
-    size_t sz = sizeof(result);
-
-    int ret = sysctlbyname("sysctl.proc_native", &result, &sz, NULL, (size_t)0);
-    if ((ret == 0) && !result) {
-        is_native = 0;
-    }
-
-    return !is_native;
-}
-
 static int
 loadkmod(void)
 {
@@ -104,7 +89,7 @@ loadkmod(void)
     pid = fork();
 
     if (pid == 0) {
-        result = execl(MACFUSE_LOAD_PROG, MACFUSE_LOAD_PROG, NULL);
+        result = execl(OSXFUSE_LOAD_PROG, OSXFUSE_LOAD_PROG, NULL);
         
         /* exec failed */
         goto Return;
@@ -334,14 +319,14 @@ static const struct fuse_opt fuse_mount_opts[] = {
 static void
 mount_help(void)
 {
-    system(MACFUSE_MOUNT_PROG " --help");
+    system(OSXFUSE_MOUNT_PROG " --help");
     fputc('\n', stderr);
 }
 
 static void
 mount_version(void)
 {
-    system(MACFUSE_MOUNT_PROG " --version");
+    system(OSXFUSE_MOUNT_PROG " --version");
 }
 
 static int
@@ -456,8 +441,8 @@ fuse_kern_unmount(const char *mountpoint, int fd)
 
     devname_r(sbuf.st_rdev, S_IFCHR, dev, 128);
 
-    if (strncmp(dev, MACFUSE_DEVICE_BASENAME,
-                sizeof(MACFUSE_DEVICE_BASENAME) - 1)) {
+    if (strncmp(dev, OSXFUSE_DEVICE_BASENAME,
+                sizeof(OSXFUSE_DEVICE_BASENAME) - 1)) {
         return;
     }
 
@@ -492,15 +477,10 @@ fuse_mount_core(const char *mountpoint, const char *opts)
     int fd, pid;
     int result;
     char *fdnam, *dev;
-    const char *mountprog = MACFUSE_MOUNT_PROG;
+    const char *mountprog = OSXFUSE_MOUNT_PROG;
 
     if (!mountpoint) {
         fprintf(stderr, "missing or invalid mount point\n");
-        return -1;
-    }
-
-    if (fuse_running_under_rosetta()) {
-        fprintf(stderr, "MacFUSE does not work under Rosetta\n");
         return -1;
     }
 
@@ -518,7 +498,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                     (CFURLRef)0,
                     (CFURLRef)0,
                     CFSTR("Operating System Too Old"),
-                    CFSTR("The installed MacFUSE version is too new for the operating system. Please downgrade your MacFUSE installation to one that is compatible with the currently running operating system."),
+                    CFSTR("The installed OSXFUSE version is too new for the operating system. Please downgrade your OSXFUSE installation to one that is compatible with the currently running operating system."),
                     CFSTR("OK")
                 );
             }
@@ -532,15 +512,15 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                     (CFURLRef)0,
                     (CFURLRef)0,
                     (CFURLRef)0,
-                    CFSTR("MacFUSE Version Mismatch"),
-                    CFSTR("MacFUSE has been updated but an incompatible or old version of the MacFUSE kernel extension is already loaded. It failed to unload, possibly because a MacFUSE volume is currently mounted.\n\nPlease eject all MacFUSE volumes and try again, or simply restart the system for changes to take effect."),
+                    CFSTR("OSXFUSE Version Mismatch"),
+                    CFSTR("OSXFUSE has been updated but an incompatible or old version of the OSXFUSE kernel extension is already loaded. It failed to unload, possibly because a OSXFUSE volume is currently mounted.\n\nPlease eject all OSXFUSE volumes and try again, or simply restart the system for changes to take effect."),
                     CFSTR("OK")
                 );
             }
             post_notification(LIBFUSE_UNOTIFICATIONS_NOTIFY_VERSIONMISMATCH,
                               NULL, NULL, 0);
         }
-        fprintf(stderr, "the MacFUSE file system is not available (%d)\n",
+        fprintf(stderr, "the OSXFUSE file system is not available (%d)\n",
                 result);
         return -1;
     } else {
@@ -551,14 +531,14 @@ fuse_mount_core(const char *mountpoint, const char *opts)
         size_t version_len = MAXHOSTNAMELEN;
         size_t version_len_desired = 0;
 
-        result = sysctlbyname(SYSCTL_MACFUSE_VERSION_NUMBER, version,
+        result = sysctlbyname(SYSCTL_OSXFUSE_VERSION_NUMBER, version,
                               &version_len, NULL, (size_t)0);
         if (result == 0) {
             /* sysctlbyname() includes the trailing '\0' in version_len */
-            version_len_desired = strlen(MACFUSE_VERSION) + 1;
+            version_len_desired = strlen(OSXFUSE_VERSION) + 1;
 
             if ((version_len != version_len_desired) ||
-                strncmp(MACFUSE_VERSION, version, version_len)) {
+                strncmp(OSXFUSE_VERSION, version, version_len)) {
                 result = -1;
             }
         }
@@ -572,16 +552,16 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                 (CFURLRef)0,
                 (CFURLRef)0,
                 (CFURLRef)0,
-                CFSTR("MacFUSE Runtime Version Mismatch"),
-                CFSTR("The MacFUSE library version this program is using is incompatible with the loaded MacFUSE kernel extension."),
+                CFSTR("OSXFUSE Runtime Version Mismatch"),
+                CFSTR("The OSXFUSE library version this program is using is incompatible with the loaded OSXFUSE kernel extension."),
                 CFSTR("OK")
             );
         }
         post_notification(LIBFUSE_UNOTIFICATIONS_NOTIFY_RUNTIMEVERSIONMISMATCH,
                           NULL, NULL, 0);
         fprintf(stderr,
-                "this MacFUSE library version is incompatible with "
-                "the MacFUSE kernel extension\n");
+                "this OSXFUSE library version is incompatible with "
+                "the OSXFUSE kernel extension\n");
         return -1;
     }
 
@@ -608,16 +588,16 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 
     if (dev) {
         if ((fd = open(dev, O_RDWR)) < 0) {
-            perror("MacFUSE: failed to open device");
+            perror("fuse: failed to open device");
             return -1;
         }
     } else {
         int r, devidx = -1;
         char devpath[MAXPATHLEN];
 
-        for (r = 0; r < MACFUSE_NDEVICES; r++) {
+        for (r = 0; r < OSXFUSE_NDEVICES; r++) {
             snprintf(devpath, MAXPATHLEN - 1,
-                     _PATH_DEV MACFUSE_DEVICE_BASENAME "%d", r);
+                     _PATH_DEV OSXFUSE_DEVICE_BASENAME "%d", r);
             fd = open(devpath, O_RDWR);
             if (fd >= 0) {
                 dev = devpath;
@@ -626,7 +606,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
             }
         }
         if (devidx == -1) {
-            perror("MacFUSE: failed to open device");
+            perror("fuse: failed to open device");
             return -1;
         }
     }
@@ -640,7 +620,7 @@ mount:
     pid = fork();
 
     if (pid == -1) {
-        perror("MacFUSE: fork() failed");
+        perror("fuse: fork() failed");
         close(fd);
         return -1;
     }
@@ -649,7 +629,7 @@ mount:
 
         pid = fork();
         if (pid == -1) {
-            perror("MacFUSE: fork() failed");
+            perror("fuse: fork() failed");
             close(fd);
             exit(1);
         }
@@ -679,7 +659,7 @@ mount:
                 }
             }
             execvp(mountprog, (char **) argv);
-            perror("MacFUSE: failed to exec mount program");
+            perror("fuse: failed to exec mount program");
             exit(1);
         }
 
@@ -711,7 +691,7 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
     if (mo.allow_other && mo.allow_root) {
         fprintf(stderr,
-                "MacFUSE: allow_other and allow_root are mutually exclusive\n");
+                "fuse: allow_other and allow_root are mutually exclusive\n");
         goto out;
     }
 
@@ -722,12 +702,12 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
     pthread_mutex_lock(&mount_lock);
     if (hash_search(mount_hash, (char *)mountpoint, NULL, NULL) != NULL) {
-        fprintf(stderr, "MacFUSE: attempt to remount on active mount point: %s",
+        fprintf(stderr, "fuse: attempt to remount on active mount point: %s",
                 mountpoint);
         goto out_unlock;
     }
     if (did_daemonize && mount_count > 0) {
-        fprintf(stderr, "MacFUSE: attempt to multi-mount after daemonized: %s",
+        fprintf(stderr, "fuse: attempt to multi-mount after daemonized: %s",
                 mountpoint);
         goto out_unlock;
     }

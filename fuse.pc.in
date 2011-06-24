@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: fuse
-Description: File System in User Space (MacFUSE)
+Description: Filesystem in Userspace
 Version: @VERSION@
 Libs: -L${libdir} -lfuse @libfuse_libs@
-Cflags: -I${includedir}/fuse -D__DARWIN_64_BIT_INO_T=0 -D__FreeBSD__=10 -D_FILE_OFFSET_BITS=64
+Cflags: -I${includedir}/fuse -D_FILE_OFFSET_BITS=64

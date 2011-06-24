@@ -1352,7 +1352,7 @@ static struct fuse_opt fuse_ll_opts[] = {
 static void fuse_ll_version(void)
 {
 #if (__FreeBSD__ >= 10)
-	fprintf(stderr, "MacFUSE kernel interface version %i.%i\n",
+	fprintf(stderr, "OSXFUSE kernel interface version %i.%i\n",
 		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
 #else
 	fprintf(stderr, "using FUSE kernel interface version %i.%i\n",

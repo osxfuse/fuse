@@ -9,7 +9,11 @@ endif
 AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
  -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26 $(AM_CPPFLAGS_DARWIN)
 
+if DARWIN
+lib_LTLIBRARIES = libosxfuse.la
+else
 lib_LTLIBRARIES = libfuse.la libulockmgr.la
+endif
 
 if BSD
 mount_source = mount_bsd.c
@@ -50,11 +54,13 @@ libfuse_la_SOURCES = 		\
 	$(iconv_source)		\
 	$(mount_source)
 
+libosxfuse_la_SOURCES = $(libfuse_la_SOURCES)
+
 if !DARWIN
 libfuse_la_LDFLAGS = @libfuse_libs@ -version-number 2:7:3 \
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
 else
-libfuse_la_LDFLAGS = -version-number 2:7:3
+libosxfuse_la_LDFLAGS = -version-number 2:7:3
 endif
 
 libulockmgr_la_SOURCES = ulockmgr.c

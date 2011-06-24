@@ -1,10 +1,10 @@
-MacFUSE Project Page:
+OSXFUSE Project Page:
 
-http://code.google.com/p/macfuse/
+http://osxfuse.github.com/
 
 Making a Universal build of libfuse:
 
-1. Run "/bin/sh ./darwin_configure.sh /path/to/macfuse/core/10.5/fusefs/"
+1. Run "./darwin_configure.sh /path/to/osxfuse/kext/"
 2. Run make
 
 If you begin with the "raw" patch, you need to perform a step 0 as follows:

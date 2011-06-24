@@ -29,5 +29,6 @@ config.*
 /libtool
 /INSTALL
 /fuse.pc
+/osxfuse.pc
 /.pc
 /patches

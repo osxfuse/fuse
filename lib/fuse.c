@@ -1286,14 +1286,14 @@ static int mtime_eq(const struct stat *stbuf, const struct timespec *ts)
 static void curr_time(struct timespec *now)
 {
 #if (__FreeBSD__ >= 10)
-#define MACFUSE_TIMEVAL_TO_TIMESPEC(tv, ts) {		\
+#define OSXFUSE_TIMEVAL_TO_TIMESPEC(tv, ts) {		\
 		(ts)->tv_sec = (tv)->tv_sec;		\
 		(ts)->tv_nsec = (tv)->tv_usec * 1000;	\
 	}
 	struct timeval tp;
 	gettimeofday(&tp, NULL);
 	/* XXX: TBD: We are losing resolution here. */
-	MACFUSE_TIMEVAL_TO_TIMESPEC(&tp, now);
+	OSXFUSE_TIMEVAL_TO_TIMESPEC(&tp, now);
 #else
 	static clockid_t clockid = CLOCK_MONOTONIC;
 	int res = clock_gettime(clockid, now);

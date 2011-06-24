@@ -322,11 +322,19 @@ fuse_unset_fuse_internal_np(struct fuse *f)
     pthread_mutex_unlock(&mount_lock);
 }
 
+#ifdef MACFUSE
 const char *
 macfuse_version(void)
 {
-    return MACFUSE_VERSION;
+    return OSXFUSE_VERSION;
 }
+#else /* !MACFUSE */
+const char *
+osxfuse_version(void)
+{
+	return OSXFUSE_VERSION;
+}
+#endif /* !MACFUSE */
 
 int             
 fuse_device_fd_np(const char *mountpoint)
@@ -420,14 +428,14 @@ hash_table     *mount_hash;
 int             mount_count;
 int             did_daemonize;
 
-static void macfuse_lib_constructor(void) __attribute__((constructor));
-static void macfuse_lib_destructor(void)  __attribute__((destructor));
+static void osxfuse_lib_constructor(void) __attribute__((constructor));
+static void osxfuse_lib_destructor(void)  __attribute__((destructor));
 
 static void
-macfuse_lib_constructor(void)
+osxfuse_lib_constructor(void)
 {
     pthread_mutex_init(&mount_lock, NULL);
-    mount_hash = hash_create(MACFUSE_NDEVICES);
+    mount_hash = hash_create(OSXFUSE_NDEVICES);
     mount_count = 0;
     did_daemonize = 0;
 }
@@ -440,7 +448,7 @@ mount_hash_purge_helper(char *key, void *value)
 }
 
 static void
-macfuse_lib_destructor(void)
+osxfuse_lib_destructor(void)
 {
     hash_purge(mount_hash, mount_hash_purge_helper);
     free(mount_hash);

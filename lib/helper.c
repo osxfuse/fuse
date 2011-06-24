@@ -85,8 +85,8 @@ static void helper_help(void)
 static void helper_version(void)
 {
 #if (__FreeBSD__ >= 10)
-	fprintf(stderr, "MacFUSE library version: FUSE %s / MacFUSE %s\n",
- 		PACKAGE_VERSION, MACFUSE_VERSION);
+	fprintf(stderr, "OSXFUSE library version: FUSE %s / OSXFUSE %s\n",
+ 		PACKAGE_VERSION, OSXFUSE_VERSION);
 #else
 	fprintf(stderr, "FUSE library version: %s\n", PACKAGE_VERSION);
 #endif

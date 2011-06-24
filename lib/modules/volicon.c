@@ -1,5 +1,5 @@
 /*
- *  Custom volume icon support for MacFUSE.
+ *  Custom volume icon support for MacFUSE/OSXFUSE.
  *
  *  - xattr'ification and overhaul by Amit Singh <singh@>
  *  - Made into a libfuse stack module by Andrew de los Reyes <adlr@google>
