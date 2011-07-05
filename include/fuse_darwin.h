@@ -65,30 +65,25 @@ typedef fuse_sem_t sem_t;
 
 /* Notifications */
 
-#define LIBFUSE_BUNDLE_IDENTIFIER "com.google.filesystems.libfuse"
+#define LIBOSXFUSE_BUNDLE_IDENTIFIER "com.github.osxfuse.libosxfuse"
 
-#define LIBFUSE_UNOTIFICATIONS_OBJECT                 \
-    LIBFUSE_BUNDLE_IDENTIFIER ".unotifications"
+#define LIBOSXFUSE_UNOTIFICATIONS_OBJECT                 \
+    LIBOSXFUSE_BUNDLE_IDENTIFIER ".unotifications"
 
-#define LIBFUSE_UNOTIFICATIONS_NOTIFY_OSISTOONEW      \
-    LIBFUSE_BUNDLE_IDENTIFIER ".osistoonew"
+#define LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_OSISTOONEW      \
+    LIBOSXFUSE_BUNDLE_IDENTIFIER ".osistoonew"
 
-#define LIBFUSE_UNOTIFICATIONS_NOTIFY_OSISTOOOLD      \
-    LIBFUSE_BUNDLE_IDENTIFIER ".osistooold"                    
+#define LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_OSISTOOOLD      \
+    LIBOSXFUSE_BUNDLE_IDENTIFIER ".osistooold"                    
 
-#define LIBFUSE_UNOTIFICATIONS_NOTIFY_RUNTIMEVERSIONMISMATCH \
-    LIBFUSE_BUNDLE_IDENTIFIER ".runtimeversionmismatch"
+#define LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_RUNTIMEVERSIONMISMATCH \
+    LIBOSXFUSE_BUNDLE_IDENTIFIER ".runtimeversionmismatch"
  
-#define LIBFUSE_UNOTIFICATIONS_NOTIFY_VERSIONMISMATCH \
-    LIBFUSE_BUNDLE_IDENTIFIER ".versionmismatch"
+#define LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_VERSIONMISMATCH \
+    LIBOSXFUSE_BUNDLE_IDENTIFIER ".versionmismatch"
 
 /* Versioning */
-
-#ifdef MACFUSE
-const char *macfuse_version(void);
-#else
 const char *osxfuse_version(void);
-#endif
 long        fuse_os_version_major_np(void);
 
 /* Advanced */

@@ -139,7 +139,7 @@ post_notification(char   *name,
     nf_name = CFStringCreateWithCString(kCFAllocatorDefault, name, encoding);
       
     nf_object = CFStringCreateWithCString(kCFAllocatorDefault,
-                                          LIBFUSE_UNOTIFICATIONS_OBJECT,
+                                          LIBOSXFUSE_UNOTIFICATIONS_OBJECT,
                                           encoding);
  
     nf_udata = CFDictionaryCreateMutable(kCFAllocatorDefault,
@@ -503,7 +503,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                 );
             }
             post_notification(
-                LIBFUSE_UNOTIFICATIONS_NOTIFY_OSISTOOOLD, NULL, NULL, 0);
+                LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_OSISTOOOLD, NULL, NULL, 0);
         } else if (result == EBUSY) {
             if (!quiet_mode) {
                 CFUserNotificationDisplayNotice(
@@ -517,7 +517,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                     CFSTR("OK")
                 );
             }
-            post_notification(LIBFUSE_UNOTIFICATIONS_NOTIFY_VERSIONMISMATCH,
+            post_notification(LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_VERSIONMISMATCH,
                               NULL, NULL, 0);
         }
         fprintf(stderr, "the OSXFUSE file system is not available (%d)\n",
@@ -557,7 +557,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                 CFSTR("OK")
             );
         }
-        post_notification(LIBFUSE_UNOTIFICATIONS_NOTIFY_RUNTIMEVERSIONMISMATCH,
+        post_notification(LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_RUNTIMEVERSIONMISMATCH,
                           NULL, NULL, 0);
         fprintf(stderr,
                 "this OSXFUSE library version is incompatible with "
