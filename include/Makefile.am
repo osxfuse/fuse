@@ -1,6 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
+if DARWIN
+osxfuseincludedir=$(includedir)/osxfuse
+fuseincludedir=$(osxfuseincludedir)/fuse
+else
 fuseincludedir=$(includedir)/fuse
+endif
 
 if DARWIN
 darwin_headers = fuse_darwin.h
@@ -20,6 +25,10 @@ fuseinclude_HEADERS = \
 	fuse_lowlevel_compat.h	\
 	fuse_opt.h
 
+if DARWIN
+osxfuseinclude_HEADERS = old/fuse.h
+else
 include_HEADERS = old/fuse.h ulockmgr.h
+endif
 
 noinst_HEADERS = fuse_kernel.h $(darwin_headers_private)
