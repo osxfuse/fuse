@@ -7,4 +7,4 @@ Name: osxfuse
 Description: OSXFUSE Userspace Library (Filesystem in Userspace)
 Version: @VERSION@
 Libs: -L${libdir} -losxfuse @libfuse_libs@
-Cflags: -I${includedir}/fuse -D__DARWIN_64_BIT_INO_T=0 -D__FreeBSD__=10 -D_FILE_OFFSET_BITS=64
+Cflags: -I${includedir}/fuse -D__DARWIN_64_BIT_INO_T=1 -D__FreeBSD__=10 -D_FILE_OFFSET_BITS=64
