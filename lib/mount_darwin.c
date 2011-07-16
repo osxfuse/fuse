@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <string.h>
 #include <paths.h>
+#include <stdbool.h>
 
 #include <libproc.h>
 #include <sys/utsname.h>
@@ -116,70 +117,110 @@ Return:
     return result;
 }
 
-static int
-post_notification(char   *name,
-                  char   *udata_keys[],
-                  char   *udata_values[],
-                  CFIndex nf_num)
-{
-    CFIndex i;
-    CFStringRef nf_name   = NULL;
-    CFStringRef nf_object = NULL;
-    CFMutableDictionaryRef nf_udata  = NULL;
+/* OSXFUSE notifications */
 
-    CFNotificationCenterRef distributedCenter;
-    CFStringEncoding encoding = kCFStringEncodingUTF8;
+enum osxfuse_notification {
+    NOTIFICATION_OS_IS_TOO_NEW,
+    NOTIFICATION_OS_IS_TOO_OLD,
+    NOTIFICATION_RUNTIME_VERSION_MISMATCH,
+    NOTIFICATION_VERSION_MISMATCH
+};
 
-    distributedCenter = CFNotificationCenterGetDistributedCenter();
+typedef enum osxfuse_notification osxfuse_notification_t;
 
-    if (!distributedCenter) {
-        return -1;
+const char * const osxfuse_notification_names[] = {
+    "kOSXFUSEOSIsTooNew",             // NOTIFICATION_OS_IS_TOO_NEW
+    "kOSXFUSEOSIsTooOld",             // NOTIFICATION_OS_IS_TOO_OLD
+    "kOSXFUSERuntimeVersionMismatch", // NOTIFICATION_RUNTIME_VERSION_MISMATCH
+    "kOSXFUSEVersionMismatch"         // NOTIFICATION_VERSION_MISMATCH
+};
+
+const char * const osxfuse_notification_object = OSXFUSE_IDENTIFIER;
+
+#ifdef MACFUSE_MODE
+#define OSXFUSE_MACFUSE_MODE_ENV "OSXFUSE_MACFUSE_MODE"
+
+#define MACFUSE_NOTIFICATION_PREFIX "com.google.filesystems.libfuse"
+#define MACFUSE_NOTIFICATION_OBJECT \
+MACFUSE_NOTIFICATION_PREFIX ".unotifications"
+
+const char * const macfuse_notification_names[] = {
+    MACFUSE_NOTIFICATION_PREFIX ".osistoonew",             // NOTIFICATION_OS_IS_TOO_NEW
+    MACFUSE_NOTIFICATION_PREFIX ".osistooold",             // NOTIFICATION_OS_IS_TOO_OLD
+    MACFUSE_NOTIFICATION_PREFIX ".runtimeversionmismatch", // NOTIFICATION_RUNTIME_VERSION_MISMATCH
+    MACFUSE_NOTIFICATION_PREFIX ".versionmismatch"         // NOTIFICATION_VERSION_MISMATCH
+};
+
+const char * const macfuse_notification_object = MACFUSE_NOTIFICATION_OBJECT;
+#endif /* MACFUSE_MODE */
+
+static void
+post_notification(const osxfuse_notification_t  notification,
+                  const char                   *dict[][2],
+                  const int                     dict_count)
+{    
+    CFNotificationCenterRef notification_center = 
+    CFNotificationCenterGetDistributedCenter();
+    
+    CFStringRef            name      = NULL;
+    CFStringRef            object    = NULL;
+    CFMutableDictionaryRef user_info = NULL;
+    
+#ifdef MACFUSE_MODE
+    if (osxfuse_is_macfuse_mode_enabled()) {
+        name   = CFStringCreateWithCString(kCFAllocatorDefault, 
+                                           macfuse_notification_names[notification], 
+                                           kCFStringEncodingUTF8);
+        object = CFStringCreateWithCString(kCFAllocatorDefault, 
+                                           macfuse_notification_object, 
+                                           kCFStringEncodingUTF8);
+    } else {
+#endif
+        name   = CFStringCreateWithCString(kCFAllocatorDefault, 
+                                           osxfuse_notification_names[notification], 
+                                           kCFStringEncodingUTF8);
+        object = CFStringCreateWithCString(kCFAllocatorDefault, 
+                                           osxfuse_notification_object, 
+                                           kCFStringEncodingUTF8);
+#ifdef MACFUSE_MODE
     }
-
-    nf_name = CFStringCreateWithCString(kCFAllocatorDefault, name, encoding);
-      
-    nf_object = CFStringCreateWithCString(kCFAllocatorDefault,
-                                          LIBOSXFUSE_UNOTIFICATIONS_OBJECT,
-                                          encoding);
- 
-    nf_udata = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                         nf_num,
-                                         &kCFCopyStringDictionaryKeyCallBacks,
-                                         &kCFTypeDictionaryValueCallBacks);
-
-    if (!nf_name || !nf_object || !nf_udata) {
-        goto out;
+#endif
+    
+    if (!name || !object) goto out;
+    if (dict_count == 0)  goto post;
+    
+    user_info = CFDictionaryCreateMutable(kCFAllocatorDefault, dict_count,
+                                          &kCFCopyStringDictionaryKeyCallBacks,
+                                          &kCFTypeDictionaryValueCallBacks);
+    
+    CFStringRef key;
+    CFStringRef value;
+    int         i;
+    for (i = 0; i < dict_count; i++) {
+        key   = CFStringCreateWithCString(kCFAllocatorDefault, dict[i][0],
+                                          kCFStringEncodingUTF8);
+        value = CFStringCreateWithCString(kCFAllocatorDefault, dict[i][1],
+                                          kCFStringEncodingUTF8);
+        
+        if (!key || !value) {
+            if (key)   CFRelease(key);
+            if (value) CFRelease(value);
+            goto out;
+        }
+        
+        CFDictionarySetValue(user_info, key, value);
+        CFRelease(key); key = NULL;
+        CFRelease(value); value = NULL;
     }
-
-    for (i = 0; i < nf_num; i++) {
-        CFStringRef a_key = CFStringCreateWithCString(kCFAllocatorDefault,
-                                                      udata_keys[i],
-                                                      kCFStringEncodingUTF8);
-        CFStringRef a_value = CFStringCreateWithCString(kCFAllocatorDefault,
-                                                        udata_values[i],
-                                                        kCFStringEncodingUTF8);
-        CFDictionarySetValue(nf_udata, a_key, a_value);
-        CFRelease(a_key);
-        CFRelease(a_value);
-    }
-
-    CFNotificationCenterPostNotification(distributedCenter,
-                                         nf_name, nf_object, nf_udata, false);
-
+    
+post:
+    CFNotificationCenterPostNotification(notification_center, name, object, 
+                                         user_info, false);
+    
 out:
-    if (nf_name) {
-        CFRelease(nf_name);
-    }
-
-    if (nf_object) {
-        CFRelease(nf_object);
-    }
-
-    if (nf_udata) {
-        CFRelease(nf_udata);
-    }
-
-    return 0;
+    if (name)      CFRelease(name);
+    if (object)    CFRelease(object);
+    if (user_info) CFRelease(user_info);
 }
 
 enum {
@@ -502,8 +543,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                     CFSTR("OK")
                 );
             }
-            post_notification(
-                LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_OSISTOOOLD, NULL, NULL, 0);
+            post_notification(NOTIFICATION_OS_IS_TOO_OLD, NULL, 0);
         } else if (result == EBUSY) {
             if (!quiet_mode) {
                 CFUserNotificationDisplayNotice(
@@ -517,8 +557,8 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                     CFSTR("OK")
                 );
             }
-            post_notification(LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_VERSIONMISMATCH,
-                              NULL, NULL, 0);
+            post_notification(NOTIFICATION_VERSION_MISMATCH,
+                              NULL, 0);
         }
         fprintf(stderr, "the OSXFUSE file system is not available (%d)\n",
                 result);
@@ -557,8 +597,8 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                 CFSTR("OK")
             );
         }
-        post_notification(LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_RUNTIMEVERSIONMISMATCH,
-                          NULL, NULL, 0);
+        post_notification(NOTIFICATION_RUNTIME_VERSION_MISMATCH,
+                          NULL, 0);
         fprintf(stderr,
                 "this OSXFUSE library version is incompatible with "
                 "the OSXFUSE kernel extension\n");
@@ -683,6 +723,12 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
     /* to notify mount_fusefs it's called from lib */
     setenv("MOUNT_FUSEFS_CALL_BY_LIB", "1", 1);
+
+#ifdef MACFUSE_MODE
+    if (osxfuse_is_macfuse_mode_enabled()) {
+        setenv(OSXFUSE_MACFUSE_MODE_ENV, "1", 1);
+    }
+#endif
 
     if (args &&
         fuse_opt_parse(args, &mo, fuse_mount_opts, fuse_mount_opt_proc) == -1) {

@@ -63,25 +63,6 @@ typedef fuse_sem_t sem_t;
 
 #endif /* DARWIN_SEMAPHORE_COMPAT */
 
-/* Notifications */
-
-#define LIBOSXFUSE_BUNDLE_IDENTIFIER "com.github.osxfuse.libosxfuse"
-
-#define LIBOSXFUSE_UNOTIFICATIONS_OBJECT                 \
-    LIBOSXFUSE_BUNDLE_IDENTIFIER ".unotifications"
-
-#define LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_OSISTOONEW      \
-    LIBOSXFUSE_BUNDLE_IDENTIFIER ".osistoonew"
-
-#define LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_OSISTOOOLD      \
-    LIBOSXFUSE_BUNDLE_IDENTIFIER ".osistooold"                    
-
-#define LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_RUNTIMEVERSIONMISMATCH \
-    LIBOSXFUSE_BUNDLE_IDENTIFIER ".runtimeversionmismatch"
- 
-#define LIBOSXFUSE_UNOTIFICATIONS_NOTIFY_VERSIONMISMATCH \
-    LIBOSXFUSE_BUNDLE_IDENTIFIER ".versionmismatch"
-
 /* Versioning */
 const char *osxfuse_version(void);
 long        fuse_os_version_major_np(void);

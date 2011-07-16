@@ -1,0 +1,420 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXAggregateTarget section */
+		432B5FA213C36EB50066DFDA /* macfuse */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = 432B5FA313C36EB50066DFDA /* Build configuration list for PBXAggregateTarget "macfuse" */;
+			buildPhases = (
+			);
+			dependencies = (
+				432B5FA713C36EBD0066DFDA /* PBXTargetDependency */,
+				432B5FA913C36EBF0066DFDA /* PBXTargetDependency */,
+			);
+			name = macfuse;
+			productName = macfuse;
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXBuildFile section */
+		43A4068A13BCBEF00072E80A /* macfuse.c in Sources */ = {isa = PBXBuildFile; fileRef = 43A4068813BCBEF00072E80A /* macfuse.c */; };
+		43A4069313BCFB5F0072E80A /* macfuse.c in Sources */ = {isa = PBXBuildFile; fileRef = 43A4068813BCBEF00072E80A /* macfuse.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		432B5FA613C36EBD0066DFDA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 43A4067213BCBDAE0072E80A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 43A4069113BCFB5F0072E80A;
+			remoteInfo = macfuse_i32;
+		};
+		432B5FA813C36EBF0066DFDA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 43A4067213BCBDAE0072E80A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 43A4067A13BCBDAE0072E80A;
+			remoteInfo = macfuse_i64;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		43A4067B13BCBDAE0072E80A /* libmacfuse_i64.2.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libmacfuse_i64.2.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		43A4068813BCBEF00072E80A /* macfuse.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.c.c; name = macfuse.c; path = libmacfuse/macfuse.c; sourceTree = "<group>"; tabWidth = 4; };
+		43A4068913BCBEF00072E80A /* macfuse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macfuse.h; path = libmacfuse/macfuse.h; sourceTree = "<group>"; };
+		43A4069A13BCFB5F0072E80A /* libmacfuse_i32.2.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libmacfuse_i32.2.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		43A4067813BCBDAE0072E80A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		43A4069413BCFB5F0072E80A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		432B5F6713C2D5700066DFDA /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				43A4068813BCBEF00072E80A /* macfuse.c */,
+				43A4068913BCBEF00072E80A /* macfuse.h */,
+			);
+			name = Source;
+			sourceTree = "<group>";
+		};
+		43A4067013BCBDAE0072E80A = {
+			isa = PBXGroup;
+			children = (
+				432B5F6713C2D5700066DFDA /* Source */,
+				43A4067C13BCBDAE0072E80A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		43A4067C13BCBDAE0072E80A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				43A4067B13BCBDAE0072E80A /* libmacfuse_i64.2.dylib */,
+				43A4069A13BCFB5F0072E80A /* libmacfuse_i32.2.dylib */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		43A4067913BCBDAE0072E80A /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		43A4069513BCFB5F0072E80A /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		43A4067A13BCBDAE0072E80A /* macfuse_i64 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 43A4067F13BCBDAE0072E80A /* Build configuration list for PBXNativeTarget "macfuse_i64" */;
+			buildPhases = (
+				43A4067713BCBDAE0072E80A /* Sources */,
+				43A4067813BCBDAE0072E80A /* Frameworks */,
+				43A4067913BCBDAE0072E80A /* Headers */,
+				432B5EF413C24ADD0066DFDA /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = macfuse_i64;
+			productName = libmacfuse;
+			productReference = 43A4067B13BCBDAE0072E80A /* libmacfuse_i64.2.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+		43A4069113BCFB5F0072E80A /* macfuse_i32 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 43A4069713BCFB5F0072E80A /* Build configuration list for PBXNativeTarget "macfuse_i32" */;
+			buildPhases = (
+				43A4069213BCFB5F0072E80A /* Sources */,
+				43A4069413BCFB5F0072E80A /* Frameworks */,
+				43A4069513BCFB5F0072E80A /* Headers */,
+				432B5EF213C248010066DFDA /* Run Script */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = macfuse_i32;
+			productName = libmacfuse;
+			productReference = 43A4069A13BCFB5F0072E80A /* libmacfuse_i32.2.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		43A4067213BCBDAE0072E80A /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 43A4067513BCBDAE0072E80A /* Build configuration list for PBXProject "libmacfuse" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 43A4067013BCBDAE0072E80A;
+			productRefGroup = 43A4067C13BCBDAE0072E80A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				43A4069113BCFB5F0072E80A /* macfuse_i32 */,
+				43A4067A13BCBDAE0072E80A /* macfuse_i64 */,
+				432B5FA213C36EB50066DFDA /* macfuse */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		432B5EF213C248010066DFDA /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "ln -fs \"${EXECUTABLE_PREFIX}${TARGET_NAME}.${DYLIB_CURRENT_VERSION}${EXECUTABLE_SUFFIX}\" \"${BUILT_PRODUCTS_DIR}/${EXECUTABLE_PREFIX}${TARGET_NAME}${EXECUTABLE_SUFFIX}\"";
+		};
+		432B5EF413C24ADD0066DFDA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "ln -fs \"${EXECUTABLE_PREFIX}${TARGET_NAME}.${DYLIB_CURRENT_VERSION}${EXECUTABLE_SUFFIX}\" \"${BUILT_PRODUCTS_DIR}/${EXECUTABLE_PREFIX}${TARGET_NAME}${EXECUTABLE_SUFFIX}\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		43A4067713BCBDAE0072E80A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				43A4068A13BCBEF00072E80A /* macfuse.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		43A4069213BCFB5F0072E80A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				43A4069313BCFB5F0072E80A /* macfuse.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		432B5FA713C36EBD0066DFDA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 43A4069113BCFB5F0072E80A /* macfuse_i32 */;
+			targetProxy = 432B5FA613C36EBD0066DFDA /* PBXContainerItemProxy */;
+		};
+		432B5FA913C36EBF0066DFDA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 43A4067A13BCBDAE0072E80A /* macfuse_i64 */;
+			targetProxy = 432B5FA813C36EBF0066DFDA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		432B5FA413C36EB50066DFDA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		432B5FA513C36EB50066DFDA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		43A4067D13BCBDAE0072E80A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DYLIB_COMPATIBILITY_VERSION = 10;
+				DYLIB_CURRENT_VERSION = 2;
+				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = 4.2;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CFLAGS = "-D__FreeBSD__=10";
+				OTHER_LDFLAGS = (
+					"-L/tmp/osxfuse-core-10.5-2.1.7/pkgroot/usr/local/lib",
+					"-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib",
+				);
+				SDKROOT = macosx10.6;
+			};
+			name = Debug;
+		};
+		43A4067E13BCBDAE0072E80A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DYLIB_COMPATIBILITY_VERSION = 10;
+				DYLIB_CURRENT_VERSION = 2;
+				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_VERSION = 4.2;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				OTHER_CFLAGS = "-D__FreeBSD__=10";
+				OTHER_LDFLAGS = (
+					"-L/tmp/osxfuse-core-10.5-2.1.7/pkgroot/usr/local/lib",
+					"-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib",
+				);
+				SDKROOT = macosx10.6;
+			};
+			name = Release;
+		};
+		43A4068013BCBDAE0072E80A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				EXECUTABLE_PREFIX = lib;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				OTHER_LDFLAGS = (
+					"$(OTHER_LDFLAGS)",
+					"-losxfuse_i64",
+					"-sub_library",
+					libosxfuse_i64,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME).$(DYLIB_CURRENT_VERSION)";
+			};
+			name = Debug;
+		};
+		43A4068113BCBDAE0072E80A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXECUTABLE_PREFIX = lib;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				OTHER_LDFLAGS = (
+					"$(OTHER_LDFLAGS)",
+					"-losxfuse_i64",
+					"-sub_library",
+					libosxfuse_i64,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME).$(DYLIB_CURRENT_VERSION)";
+			};
+			name = Release;
+		};
+		43A4069813BCFB5F0072E80A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				EXECUTABLE_PREFIX = lib;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				OTHER_LDFLAGS = (
+					"$(OTHER_LDFLAGS)",
+					"-losxfuse_i32",
+					"-sub_library",
+					libosxfuse_i32,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME).$(DYLIB_CURRENT_VERSION)";
+			};
+			name = Debug;
+		};
+		43A4069913BCFB5F0072E80A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXECUTABLE_PREFIX = lib;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				OTHER_LDFLAGS = (
+					"$(OTHER_LDFLAGS)",
+					"-losxfuse_i32",
+					"-sub_library",
+					libosxfuse_i32,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME).$(DYLIB_CURRENT_VERSION)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		432B5FA313C36EB50066DFDA /* Build configuration list for PBXAggregateTarget "macfuse" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				432B5FA413C36EB50066DFDA /* Debug */,
+				432B5FA513C36EB50066DFDA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		43A4067513BCBDAE0072E80A /* Build configuration list for PBXProject "libmacfuse" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				43A4067D13BCBDAE0072E80A /* Debug */,
+				43A4067E13BCBDAE0072E80A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		43A4067F13BCBDAE0072E80A /* Build configuration list for PBXNativeTarget "macfuse_i64" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				43A4068013BCBDAE0072E80A /* Debug */,
+				43A4068113BCBDAE0072E80A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		43A4069713BCFB5F0072E80A /* Build configuration list for PBXNativeTarget "macfuse_i32" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				43A4069813BCFB5F0072E80A /* Debug */,
+				43A4069913BCFB5F0072E80A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 43A4067213BCBDAE0072E80A /* Project object */;
+}

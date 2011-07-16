@@ -20,6 +20,7 @@ extern "C" {
 #include <fuse_version.h>
 #include <pthread.h>
 #include <strhash.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 }
@@ -42,6 +43,11 @@ void fuse_put_internal_np(struct fuse *fuse);
 void fuse_set_fuse_internal_np(int fd, struct fuse *f);
 
 void fuse_unset_fuse_internal_np(struct fuse *f);
+
+#ifdef MACFUSE_MODE
+void osxfuse_enable_macfuse_mode(bool arg);
+bool osxfuse_is_macfuse_mode_enabled();
+#endif
 
 /*
  * The mount_hash maps char* mountpoint -> struct mount_info. It is protected
