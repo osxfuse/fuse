@@ -8,9 +8,4 @@
 
 #include <stdbool.h>
 
-#define MACFUSE_VERSION "2.1.5"
-
 const char *macfuse_version(void);
-
-// Enable or disable the MacFUSE compatibility mode
-void osxfuse_enable_macfuse_mode(bool);

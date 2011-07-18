@@ -268,7 +268,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_CFLAGS = "-D__FreeBSD__=10";
+				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = (
 					"-L/tmp/osxfuse-core-10.5-2.1.7/pkgroot/usr/local/lib",
 					"-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib",
@@ -285,12 +285,13 @@
 				DYLIB_COMPATIBILITY_VERSION = 10;
 				DYLIB_CURRENT_VERSION = 2;
 				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_VERSION = 4.2;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
-				OTHER_CFLAGS = "-D__FreeBSD__=10";
+				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = (
 					"-L/tmp/osxfuse-core-10.5-2.1.7/pkgroot/usr/local/lib",
 					"-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib",

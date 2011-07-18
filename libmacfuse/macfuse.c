@@ -10,12 +10,15 @@
 
 #include "macfuse.h"
 
-__attribute__((constructor)) static void lib_constructor(void); 
+extern void osxfuse_enable_macfuse_mode(bool);
+extern const char *osxfuse_version(void);
 
-const char *macfuse_version(void) {
-	return MACFUSE_VERSION;
+__attribute__((constructor)) static void libmacfuse_constructor(void);
+
+static void libmacfuse_constructor(void) {
+	osxfuse_enable_macfuse_mode(true);
 }
 
-static void lib_constructor(void) {
-	osxfuse_enable_macfuse_mode(true);
+const char *macfuse_version(void) {
+	return osxfuse_version();
 }
