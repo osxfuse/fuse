@@ -2,7 +2,7 @@ OSXFUSE Project Page:
 
 http://osxfuse.github.com/
 
-Making a Universal build of libfuse:
+Making a Universal build of libosxfuse:
 
 1. Run "./darwin_configure.sh /path/to/osxfuse/kext/"
 2. Run make
