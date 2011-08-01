@@ -39,6 +39,10 @@
 
 #include "fuse_darwin_private.h"
 
+#ifdef MACFUSE_MODE
+#define OSXFUSE_MACFUSE_MODE_ENV "OSXFUSE_MACFUSE_MODE"
+#endif
+
 static int quiet_mode = 0;
 
 long
@@ -90,6 +94,12 @@ loadkmod(void)
     pid = fork();
 
     if (pid == 0) {
+#ifdef MACFUSE_MODE
+        if (osxfuse_is_macfuse_mode_enabled()) {
+            setenv(OSXFUSE_MACFUSE_MODE_ENV, "1", 1);
+        }
+#endif
+        
         result = execl(OSXFUSE_LOAD_PROG, OSXFUSE_LOAD_PROG, NULL);
         
         /* exec failed */
@@ -138,8 +148,6 @@ const char * const osxfuse_notification_names[] = {
 const char * const osxfuse_notification_object = OSXFUSE_IDENTIFIER;
 
 #ifdef MACFUSE_MODE
-#define OSXFUSE_MACFUSE_MODE_ENV "OSXFUSE_MACFUSE_MODE"
-
 #define MACFUSE_NOTIFICATION_PREFIX "com.google.filesystems.libfuse"
 #define MACFUSE_NOTIFICATION_OBJECT \
 MACFUSE_NOTIFICATION_PREFIX ".unotifications"
