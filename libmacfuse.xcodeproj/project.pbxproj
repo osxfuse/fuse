@@ -7,16 +7,16 @@
 	objects = {
 
 /* Begin PBXAggregateTarget section */
-		432B5FA213C36EB50066DFDA /* macfuse */ = {
+		432B5FA213C36EB50066DFDA /* libmacfuse */ = {
 			isa = PBXAggregateTarget;
-			buildConfigurationList = 432B5FA313C36EB50066DFDA /* Build configuration list for PBXAggregateTarget "macfuse" */;
+			buildConfigurationList = 432B5FA313C36EB50066DFDA /* Build configuration list for PBXAggregateTarget "libmacfuse" */;
 			buildPhases = (
 			);
 			dependencies = (
 				432B5FA713C36EBD0066DFDA /* PBXTargetDependency */,
 				432B5FA913C36EBF0066DFDA /* PBXTargetDependency */,
 			);
-			name = macfuse;
+			name = libmacfuse;
 			productName = macfuse;
 		};
 /* End PBXAggregateTarget section */
@@ -155,6 +155,9 @@
 /* Begin PBXProject section */
 		43A4067213BCBDAE0072E80A /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0410;
+			};
 			buildConfigurationList = 43A4067513BCBDAE0072E80A /* Build configuration list for PBXProject "libmacfuse" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
@@ -167,9 +170,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				432B5FA213C36EB50066DFDA /* libmacfuse */,
 				43A4069113BCFB5F0072E80A /* macfuse_i32 */,
 				43A4067A13BCBDAE0072E80A /* macfuse_i64 */,
-				432B5FA213C36EB50066DFDA /* macfuse */,
 			);
 		};
 /* End PBXProject section */
@@ -255,25 +258,19 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
-				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DYLIB_COMPATIBILITY_VERSION = 10;
 				DYLIB_CURRENT_VERSION = 2;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_VERSION = 4.2;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.5;
-				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "";
-				OTHER_LDFLAGS = (
-					"-L/tmp/osxfuse-core-10.5-2.1.7/pkgroot/usr/local/lib",
-					"-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib",
-				);
-				SDKROOT = macosx10.6;
+				OTHER_LDFLAGS = "-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib";
+				SDKROOT = macosx10.7;
 			};
 			name = Debug;
 		};
@@ -281,22 +278,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
-				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DYLIB_COMPATIBILITY_VERSION = 10;
 				DYLIB_CURRENT_VERSION = 2;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_VERSION = 4.2;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				OTHER_CFLAGS = "";
-				OTHER_LDFLAGS = (
-					"-L/tmp/osxfuse-core-10.5-2.1.7/pkgroot/usr/local/lib",
-					"-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib",
-				);
-				SDKROOT = macosx10.6;
+				OTHER_LDFLAGS = "-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib";
+				SDKROOT = macosx10.7;
 			};
 			name = Release;
 		};
@@ -308,9 +300,8 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				OTHER_LDFLAGS = (
-					"$(OTHER_LDFLAGS)",
+					"$(inherited)",
 					"-losxfuse_i64",
 					"-sub_library",
 					libosxfuse_i64,
@@ -324,12 +315,10 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				OTHER_LDFLAGS = (
-					"$(OTHER_LDFLAGS)",
+					"$(inherited)",
 					"-losxfuse_i64",
 					"-sub_library",
 					libosxfuse_i64,
@@ -346,9 +335,8 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				OTHER_LDFLAGS = (
-					"$(OTHER_LDFLAGS)",
+					"$(inherited)",
 					"-losxfuse_i32",
 					"-sub_library",
 					libosxfuse_i32,
@@ -362,12 +350,10 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				OTHER_LDFLAGS = (
-					"$(OTHER_LDFLAGS)",
+					"$(inherited)",
 					"-losxfuse_i32",
 					"-sub_library",
 					libosxfuse_i32,
@@ -379,7 +365,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		432B5FA313C36EB50066DFDA /* Build configuration list for PBXAggregateTarget "macfuse" */ = {
+		432B5FA313C36EB50066DFDA /* Build configuration list for PBXAggregateTarget "libmacfuse" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				432B5FA413C36EB50066DFDA /* Debug */,
