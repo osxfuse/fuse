@@ -77,6 +77,21 @@ fuse_os_version_major_np(void)
     return major;
 }
 
+int
+fuse_running_under_rosetta(void)
+{
+    int result = 0;
+    int is_native = 1;
+    size_t sz = sizeof(result);
+    
+    int ret = sysctlbyname("sysctl.proc_native", &result, &sz, NULL, (size_t)0);
+    if ((ret == 0) && !result) {
+        is_native = 0;
+    }
+    
+    return !is_native;
+}
+
 static int
 loadkmod(void)
 {
@@ -530,6 +545,11 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 
     if (!mountpoint) {
         fprintf(stderr, "missing or invalid mount point\n");
+        return -1;
+    }
+
+    if (fuse_running_under_rosetta()) {
+        fprintf(stderr, "OSXFUSE does not work under Rosetta\n");
         return -1;
     }
 
