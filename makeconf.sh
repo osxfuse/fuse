@@ -19,12 +19,12 @@ echo Running libtoolize...
 $LIBTOOLIZE --automake -c -f
 
 if is_darwin; then
-	for file in "/opt/local/share/gettext/config.rpath" "/usr/local/share/gettext/config.rpath"; do
-		if [ -f "$file" ]; then
-			CONFIG_RPATH="$file"
-			break
-		fi
-	done
+    for file in "/opt/local/share/gettext/config.rpath" "/usr/local/share/gettext/config.rpath"; do
+        if [ -f "$file" ]; then
+            CONFIG_RPATH="$file"
+            break
+        fi
+    done
 else
     CONFIG_RPATH=/usr/share/gettext/config.rpath
     if ! [ -f $CONFIG_RPATH ]; then
