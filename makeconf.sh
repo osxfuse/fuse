@@ -18,20 +18,18 @@ fi
 echo Running libtoolize...
 $LIBTOOLIZE --automake -c -f
 
-if is_darwin; then
-    CONFIG_RPATH=/opt/local/share/gettext/config.rpath
-else
+if ! is_darwin; then
     CONFIG_RPATH=/usr/share/gettext/config.rpath
     if ! [ -f $CONFIG_RPATH ]; then
         CONFIG_RPATH=/usr/local/share/gettext/config.rpath
     fi
-fi
-if ! [ -f $CONFIG_RPATH ]; then
-    if  [ -f config.rpath ]; then
-        CONFIG_RPATH=
-    else
-        echo "config.rpath not found!" >&2
-        exit 1
+    if ! [ -f $CONFIG_RPATH ]; then
+        if  [ -f config.rpath ]; then
+            CONFIG_RPATH=
+        else
+            echo "config.rpath not found!" >&2
+            exit 1
+        fi
     fi
 fi
 if ! [ -z "$CONFIG_RPATH" ]; then
