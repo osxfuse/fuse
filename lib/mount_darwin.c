@@ -37,6 +37,8 @@
 #include <sys/mount.h>
 #include <AssertMacros.h>
 
+#include <AvailabilityMacros.h>
+
 #include "fuse_darwin_private.h"
 
 #ifdef MACFUSE_MODE
@@ -77,6 +79,8 @@ fuse_os_version_major_np(void)
     return major;
 }
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
+
 int
 fuse_running_under_rosetta(void)
 {
@@ -91,6 +95,8 @@ fuse_running_under_rosetta(void)
     
     return !is_native;
 }
+
+#endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1070 */
 
 static int
 loadkmod(void)
@@ -548,10 +554,12 @@ fuse_mount_core(const char *mountpoint, const char *opts)
         return -1;
     }
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
     if (fuse_running_under_rosetta()) {
         fprintf(stderr, "OSXFUSE does not work under Rosetta\n");
         return -1;
     }
+#endif
 
     signal(SIGCHLD, SIG_DFL); /* So that we can wait4() below. */
 
