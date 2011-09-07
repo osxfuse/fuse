@@ -68,19 +68,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		432B5F6713C2D5700066DFDA /* Source */ = {
+		432B5F6713C2D5700066DFDA /* libmacfuse */ = {
 			isa = PBXGroup;
 			children = (
 				43A4068813BCBEF00072E80A /* macfuse.c */,
 				43A4068913BCBEF00072E80A /* macfuse.h */,
 			);
-			name = Source;
+			name = libmacfuse;
 			sourceTree = "<group>";
 		};
 		43A4067013BCBDAE0072E80A = {
 			isa = PBXGroup;
 			children = (
-				432B5F6713C2D5700066DFDA /* Source */,
+				432B5F6713C2D5700066DFDA /* libmacfuse */,
 				43A4067C13BCBDAE0072E80A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -257,7 +257,6 @@
 		43A4067D13BCBDAE0072E80A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DYLIB_COMPATIBILITY_VERSION = 10;
 				DYLIB_CURRENT_VERSION = 2;
@@ -265,30 +264,29 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = 4.2;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib";
-				SDKROOT = macosx10.7;
 			};
 			name = Debug;
 		};
 		43A4067E13BCBDAE0072E80A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DYLIB_COMPATIBILITY_VERSION = 10;
 				DYLIB_CURRENT_VERSION = 2;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_PREPROCESSOR_DEFINITIONS = "";
+				GCC_VERSION = 4.2;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "-L$(OSXFUSE_BUILD_ROOT)/usr/local/lib";
-				SDKROOT = macosx10.7;
 			};
 			name = Release;
 		};

@@ -5,6 +5,8 @@
 OSXFUSE_SRCROOT=${OSXFUSE_SRCROOT:-$1}
 OSXFUSE_SRCROOT=${OSXFUSE_SRCROOT:?}
 
+CC="gcc-4.2"
+
 OTHER_CFLAGS="-D__DARWIN_64_BIT_INO_T=0 -D__FreeBSD__=10 -D_POSIX_C_SOURCE=200112L -I$OSXFUSE_SRCROOT/common"
 FRAMEWORKS="CoreFoundation"
 
@@ -33,6 +35,7 @@ do
     LDFLAGS="$LDFLAGS -framework $framework"
 done
 
+export CC
 export CFLAGS
 export LDFLAGS
 
