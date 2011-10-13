@@ -5,14 +5,20 @@
 OSXFUSE_SRCROOT=${OSXFUSE_SRCROOT:-$1}
 OSXFUSE_SRCROOT=${OSXFUSE_SRCROOT:?}
 
-CC="gcc-4.2"
-
 OTHER_CFLAGS="-D__DARWIN_64_BIT_INO_T=0 -D__FreeBSD__=10 -D_POSIX_C_SOURCE=200112L -I$OSXFUSE_SRCROOT/common"
 FRAMEWORKS="CoreFoundation"
 
 CFLAGS="$OTHER_CFLAGS"
 LDFLAGS=""
 
+case "$COMPILER" in
+    4.0|4.2)                       CC="gcc-$COMPILER";;
+    com.apple.compilers.llvmgcc42) CC="llvm-gcc-4.2";;
+    *)
+        echo "`basename $0`: unsupported compiler '$COMPILER'" >&2
+        exit 1
+        ;;
+esac
 for arch in $ARCHS
 do
     CFLAGS="$CFLAGS -arch $arch"
