@@ -41,7 +41,7 @@ do
     LDFLAGS="$LDFLAGS -framework $framework"
 done
 
-export CC
+export CC="`xcrun -find "${CC}"`"
 export CFLAGS
 export LDFLAGS
 
