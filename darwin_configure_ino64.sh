@@ -22,15 +22,17 @@ esac
 for arch in $ARCHS
 do
     CFLAGS="$CFLAGS -arch $arch"
-    LDFLAGS="$LDFLAGS -arch $arch"
 done
 if [ -n "$SDKROOT" ]
 then
+    CPPFLAGS="$CPPFLAGS -Wp,-isysroot,$SDKROOT"
     CFLAGS="$CFLAGS -isysroot $SDKROOT"
+    LDFLAGS="$LDFLAGS -Wl,-syslibroot,$SDKROOT"
 fi
 if [ -n "$MACOSX_DEPLOYMENT_TARGET" ]
 then
     CFLAGS="$CFLAGS -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+    LDFLAGS="$LDFLAGS -Wl,-macosx_version_min,$MACOSX_DEPLOYMENT_TARGET"
 fi
 if [ -n "$OSXFUSE_MACFUSE_MODE" ]
 then
@@ -38,10 +40,14 @@ then
 fi
 for framework in $FRAMEWORKS
 do
-    LDFLAGS="$LDFLAGS -framework $framework"
+    LDFLAGS="$LDFLAGS -Wl,-framework,$framework"
 done
 
+export MAKE="`xcrun -find make`"
+export CPP="`xcrun -find cpp`"
 export CC="`xcrun -find "${CC}"`"
+export LD="`xcrun -find ld`"
+export CPPFLAGS
 export CFLAGS
 export LDFLAGS
 
