@@ -32,13 +32,3 @@ config.*
 /osxfuse.pc
 /.pc
 /patches
-
-*.mode1
-*.mode1v3
-*.mode2v3
-*.perspective
-*.perspectivev3
-*.pbxuser
-project.xcworkspace/
-xcuserdata/
-build/
