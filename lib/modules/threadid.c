@@ -562,6 +562,8 @@ static struct fuse_operations threadid_oper = {
 	.chflags     = threadid_chflags,
 	.setattr_x   = threadid_setattr_x,
 	.fsetattr_x  = threadid_fsetattr_x,
+
+	.flag_nullpath_ok = 1,
 };
 
 static struct fuse_opt threadid_opts[] = {

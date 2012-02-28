@@ -76,6 +76,10 @@ volicon_get(void)
 static __inline__ int
 volicon_is_icon_magic_file(const char *path)
 {
+	if (!path) {
+		return 0;
+	}
+
 	return (!strcmp(path, VOLICON_ICON_MAGIC_PATH));
 }
 
@@ -683,6 +687,8 @@ static struct fuse_operations volicon_oper = {
 	.chflags     = volicon_chflags,
 	.setattr_x   = volicon_setattr_x,
 	.fsetattr_x  = volicon_fsetattr_x,
+
+	.flag_nullpath_ok = 0,
 };
 
 static struct fuse_opt volicon_opts[] = {
