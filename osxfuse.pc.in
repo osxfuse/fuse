@@ -7,4 +7,4 @@ Name: fuse
 Description: OSXFUSE
 Version: @VERSION@
 Libs: -L${libdir} -lfuse
-Cflags: -I${includedir}/osxfuse/fuse -D_FILE_OFFSET_BITS=64 -D__DARWIN_64_BIT_INO_T=1
+Cflags: -I${includedir}/osxfuse/fuse -D_FILE_OFFSET_BITS=64 -D_DARWIN_USE_64_BIT_INODE
