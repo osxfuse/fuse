@@ -80,7 +80,7 @@ static void convert_stat(const struct stat *stbuf, struct fuse_attr *attr)
 	attr->ctimensec = ST_CTIM_NSEC(stbuf);
 #if (__FreeBSD__ >= 10)
 	attr->flags	= stbuf->st_flags;
-#if __DARWIN_64_BIT_INO_T
+#ifdef _DARWIN_USE_64_BIT_INODE
 	attr->crtime	= stbuf->st_birthtime;
 	attr->crtimensec= (uint32_t)(stbuf->st_birthtimensec);
 #else
