@@ -3,8 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: osxfuse
-Description: OSXFUSE Userspace Library (Filesystem in Userspace)
+Name: fuse
+Description: OSXFUSE
 Version: @VERSION@
 Libs: -L${libdir} -losxfuse @libfuse_libs@
-Cflags: -I${includedir}/osxfuse/fuse -D_DARWIN_USE_64_BIT_INODE -D__FreeBSD__=10 -D_FILE_OFFSET_BITS=64
+Cflags: -I${includedir}/osxfuse/fuse -D_FILE_OFFSET_BITS=64 -D__FreeBSD__=10 -D_DARWIN_USE_64_BIT_INODE

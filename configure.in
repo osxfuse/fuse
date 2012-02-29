@@ -59,6 +59,9 @@ fi
 if test "$enable_mtab" = "no"; then
 	AC_DEFINE(IGNORE_MTAB, 1, [Don't update /etc/mtab])
 fi
+if test "$arch" = darwin; then
+	AC_DEFINE(_POSIX_C_SOURCE, 200112L, [Set _POSIX_C_SOURCE])
+fi
 AC_CHECK_FUNCS([fork setxattr fdatasync])
 AC_CHECK_MEMBERS([struct stat.st_atim])
 AC_CHECK_MEMBERS([struct stat.st_atimespec])
@@ -76,7 +79,7 @@ AC_ARG_WITH([libiconv-prefix],
       if test -d $dir/lib; then LDFLAGS="$LDFLAGS -L$dir/lib"; fi
     done
    ])
-#AM_ICONV
+AM_ICONV
 libfuse_libs="$libfuse_libs $LIBICONV"
 AM_CONDITIONAL(ICONV, test "$am_cv_func_iconv" = yes)
 AC_SUBST(libfuse_libs)
@@ -100,5 +103,11 @@ AM_CONDITIONAL(LINUX, test "$arch" = linux)
 AM_CONDITIONAL(BSD, test "$arch" = bsd)
 AM_CONDITIONAL(DARWIN, test "$arch" = darwin)
 
-AC_CONFIG_FILES([fuse.pc osxfuse.pc Makefile lib/Makefile util/Makefile example/Makefile include/Makefile])
+if test "$arch" = darwin; then
+	fuse_pc=osxfuse.pc
+else
+	fuse_pc=fuse.pc
+fi
+
+AC_CONFIG_FILES([$fuse_pc Makefile lib/Makefile util/Makefile example/Makefile include/Makefile])
 AC_OUTPUT

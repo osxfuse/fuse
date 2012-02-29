@@ -1,11 +1,9 @@
 #!/bin/sh
-# Copyrigth 2011, OSXFUSE Project
-# All rights reserved.
 
 OSXFUSE_SRCROOT=${OSXFUSE_SRCROOT:-$1}
 OSXFUSE_SRCROOT=${OSXFUSE_SRCROOT:?}
 
-OTHER_CFLAGS="-D_DARWIN_NO_64_BIT_INODE -D__FreeBSD__=10 -D_POSIX_C_SOURCE=200112L -I$OSXFUSE_SRCROOT/common"
+OTHER_CFLAGS="-D__FreeBSD__=10 -I$OSXFUSE_SRCROOT/common"
 FRAMEWORKS="CoreFoundation"
 
 CFLAGS="$OTHER_CFLAGS"
@@ -52,4 +50,4 @@ export CFLAGS
 export LDFLAGS
 
 ./makeconf.sh && \
-./configure --prefix=/usr/local --disable-dependency-tracking --disable-static
+./configure --prefix=/usr/local --disable-dependency-tracking --disable-static --disable-example

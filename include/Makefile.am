@@ -7,16 +7,7 @@ else
 fuseincludedir=$(includedir)/fuse
 endif
 
-if DARWIN
-darwin_headers = fuse_darwin.h
-darwin_headers_private = fuse_darwin_private.h
-else
-darwin_headers =
-darwin_headers_private =
-endif
-
 fuseinclude_HEADERS = \
-	$(darwin_headers)	\
 	fuse.h			\
 	fuse_compat.h		\
 	fuse_common.h		\
@@ -26,9 +17,10 @@ fuseinclude_HEADERS = \
 	fuse_opt.h
 
 if DARWIN
+fuseinclude_HEADERS += fuse_darwin.h
 osxfuseinclude_HEADERS = old/fuse.h
 else
 include_HEADERS = old/fuse.h ulockmgr.h
 endif
 
-noinst_HEADERS = fuse_kernel.h $(darwin_headers_private)
+noinst_HEADERS = fuse_kernel.h

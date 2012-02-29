@@ -1,15 +1,9 @@
 #! /bin/sh
 
-DARWIN=""
-is_darwin() {
-    if [ -z "$DARWIN" ]; then
-        test "`uname`" = "Darwin"
-        DARWIN=$?
-    fi
-    return $DARWIN
-}
+test "`uname -s`" != "Darwin"
+DARWIN=$?
 
-if is_darwin; then
+if test $DARWIN -eq 1; then
     LIBTOOLIZE=glibtoolize
 else
     LIBTOOLIZE=libtoolize
@@ -18,7 +12,9 @@ fi
 echo Running libtoolize...
 $LIBTOOLIZE --automake -c -f
 
-if ! is_darwin; then
+if test $DARWIN -eq 1; then
+    touch config.rpath
+else
     CONFIG_RPATH=/usr/share/gettext/config.rpath
     if ! [ -f $CONFIG_RPATH ]; then
         CONFIG_RPATH=/usr/local/share/gettext/config.rpath
@@ -31,9 +27,9 @@ if ! is_darwin; then
             exit 1
         fi
     fi
-fi
-if ! [ -z "$CONFIG_RPATH" ]; then
-    cp "$CONFIG_RPATH" .
+    if ! [ -z "$CONFIG_RPATH" ]; then
+        cp "$CONFIG_RPATH" .
+    fi
 fi
 
 if test ! -z "`which autoreconf`"; then

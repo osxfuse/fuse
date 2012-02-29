@@ -1,33 +1,32 @@
 ## Process this file with automake to produce Makefile.in
 
+AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
+ -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26
+
 if DARWIN
-AM_CPPFLAGS_DARWIN = -D__FreeBSD__=10
-else
-AM_CPPFLAGS_DARWIN =
+AM_CPPFLAGS += -D__FreeBSD__=10 -O -gdwarf-2
 endif
 
-AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
- -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26 $(AM_CPPFLAGS_DARWIN)
-
 if DARWIN
-lib_LTLIBRARIES = libosxfuse_i32.la
+lib_LTLIBRARIES = libosxfuse_i32.la libosxfuse_i64.la
 else
 lib_LTLIBRARIES = libfuse.la libulockmgr.la
 endif
 
 if BSD
 mount_source = mount_bsd.c
-extra_source =
 endif
 
 if DARWIN
-mount_source = mount_darwin.c
-extra_source = fuse_darwin.c modules/threadid.c modules/volicon.c
+mount_source =			\
+	mount_darwin.c		\
+	fuse_darwin.c		\
+	modules/threadid.c	\
+	modules/volicon.c
 endif
 
 if LINUX
 mount_source = mount.c mount_util.c mount_util.h
-extra_source =
 endif
 
 if ICONV
@@ -50,20 +49,24 @@ libfuse_la_SOURCES = 		\
 	fuse_signals.c		\
 	helper.c		\
 	modules/subdir.c	\
-	$(extra_source)		\
 	$(iconv_source)		\
 	$(mount_source)
 
-libosxfuse_i32_la_SOURCES = $(libfuse_la_SOURCES)
+fuse_version_number=2:7:3
 
-if !DARWIN
-libfuse_la_LDFLAGS = @libfuse_libs@ -version-number 2:7:3 \
-	-Wl,--version-script,$(srcdir)/fuse_versionscript
+if DARWIN
+libosxfuse_i32_la_SOURCES = $(libfuse_la_SOURCES)
+libosxfuse_i32_la_CPPFLAGS = $(AM_CPPFLAGS) -D_DARWIN_NO_64_BIT_INODE
+libosxfuse_i32_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number)
+libosxfuse_i64_la_SOURCES = $(libfuse_la_SOURCES)
+libosxfuse_i64_la_CPPFLAGS = $(AM_CPPFLAGS) -D_DARWIN_USE_64_BIT_INODE
+libosxfuse_i64_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number)
 else
-libosxfuse_i32_la_LDFLAGS = -version-number 2:7:3
-endif
+libfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number) \
+	-Wl,--version-script,$(srcdir)/fuse_versionscript
 
 libulockmgr_la_SOURCES = ulockmgr.c
 libulockmgr_la_LDFLAGS = -version-number 1:0:1
 
 EXTRA_DIST = fuse_versionscript
+endif
