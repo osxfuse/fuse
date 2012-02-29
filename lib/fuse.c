@@ -17,9 +17,9 @@
 #include "fuse_misc.h"
 #include "fuse_common_compat.h"
 #include "fuse_compat.h"
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 #include "fuse_darwin_private.h"
-#endif /* __FreeBSD__ >= 10 */
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -73,9 +73,9 @@ struct fuse_fs {
 	struct fuse_module *m;
 	void *user_data;
 	int compat;
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	struct fuse *fuse;
-#endif /* __FreeBSD__ >= 10 */
+#endif
 };
 
 struct fusemod_so {
@@ -633,7 +633,7 @@ static inline void fuse_prepare_interrupt(struct fuse *f, fuse_req_t req,
 		fuse_do_prepare_interrupt(req, d);
 }
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 
 static int fuse_compat_open(struct fuse_fs *fs, const char *path,
 			    struct fuse_file_info *fi)
@@ -728,7 +728,7 @@ static int fuse_compat_statfs(struct fuse_fs *fs, const char *path,
 	return err;
 }
 
-#else /* __FreeBSD__ */
+#else /* __FreeBSD__ || __APPLE__ */
 
 static inline int fuse_compat_open(struct fuse_fs *fs, char *path,
 				   struct fuse_file_info *fi)
@@ -774,7 +774,7 @@ int fuse_fs_fsetattr_x(struct fuse_fs *fs, const char *path,
 		return -ENOSYS;
 }
 
-#endif /* __FreeBSD__ */
+#endif /* !__FreeBSD__ && !__APPLE__ */
 
 int fuse_fs_getattr(struct fuse_fs *fs, const char *path, struct stat *buf)
 {
@@ -807,7 +807,7 @@ int fuse_fs_rename(struct fuse_fs *fs, const char *oldpath,
 		return -ENOSYS;
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 int fuse_fs_setvolname(struct fuse_fs *fs, const char *volname)
 {
@@ -868,7 +868,7 @@ int fuse_fs_setcrtime(struct fuse_fs *fs, const char *path,
 		return -ENOSYS;
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 int fuse_fs_unlink(struct fuse_fs *fs, const char *path)
 {
@@ -1142,37 +1142,37 @@ int fuse_fs_mkdir(struct fuse_fs *fs, const char *path, mode_t mode)
 }
 
 int fuse_fs_setxattr(struct fuse_fs *fs, const char *path, const char *name,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
   	             const char *value, size_t size, int flags, uint32_t position)
 #else
   	             const char *value, size_t size, int flags);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 {
 	fuse_get_context()->private_data = fs->user_data;
 	if (fs->op.setxattr)
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		return fs->op.setxattr(path, name, value, size, flags, position);
 #else
 		return fs->op.setxattr(path, name, value, size, flags);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 	else
 		return -ENOSYS;
 }
 
 int fuse_fs_getxattr(struct fuse_fs *fs, const char *path, const char *name,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		     char *value, size_t size, uint32_t position)
 #else
 		     char *value, size_t size);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 {
 	fuse_get_context()->private_data = fs->user_data;
 	if (fs->op.getxattr)
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		return fs->op.getxattr(path, name, value, size, position);
 #else
 		return fs->op.getxattr(path, name, value, size);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 	else
 		return -ENOSYS;
 }
@@ -1286,7 +1286,7 @@ static int mtime_eq(const struct stat *stbuf, const struct timespec *ts)
 
 static void curr_time(struct timespec *now)
 {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 #define OSXFUSE_TIMEVAL_TO_TIMESPEC(tv, ts) {		\
 		(ts)->tv_sec = (tv)->tv_sec;		\
 		(ts)->tv_nsec = (tv)->tv_usec * 1000;	\
@@ -1561,7 +1561,7 @@ int fuse_fs_chmod(struct fuse_fs *fs, const char *path, mode_t mode)
 		return -ENOSYS;
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 int fuse_fs_chflags(struct fuse_fs *fs, const char *path, uint32_t flags)
 {
@@ -1661,7 +1661,7 @@ done:
 		reply_err(req, err);
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 			     int valid, struct fuse_file_info *fi)
@@ -1678,7 +1678,7 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
 		err = 0;
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		if (!err && (valid & FUSE_SET_ATTR_FLAGS)) {
 			err = fuse_fs_chflags(f->fs, path, attr->st_flags);
 			/* XXX: don't complain if flags couldn't be written */
@@ -1703,7 +1703,7 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 			tv.tv_nsec = (uint32_t)(attr->st_gen);
 			err = fuse_fs_setcrtime(f->fs, path, &tv);
 		}
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 		if (!err && (valid & FUSE_SET_ATTR_MODE))
 			err = fuse_fs_chmod(f->fs, path, attr->st_mode);
 		if (!err && (valid & (FUSE_SET_ATTR_UID | FUSE_SET_ATTR_GID))) {
@@ -1721,7 +1721,7 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 				err = fuse_fs_truncate(f->fs, path,
 						       attr->st_size);
 		}
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		if (!err && (valid & FUSE_SET_ATTR_MTIME)) {
 			struct timespec tv[2];
 			if (valid & FUSE_SET_ATTR_ATIME) {
@@ -1748,7 +1748,7 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 			tv[1].tv_nsec = ST_MTIM_NSEC(attr);
 			err = fuse_fs_utimens(f->fs, path, tv);
 		}
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 		if (!err)
 			err = fuse_fs_getattr(f->fs,  path, &buf);
 		fuse_finish_interrupt(f, req, &d);
@@ -1999,7 +1999,7 @@ static void fuse_lib_rename(fuse_req_t req, fuse_ino_t olddir,
 	reply_err(req, err);
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 static int exchange_node(struct fuse *f, fuse_ino_t olddir, const char *oldname,
 		         fuse_ino_t newdir, const char *newname,
@@ -2125,7 +2125,7 @@ static void fuse_lib_getxtimes(fuse_req_t req, fuse_ino_t ino,
 		reply_err(req, err);
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static void fuse_lib_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
 			  const char *newname)
@@ -2264,7 +2264,7 @@ static void open_auto_cache(struct fuse *f, fuse_ino_t ino, const char *path,
 			pthread_mutex_unlock(&f->lock);
 			err = fuse_fs_fgetattr(f->fs, path, &stbuf, fi);
 			pthread_mutex_lock(&f->lock);
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			if (!err) {
 				if (stbuf.st_size != node->size)
 					fi->purge_attr = 1;
@@ -2281,7 +2281,7 @@ static void open_auto_cache(struct fuse *f, fuse_ino_t ino, const char *path,
 	}
 	if (node->cache_valid)
 		fi->keep_cache = 1;
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	else
 		fi->purge_ubc = 1;
 #endif
@@ -2725,11 +2725,11 @@ static void fuse_lib_statfs(fuse_req_t req, fuse_ino_t ino)
 }
 
 static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			      const char *value, size_t size, int flags, uint32_t position)
 #else
 			      const char *value, size_t size, int flags)
-#endif /* __FreeBSD__ >= 10 */
+#endif
 {
 	struct fuse *f = req_fuse_prepare(req);
 	char *path;
@@ -2741,11 +2741,11 @@ static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	if (path != NULL) {
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		err = fuse_fs_setxattr(f->fs, path, name, value, size, flags, position);
 #else
 		err = fuse_fs_setxattr(f->fs, path, name, value, size, flags);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 		fuse_finish_interrupt(f, req, &d);
 		free(path);
 	}
@@ -2754,11 +2754,11 @@ static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 }
 
 static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			   const char *name, char *value, size_t size, uint32_t position)
 #else
 			   const char *name, char *value, size_t size)
-#endif /* __FreeBSD__ >= 10 */
+#endif
 {
 	int err;
 	char *path;
@@ -2769,11 +2769,11 @@ static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
 	if (path != NULL) {
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		err = fuse_fs_getxattr(f->fs, path, name, value, size, position);
 #else
 		err = fuse_fs_getxattr(f->fs, path, name, value, size);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 		fuse_finish_interrupt(f, req, &d);
 		free(path);
 	}
@@ -2782,11 +2782,11 @@ static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
 }
 
 static void fuse_lib_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			      size_t size, uint32_t position)
 #else
 			      size_t size)
-#endif /* __FreeBSD__ >= 10 */
+#endif
 {
 	struct fuse *f = req_fuse_prepare(req);
 	int res;
@@ -2797,22 +2797,22 @@ static void fuse_lib_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 			reply_err(req, -ENOMEM);
 			return;
 		}
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		res = common_getxattr(f, req, ino, name, value, size, position);
 #else
 		res = common_getxattr(f, req, ino, name, value, size);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 		if (res > 0)
 			fuse_reply_buf(req, value, res);
 		else
 			reply_err(req, res);
 		free(value);
 	} else {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		res = common_getxattr(f, req, ino, name, NULL, 0, position);
 #else
 		res = common_getxattr(f, req, ino, name, NULL, 0);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 		if (res >= 0)
 			fuse_reply_xattr(req, res);
 		else
@@ -3210,7 +3210,7 @@ static struct fuse_lowlevel_ops fuse_path_ops = {
 	.getlk = fuse_lib_getlk,
 	.setlk = fuse_lib_setlk,
 	.bmap = fuse_lib_bmap,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
         .setvolname = fuse_lib_setvolname,
         .exchange = fuse_lib_exchange,
 	.getxtimes = fuse_lib_getxtimes,
@@ -3482,9 +3482,9 @@ struct fuse_fs *fuse_fs_new(const struct fuse_operations *op, size_t op_size,
 	}
 
 	fs->user_data = user_data;
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	fs->fuse = NULL;
-#endif /* __FreeBSD__ >= 10 */
+#endif
 	if (op)
 		memcpy(&fs->op, op, op_size);
 	return fs;
@@ -3548,7 +3548,7 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	if (!f->conf.ac_attr_timeout_set)
 		f->conf.ac_attr_timeout = f->conf.attr_timeout;
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__APPLE__)
 	/*
 	 * In FreeBSD, we always use these settings as inode numbers
 	 * are needed to make getcwd(3) work.
@@ -3616,10 +3616,10 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	root->nlookup = 1;
 	hash_id(f, root);
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	f->fs->fuse = f;
         fuse_set_fuse_internal_np(fuse_chan_fd(ch), f);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 
 	return f;
 
@@ -3658,9 +3658,9 @@ void fuse_destroy(struct fuse *f)
 {
 	size_t i;
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
         fuse_unset_fuse_internal_np(f);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 
 	if (f->conf.intr && f->intr_installed)
 		fuse_restore_intr_signal(f->conf.intr_signal);
@@ -3730,7 +3730,7 @@ void fuse_register_module(struct fuse_module *mod)
 	fuse_modules = mod;
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 struct find_mountpoint_arg {
     struct fuse *fuse;
@@ -3907,9 +3907,9 @@ out:
 	return ret;
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 
 static struct fuse *fuse_new_common_compat(int fd, const char *opts,
 					   const struct fuse_operations *op,
@@ -3959,16 +3959,14 @@ struct fuse *fuse_new_compat1(int fd, int flags,
 				      11);
 }
 
-#if !(__FreeBSD__ >= 10)
 FUSE_SYMVER(".symver fuse_exited,__fuse_exited@");
 FUSE_SYMVER(".symver fuse_process_cmd,__fuse_process_cmd@");
 FUSE_SYMVER(".symver fuse_read_cmd,__fuse_read_cmd@");
 FUSE_SYMVER(".symver fuse_set_getcontext_func,__fuse_set_getcontext_func@");
 FUSE_SYMVER(".symver fuse_new_compat2,fuse_new@");
 FUSE_SYMVER(".symver fuse_new_compat22,fuse_new@FUSE_2.2");
-#endif
 
-#endif /* __FreeBSD__ */
+#endif /* !__FreeBSD__ && !__APPLE__ */
 
 struct fuse *fuse_new_compat25(int fd, struct fuse_args *args,
 			       const struct fuse_operations_compat25 *op,
@@ -3978,6 +3976,6 @@ struct fuse *fuse_new_compat25(int fd, struct fuse_args *args,
 					op_size, 25);
 }
 
-#if !(__FreeBSD__ >= 10)
+#ifndef __APPLE__
 FUSE_SYMVER(".symver fuse_new_compat25,fuse_new@FUSE_2.5");
 #endif

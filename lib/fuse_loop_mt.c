@@ -15,7 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 #define DARWIN_SEMAPHORE_COMPAT 1
 #include "fuse_darwin_private.h"
 #else
@@ -126,7 +126,7 @@ static void *fuse_do_work(void *data)
 	}
 
 	sem_post(&mt->finish);
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	{
 		sigset_t set;
 		(void)sigprocmask(0, NULL, &set);
@@ -134,7 +134,7 @@ static void *fuse_do_work(void *data)
 	}
 #else
 	pause();
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 	return NULL;
 }

@@ -382,7 +382,7 @@ int fuse_opt_parse(struct fuse_args *args, void *data,
 	return res;
 }
 
-#if !(__FreeBSD__ >= 10)
+#ifndef __APPLE__
 /* This symbol version was mistakenly added to the version script */
 FUSE_SYMVER(".symver fuse_opt_insert_arg_compat,fuse_opt_insert_arg@FUSE_2.5");
 #endif

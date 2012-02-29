@@ -31,7 +31,7 @@
 #include <sys/xattr.h>
 #endif
 
-#if !(__FreeBSD__ >= 10)
+#ifndef __APPLE__
 
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
 	return fuse_main(argc, argv, &xmp_oper, NULL);
 }
 
-#else
+#else /* __APPLE__ */
 
 int
 main(void)
@@ -395,4 +395,4 @@ main(void)
     return 1;
 }
 
-#endif
+#endif /* !__APPLE__ */

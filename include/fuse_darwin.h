@@ -3,7 +3,7 @@
  * Amit Singh <singh@>
  */
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 #ifndef _FUSE_DARWIN_H_
 #define _FUSE_DARWIN_H_
@@ -82,4 +82,4 @@ int fuse_purge_np(const char *mountpoint, const char *path, off_t *newsize);
 
 #endif /* _FUSE_DARWIN_H_ */
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */

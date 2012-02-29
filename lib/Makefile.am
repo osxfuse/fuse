@@ -4,7 +4,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
  -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26
 
 if DARWIN
-AM_CPPFLAGS += -D__FreeBSD__=10 -O -gdwarf-2
+AM_CPPFLAGS += -O -gdwarf-2
 endif
 
 if DARWIN

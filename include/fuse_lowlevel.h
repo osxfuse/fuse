@@ -118,12 +118,12 @@ struct fuse_ctx {
 #define FUSE_SET_ATTR_SIZE	(1 << 3)
 #define FUSE_SET_ATTR_ATIME	(1 << 4)
 #define FUSE_SET_ATTR_MTIME	(1 << 5)
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 #define FUSE_SET_ATTR_CRTIME	(1 << 28)
 #define FUSE_SET_ATTR_CHGTIME	(1 << 29)
 #define FUSE_SET_ATTR_BKUPTIME	(1 << 30)
 #define FUSE_SET_ATTR_FLAGS	(1 << 31)
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 /* ----------------------------------------------------------- *
  * Request methods and replies				       *
@@ -629,13 +629,13 @@ struct fuse_lowlevel_ops {
 	 * Valid replies:
 	 *   fuse_reply_err
 	 */
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	void (*setxattr) (fuse_req_t req, fuse_ino_t ino, const char *name,
 			  const char *value, size_t size, int flags, uint32_t position);
 #else
 	void (*setxattr) (fuse_req_t req, fuse_ino_t ino, const char *name,
 			  const char *value, size_t size, int flags);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 
 	/**
 	 * Get an extended attribute
@@ -659,13 +659,13 @@ struct fuse_lowlevel_ops {
 	 * @param name of the extended attribute
 	 * @param size maximum size of the value to send
 	 */
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	void (*getxattr) (fuse_req_t req, fuse_ino_t ino, const char *name,
 			  size_t size, uint32_t position);
 #else
 	void (*getxattr) (fuse_req_t req, fuse_ino_t ino, const char *name,
 			  size_t size);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 
 	/**
 	 * List extended attribute names
@@ -824,7 +824,7 @@ struct fuse_lowlevel_ops {
 	void (*bmap) (fuse_req_t req, fuse_ino_t ino, size_t blocksize,
 		      uint64_t idx);
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
         void (*reserved00) (fuse_req_t req, fuse_ino_t ino,
                             void *, void *, void *, void *, void *, void *);
@@ -862,7 +862,7 @@ struct fuse_lowlevel_ops {
 			   struct setattr_x *attr, int to_set,
 			   struct fuse_file_info *fi);
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 };
 
 /**

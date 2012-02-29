@@ -10,16 +10,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 #include "fuse_darwin_private.h"
-#endif /* __FreeBSD__ >= 10 */
+#endif
 
 static struct fuse_session *fuse_instance;
 
 static void exit_handler(int sig)
 {
 	(void) sig;
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	fuse_exit_handler_internal_np();
 #else
 	if (fuse_instance)
@@ -64,7 +64,7 @@ int fuse_set_signal_handlers(struct fuse_session *se)
 
 void fuse_remove_signal_handlers(struct fuse_session *se)
 {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	if (fuse_remove_signal_handlers_internal_np() != 0) {
 		return;
 	}
@@ -74,7 +74,7 @@ void fuse_remove_signal_handlers(struct fuse_session *se)
 			"fuse: fuse_remove_signal_handlers: unknown session\n");
 	else
 		fuse_instance = NULL;
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 	set_one_signal_handler(SIGHUP, SIG_DFL);
 	set_one_signal_handler(SIGINT, SIG_DFL);
 	set_one_signal_handler(SIGTERM, SIG_DFL);

@@ -18,7 +18,7 @@
 #include <assert.h>
 #include <signal.h>
 #include <sys/stat.h>
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 #undef _POSIX_C_SOURCE
 #include <sys/socket.h>
 #define _POSIX_C_SOURCE 200112L
@@ -27,7 +27,7 @@
 #endif
 #include <sys/wait.h>
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 #define MSG_NOSIGNAL 0
 #endif
 
@@ -149,7 +149,7 @@ static int ulockmgr_start_daemon(void)
 		close(sv[1]);
 		return -1;
 	}
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	{
 		int on = 1;
 		res = setsockopt(ulockmgr_cfd, SOL_SOCKET, SO_NOSIGPIPE,

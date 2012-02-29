@@ -79,7 +79,7 @@ static void convert_stat(const struct stat *stbuf, struct fuse_attr *attr)
 	attr->atimensec = ST_ATIM_NSEC(stbuf);
 	attr->mtimensec = ST_MTIM_NSEC(stbuf);
 	attr->ctimensec = ST_CTIM_NSEC(stbuf);
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	attr->flags	= stbuf->st_flags;
 #ifdef _DARWIN_USE_64_BIT_INODE
 	attr->crtime	= stbuf->st_birthtime;
@@ -88,11 +88,11 @@ static void convert_stat(const struct stat *stbuf, struct fuse_attr *attr)
 	attr->crtime	= (__u64)-1;
 	attr->crtimensec= (__u32)-1;
 #endif /* __DARWIN_64_BIT_INO_T */
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 static void convert_attr_x(const struct fuse_setattr_in *attr,
 			   struct setattr_x *stbuf)
@@ -114,7 +114,7 @@ static void convert_attr_x(const struct fuse_setattr_in *attr,
 	stbuf->flags		= attr->flags;
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static void convert_attr(const struct fuse_setattr_in *attr, struct stat *stbuf)
 {
@@ -126,7 +126,7 @@ static void convert_attr(const struct fuse_setattr_in *attr, struct stat *stbuf)
 	stbuf->st_mtime	       = attr->mtime;
 	ST_ATIM_NSEC_SET(stbuf, attr->atimensec);
 	ST_MTIM_NSEC_SET(stbuf, attr->mtimensec);
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 	stbuf->st_flags = attr->flags;
 
@@ -139,7 +139,7 @@ static void convert_attr(const struct fuse_setattr_in *attr, struct stat *stbuf)
 	stbuf->st_qspare[1] = attr->crtime;
 	stbuf->st_gen = attr->crtimensec;
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 }
 
 static	size_t iov_length(const struct iovec *iov, size_t count)
@@ -365,7 +365,7 @@ static void fill_open(struct fuse_open_out *arg,
 		arg->open_flags |= FOPEN_DIRECT_IO;
 	if (f->keep_cache)
 		arg->open_flags |= FOPEN_KEEP_CACHE;
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	if (f->purge_attr)
 		arg->open_flags |= FOPEN_PURGE_ATTR;
 	if (f->purge_ubc)
@@ -373,7 +373,7 @@ static void fill_open(struct fuse_open_out *arg,
 #endif
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 int fuse_reply_xtimes(fuse_req_t req, const struct timespec *bkuptime,
 		      const struct timespec *crtime)
@@ -388,7 +388,7 @@ int fuse_reply_xtimes(fuse_req_t req, const struct timespec *bkuptime,
 	return send_reply_ok(req, &arg, sizeof(arg));
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 int fuse_reply_entry(fuse_req_t req, const struct fuse_entry_param *e)
 {
@@ -543,7 +543,7 @@ static void do_setattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 {
 	struct fuse_setattr_in *arg = (struct fuse_setattr_in *) inarg;
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	if (req->f->op.setattr_x) {
 		struct fuse_file_info *fi = NULL;
 		struct fuse_file_info fi_store;
@@ -560,7 +560,7 @@ static void do_setattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		stbuf.valid = arg->valid;
 		req->f->op.setattr_x(req, nodeid, &stbuf, arg->valid, fi);
 	} else
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 	if (req->f->op.setattr) {
 		struct fuse_file_info *fi = NULL;
 		struct fuse_file_info fi_store;
@@ -662,7 +662,7 @@ static void do_rename(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		fuse_reply_err(req, ENOSYS);
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 static void do_setvolname(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 {
@@ -695,7 +695,7 @@ static void do_getxtimes(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	else
 		fuse_reply_err(req, ENOSYS);
 }
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static void do_link(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 {
@@ -905,11 +905,11 @@ static void do_setxattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 
 	if (req->f->op.setxattr)
 		req->f->op.setxattr(req, nodeid, name, value, arg->size,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 				    arg->flags, arg->position);
 #else
 				    arg->flags);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 	else
 		fuse_reply_err(req, ENOSYS);
 }
@@ -919,11 +919,11 @@ static void do_getxattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	struct fuse_getxattr_in *arg = (struct fuse_getxattr_in *) inarg;
 
 	if (req->f->op.getxattr)
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		req->f->op.getxattr(req, nodeid, PARAM(arg), arg->size, arg->position);
 #else
 		req->f->op.getxattr(req, nodeid, PARAM(arg), arg->size);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 	else
 		fuse_reply_err(req, ENOSYS);
 }
@@ -1153,12 +1153,12 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	outarg.max_readahead = f->conn.max_readahead;
 	outarg.max_write = f->conn.max_write;
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	if (f->conn.enable.setvolname)
 		outarg.flags |= FUSE_VOL_RENAME;
 	if (f->conn.enable.xtimes)
 		outarg.flags |= FUSE_XTIMES;
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 	if (f->debug) {
 		fprintf(stderr, "   INIT: %u.%u\n", outarg.major, outarg.minor);
@@ -1257,11 +1257,11 @@ static struct {
 	[FUSE_INTERRUPT]   = { do_interrupt,   "INTERRUPT"   },
 	[FUSE_BMAP]	   = { do_bmap,	       "BMAP"	     },
 	[FUSE_DESTROY]	   = { do_destroy,     "DESTROY"     },
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	[FUSE_SETVOLNAME]  = { do_setvolname,  "SETVOLNAME"  },
 	[FUSE_EXCHANGE]    = { do_exchange,    "EXCHANGE"    },
 	[FUSE_GETXTIMES]   = { do_getxtimes,   "GETXTIMES"   },
-#endif /* __FreeBSD__ >= 10 */
+#endif
 };
 
 #define FUSE_MAXOP (sizeof(fuse_ll_ops) / sizeof(fuse_ll_ops[0]))
@@ -1352,7 +1352,7 @@ static struct fuse_opt fuse_ll_opts[] = {
 
 static void fuse_ll_version(void)
 {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	fprintf(stderr, "OSXFUSE kernel interface version %i.%i\n",
 		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
 #else
@@ -1472,7 +1472,7 @@ struct fuse_session *fuse_lowlevel_new(struct fuse_args *args,
 }
 
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 
 static void fill_open_compat(struct fuse_open_out *arg,
 			     const struct fuse_file_info_compat *f)
@@ -1570,13 +1570,11 @@ int fuse_sync_compat_args(struct fuse_args *args)
 	return 0;
 }
 
-#if !(__FreeBSD__ >= 10)
 FUSE_SYMVER(".symver fuse_reply_statfs_compat,fuse_reply_statfs@FUSE_2.4");
 FUSE_SYMVER(".symver fuse_reply_open_compat,fuse_reply_open@FUSE_2.4");
 FUSE_SYMVER(".symver fuse_lowlevel_new_compat,fuse_lowlevel_new@FUSE_2.4");
-#endif
 
-#else /* __FreeBSD__ */
+#else /* __FreeBSD__ || __APPLE__ */
 
 int fuse_sync_compat_args(struct fuse_args *args)
 {
@@ -1584,7 +1582,7 @@ int fuse_sync_compat_args(struct fuse_args *args)
 	return 0;
 }
 
-#endif /* __FreeBSD__ */
+#endif /* !__FreeBSD__ && !__APPLE__ */
 
 struct fuse_session *fuse_lowlevel_new_compat25(struct fuse_args *args,
 				const struct fuse_lowlevel_ops_compat25 *op,
@@ -1598,6 +1596,6 @@ struct fuse_session *fuse_lowlevel_new_compat25(struct fuse_args *args,
 					op_size, userdata);
 }
 
-#if !(__FreeBSD__ >= 10)
+#ifndef __APPLE__
 FUSE_SYMVER(".symver fuse_lowlevel_new_compat25,fuse_lowlevel_new@FUSE_2.5");
 #endif
