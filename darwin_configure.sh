@@ -32,10 +32,6 @@ then
     CFLAGS="$CFLAGS -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
     LDFLAGS="$LDFLAGS -Wl,-macosx_version_min,$MACOSX_DEPLOYMENT_TARGET"
 fi
-if [ -n "$OSXFUSE_MACFUSE_MODE" ]
-then
-    CFLAGS="$CFLAGS -DMACFUSE_MODE=$OSXFUSE_MACFUSE_MODE"
-fi
 for framework in $FRAMEWORKS
 do
     LDFLAGS="$LDFLAGS -Wl,-framework,$framework"

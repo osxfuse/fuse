@@ -15,7 +15,7 @@ EXTRA_DIST =			\
 pkgconfigdir = @pkgconfigdir@
 
 if DARWIN
-pkgconfig_DATA = osxfuse.pc
+pkgconfig_DATA = macfuse.pc
 else
 pkgconfig_DATA = fuse.pc
 endif

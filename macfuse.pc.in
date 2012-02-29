@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: fuse
+Description: MacFUSE
+Version: @VERSION@
+Libs: -L${libdir} -lfuse_ino64 @libfuse_libs@
+Cflags: -I${includedir}/macfuse/fuse -D_FILE_OFFSET_BITS=64 -D_DARWIN_USE_64_BIT_INODE

@@ -85,7 +85,7 @@ static void helper_help(void)
 static void helper_version(void)
 {
 #ifdef __APPLE__
-	fprintf(stderr, "OSXFUSE library version: FUSE %s / OSXFUSE %s\n",
+	fprintf(stderr, "MacFUSE library version: FUSE %s / OSXFUSE %s\n",
  		PACKAGE_VERSION, OSXFUSE_VERSION);
 #else
 	fprintf(stderr, "FUSE library version: %s\n", PACKAGE_VERSION);

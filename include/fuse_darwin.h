@@ -64,7 +64,7 @@ typedef fuse_sem_t sem_t;
 #endif /* DARWIN_SEMAPHORE_COMPAT */
 
 /* Versioning */
-const char *osxfuse_version(void);
+const char *macfuse_version(void);
 long        fuse_os_version_major_np(void);
 
 /* Advanced */

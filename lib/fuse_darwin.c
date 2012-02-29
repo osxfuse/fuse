@@ -324,7 +324,7 @@ fuse_unset_fuse_internal_np(struct fuse *f)
 }
 
 const char *
-osxfuse_version(void)
+macfuse_version(void)
 {
 	return OSXFUSE_VERSION;
 }
@@ -415,18 +415,6 @@ fuse_knote_np(const char *mountpoint, const char *path, uint32_t note)
 }
 
 /********************/
-
-#ifdef MACFUSE_MODE
-static bool osxfuse_macfuse_mode = false;
-
-void osxfuse_enable_macfuse_mode(bool arg) {
-    osxfuse_macfuse_mode = arg;
-}
-
-bool osxfuse_is_macfuse_mode_enabled() {
-    return osxfuse_macfuse_mode;
-}
-#endif
 
 pthread_mutex_t mount_lock;
 hash_table     *mount_hash;
