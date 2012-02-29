@@ -16,7 +16,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 #include <sys/param.h>
 #endif
 
@@ -208,6 +208,6 @@ void fuse_chan_destroy(struct fuse_chan *ch)
 	free(ch);
 }
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 FUSE_SYMVER(".symver fuse_chan_new_compat24,fuse_chan_new@FUSE_2.4");
 #endif

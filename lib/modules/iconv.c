@@ -267,7 +267,7 @@ static int iconv_symlink(const char *from, const char *to)
 	return err;
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 static int iconv_setvolname(const char *volname)
 {
@@ -299,7 +299,7 @@ static int iconv_exchange(const char *path1, const char *path2,
 	return err;
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static int iconv_rename(const char *from, const char *to)
 {
@@ -335,7 +335,7 @@ static int iconv_link(const char *from, const char *to)
 	return err;
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 static int iconv_setattr_x(const char *path, struct setattr_x *attr)
 {
 	struct iconv *ic = iconv_get();
@@ -422,7 +422,7 @@ static int iconv_setcrtime(const char *path, const struct timespec *crtime)
 	return err;
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static int iconv_chmod(const char *path, mode_t mode)
 {
@@ -599,7 +599,7 @@ static int iconv_fsyncdir(const char *path, int isdatasync,
 }
 
 static int iconv_setxattr(const char *path, const char *name,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			  const char *value, size_t size, int flags, uint32_t position)
 #else
 			  const char *value, size_t size, int flags)
@@ -610,7 +610,7 @@ static int iconv_setxattr(const char *path, const char *name,
 	int err = iconv_convpath(ic, path, &newpath, 0);
 	if (!err) {
 		err = fuse_fs_setxattr(ic->next, newpath, name, value, size,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 				       flags, position);
 #else
 				       flags);
@@ -621,7 +621,7 @@ static int iconv_setxattr(const char *path, const char *name,
 }
 
 static int iconv_getxattr(const char *path, const char *name, char *value,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			  size_t size, uint32_t position)
 #else
 			  size_t size)
@@ -631,7 +631,7 @@ static int iconv_getxattr(const char *path, const char *name, char *value,
 	char *newpath;
 	int err = iconv_convpath(ic, path, &newpath, 0);
 	if (!err) {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		err = fuse_fs_getxattr(ic->next, newpath, name, value, size, position);
 #else
 		err = fuse_fs_getxattr(ic->next, newpath, name, value, size);
@@ -746,7 +746,7 @@ static struct fuse_operations iconv_oper = {
 	.removexattr	= iconv_removexattr,
 	.lock		= iconv_lock,
 	.bmap		= iconv_bmap,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	.setvolname	= iconv_setvolname,
 	.exchange	= iconv_exchange,
 	.getxtimes	= iconv_getxtimes,

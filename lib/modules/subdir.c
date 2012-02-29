@@ -256,7 +256,7 @@ static int subdir_symlink(const char *from, const char *path)
 	return err;
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 static int subdir_setvolname(const char *volname)
 {
@@ -277,7 +277,7 @@ static int subdir_exchange(const char *path1, const char *path2,
 	return err;
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static int subdir_rename(const char *from, const char *to)
 {
@@ -305,7 +305,7 @@ static int subdir_link(const char *from, const char *to)
 	return err;
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 static int subdir_setattr_x(const char *path, struct setattr_x *attr)
 {
 	struct subdir *d = subdir_get();
@@ -391,7 +391,7 @@ static int subdir_setcrtime(const char *path, const struct timespec *crtime)
 	}
 	return err;
 }
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static int subdir_chmod(const char *path, mode_t mode)
 {
@@ -568,7 +568,7 @@ static int subdir_fsyncdir(const char *path, int isdatasync,
 }
 
 static int subdir_setxattr(const char *path, const char *name,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			   const char *value, size_t size, int flags, uint32_t position)
 #else
 			   const char *value, size_t size, int flags)
@@ -579,7 +579,7 @@ static int subdir_setxattr(const char *path, const char *name,
 	int err = -ENOMEM;
 	if (newpath) {
 		err = fuse_fs_setxattr(d->next, newpath, name, value, size,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 				       flags, position);
 #else
 				       flags);
@@ -590,7 +590,7 @@ static int subdir_setxattr(const char *path, const char *name,
 }
 
 static int subdir_getxattr(const char *path, const char *name, char *value,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			   size_t size, uint32_t position)
 #else
 			   size_t size)
@@ -600,7 +600,7 @@ static int subdir_getxattr(const char *path, const char *name, char *value,
 	char *newpath = subdir_addpath(d, path);
 	int err = -ENOMEM;
 	if (newpath) {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 		err = fuse_fs_getxattr(d->next, newpath, name, value, size, position);
 #else
 		err = fuse_fs_getxattr(d->next, newpath, name, value, size);
@@ -711,7 +711,7 @@ static struct fuse_operations subdir_oper = {
 	.removexattr	= subdir_removexattr,
 	.lock		= subdir_lock,
 	.bmap		= subdir_bmap,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	.setvolname	= subdir_setvolname,
 	.exchange	= subdir_exchange,
 	.getxtimes	= subdir_getxtimes,
@@ -721,7 +721,7 @@ static struct fuse_operations subdir_oper = {
 	.chflags	= subdir_chflags,
 	.setattr_x	= subdir_setattr_x,
 	.fsetattr_x	= subdir_fsetattr_x,
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 };
 
 static struct fuse_opt subdir_opts[] = {

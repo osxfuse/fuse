@@ -36,7 +36,7 @@
 extern "C" {
 #endif
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 #include <sys/stat.h>
 
@@ -67,7 +67,7 @@ struct setattr_x {
 	uint32_t flags;
 };
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 /**
  * Information about open files
@@ -98,7 +98,7 @@ struct fuse_file_info {
 	    operation.	Introduced in version 2.6 */
 	unsigned int flush : 1;
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	/** Padding.  Do not use*/
 	unsigned int padding : 27;
 	unsigned int purge_attr : 1;
@@ -152,7 +152,7 @@ struct fuse_conn_info {
 	/**
 	 * For future use.
 	 */
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	struct {
 		unsigned case_insensitive	:1;
 		unsigned setvolname		:1;
@@ -161,13 +161,13 @@ struct fuse_conn_info {
 	unsigned reserved[26];
 #else
 	unsigned reserved[27];
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 };
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 #define FUSE_ENABLE_SETVOLNAME(i)	(i)->enable.setvolname = 1
 #define FUSE_ENABLE_XTIMES(i)		(i)->enable.xtimes = 1
-#endif /* __FreeBSD__ >= 10 */
+#endif
 
 struct fuse_session;
 struct fuse_chan;
@@ -266,6 +266,11 @@ void fuse_remove_signal_handlers(struct fuse_session *se);
 #	     error On FreeBSD API version 25 or greater must be used
 #	 endif
 #    endif
+#    ifdef __APPLE__
+#	 if FUSE_USE_VERSION < 25
+#	     error On Darwin API version 25 or greater must be used
+#	 endif
+#    endif /* __APPLE__ */
 #    include "fuse_common_compat.h"
 #    undef FUSE_MINOR_VERSION
 #    undef fuse_main

@@ -3,7 +3,7 @@
  * Amit Singh <singh@>
  */
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 #ifndef _FUSE_DARWIN_PRIVATE_H_
 #define _FUSE_DARWIN_PRIVATE_H_
@@ -65,4 +65,4 @@ extern int              did_daemonize;
 
 #endif /* _FUSE_DARWIN_PRIVATE_H_ */
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */

@@ -17,9 +17,9 @@
 #define _GNU_SOURCE
 
 #include <fuse.h>
-#if !(__FreeBSD__ >= 10)
+#ifndef __APPLE__
 #include <ulockmgr.h>
-#endif /* __FreeBSD__ >= 10 */
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,7 +34,7 @@
 
 #include <sys/param.h>
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 #if defined(_POSIX_C_SOURCE)
 typedef unsigned char  u_char;
@@ -244,7 +244,7 @@ static int xmp_rename(const char *from, const char *to)
 	return 0;
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 static int xmp_setvolname(const char *volname)
 {
@@ -264,7 +264,7 @@ static int xmp_exchange(const char *path1, const char *path2,
 	return 0;
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static int xmp_link(const char *from, const char *to)
 {
@@ -277,7 +277,7 @@ static int xmp_link(const char *from, const char *to)
 	return 0;
 }
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 
 static int xmp_fsetattr_x(const char *path, struct setattr_x *attr,
 			  struct fuse_file_info *fi)
@@ -518,13 +518,13 @@ static int xmp_setcrtime(const char *path, const struct timespec *crtime)
 	return 0;
 }
 
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 
 static int xmp_chmod(const char *path, mode_t mode)
 {
 	int res;
 
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	res = lchmod(path, mode);
 #else
 	res = chmod(path, mode);
@@ -697,13 +697,13 @@ static int xmp_fsync(const char *path, int isdatasync,
 #ifdef HAVE_SETXATTR
 /* xattr operations are optional and can safely be left unimplemented */
 static int xmp_setxattr(const char *path, const char *name, const char *value,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			size_t size, int flags, uint32_t position)
 #else
 			size_t size, int flags)
 #endif
 {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	int res;
 	if (!strncmp(name, XATTR_APPLE_PREFIX, sizeof(XATTR_APPLE_PREFIX) - 1)) {
 		flags &= ~(XATTR_NOSECURITY);
@@ -725,13 +725,13 @@ static int xmp_setxattr(const char *path, const char *name, const char *value,
 }
 
 static int xmp_getxattr(const char *path, const char *name, char *value,
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 			size_t size, uint32_t position)
 #else
 			size_t size)
 #endif
 {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	int res;
 	if (strcmp(name, A_KAUTH_FILESEC_XATTR) == 0) {
 		char new_name[MAXPATHLEN];
@@ -751,7 +751,7 @@ static int xmp_getxattr(const char *path, const char *name, char *value,
 
 static int xmp_listxattr(const char *path, char *list, size_t size)
 {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	ssize_t res = listxattr(path, list, size, XATTR_NOFOLLOW);
 	if (res > 0) {
 		if (list) {
@@ -787,7 +787,7 @@ static int xmp_listxattr(const char *path, char *list, size_t size)
 
 static int xmp_removexattr(const char *path, const char *name)
 {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	int res;
 	if (strcmp(name, A_KAUTH_FILESEC_XATTR) == 0) {
 		char new_name[MAXPATHLEN];
@@ -806,7 +806,7 @@ static int xmp_removexattr(const char *path, const char *name)
 }
 #endif /* HAVE_SETXATTR */
 
-#if !(__FreeBSD__ >= 10)
+#ifndef __APPLE__
 static int xmp_lock(const char *path, struct fuse_file_info *fi, int cmd,
 		    struct flock *lock)
 {
@@ -815,15 +815,15 @@ static int xmp_lock(const char *path, struct fuse_file_info *fi, int cmd,
 	return ulockmgr_op(fi->fh, cmd, lock, &fi->lock_owner,
 			   sizeof(fi->lock_owner));
 }
-#endif /* __FreeBSD__ >= 10 */
+#endif /* !__APPLE__ */
 
 void *
 xmp_init(struct fuse_conn_info *conn)
 {
-#if (__FreeBSD__ >= 10)
+#ifdef __APPLE__
 	FUSE_ENABLE_SETVOLNAME(conn);
 	FUSE_ENABLE_XTIMES(conn);
-#endif /* __FreeBSD__ >= 10 */
+#endif
 	return NULL;
 }
 
@@ -837,9 +837,9 @@ static struct fuse_operations xmp_oper = {
 	.destroy	= xmp_destroy,
 	.getattr	= xmp_getattr,
 	.fgetattr	= xmp_fgetattr,
-#if !(__FreeBSD__ >= 10)
+#ifndef __APPLE__
 	.access		= xmp_access,
-#endif /* !__FreeBSD__ >= 10 */
+#endif
 	.readlink	= xmp_readlink,
 	.opendir	= xmp_opendir,
 	.readdir	= xmp_readdir,
@@ -870,10 +870,10 @@ static struct fuse_operations xmp_oper = {
 	.listxattr	= xmp_listxattr,
 	.removexattr	= xmp_removexattr,
 #endif
-#if !(__FreeBSD__ >= 10)
+#ifndef __APPLE__
 	.lock		= xmp_lock,
-#endif /* __FreeBSD__ >= 10 */
-#if (__FreeBSD__ >= 10)
+#endif
+#ifdef __APPLE__
 	.setvolname	= xmp_setvolname,
 	.exchange	= xmp_exchange,
 	.getxtimes	= xmp_getxtimes,
@@ -883,7 +883,7 @@ static struct fuse_operations xmp_oper = {
 	.chflags	= xmp_chflags,
 	.setattr_x	= xmp_setattr_x,
 	.fsetattr_x	= xmp_fsetattr_x,
-#endif /* __FreeBSD__ >= 10 */
+#endif /* __APPLE__ */
 };
 
 int main(int argc, char *argv[])
