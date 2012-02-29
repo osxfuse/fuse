@@ -8,7 +8,7 @@ AM_CPPFLAGS += -O -gdwarf-2
 endif
 
 if DARWIN
-lib_LTLIBRARIES = libosxfuse_i32.la
+lib_LTLIBRARIES = libosxfuse.la
 else
 lib_LTLIBRARIES = libfuse.la libulockmgr.la
 endif
@@ -56,8 +56,8 @@ libfuse_la_SOURCES = 		\
 fuse_version_number=2:8:0
 
 if DARWIN
-libosxfuse_i32_la_SOURCES = $(libfuse_la_SOURCES)
-libosxfuse_i32_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number)
+libosxfuse_la_SOURCES = $(libfuse_la_SOURCES)
+libosxfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number)
 else
 libfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number) \
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
