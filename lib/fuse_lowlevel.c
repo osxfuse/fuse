@@ -87,7 +87,7 @@ static void convert_stat(const struct stat *stbuf, struct fuse_attr *attr)
 #else
 	attr->crtime	= (__u64)-1;
 	attr->crtimensec= (__u32)-1;
-#endif /* __DARWIN_64_BIT_INO_T */
+#endif
 #endif /* __APPLE__ */
 
 }
