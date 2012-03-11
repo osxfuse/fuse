@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
+ * Copyright (c) 2012 Anatol Pomozov
  * Copyright (c) 2011-2012 Benjamin Fleischer
  */
 
@@ -225,11 +226,14 @@ fuse_sem_wait(fuse_sem_t *sem)
 		errno = EINVAL;
 		res = -1;
 	} else {
-		while (!sem->__data.local.count) {
-			pthread_cond_wait(&sem->__data.local.count_cond,
-					  &sem->__data.local.count_lock);
-		}
-		if (sem->id != __SEM_ID_LOCAL) {
+		pthread_cond_wait(&sem->__data.local.count_cond,
+				  &sem->__data.local.count_lock);
+
+		if (!sem->__data.local.count) {
+			// spurious wakeup, assume it is an interruption
+			res = -1;
+			errno = EINTR;
+		} else if (sem->id != __SEM_ID_LOCAL) {
 			res = -1;
 			errno = EINVAL;
 		} else {
