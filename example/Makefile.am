@@ -5,7 +5,7 @@ noinst_PROGRAMS = fusexmp fusexmp_fh null hello hello_ll
 
 if DARWIN
 AM_CPPFLAGS += -D_DARWIN_USE_64_BIT_INODE
-LDADD = ../lib/libosxfuse_64.la @libfuse_libs@
+LDADD = ../lib/libosxfuse_i64.la @libfuse_libs@
 fusexmp_fh_LDADD = ../lib/libosxfuse_i64.la @libfuse_libs@
 else
 LDADD = ../lib/libfuse.la @libfuse_libs@
