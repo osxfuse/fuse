@@ -225,14 +225,17 @@ fuse_sem_wait(fuse_sem_t *sem)
         errno = EINVAL;
         res = -1;
     } else {
-        while (!sem->__data.local.count) {
-            pthread_cond_wait(&sem->__data.local.count_cond,
-                              &sem->__data.local.count_lock);
-        }
-        if (sem->id != __SEM_ID_LOCAL) {
-	    res = -1;
+        pthread_cond_wait(&sem->__data.local.count_cond,
+                          &sem->__data.local.count_lock);
+
+        if (!sem->__data.local.count) {
+            // spurious wakeup, assume it is an interruption
+            res = -1;
+            errno = EINTR;
+        } else if (sem->id != __SEM_ID_LOCAL) {
+            res = -1;
             errno = EINVAL;
-	} else {
+        } else {
             sem->__data.local.count--;
         }
     }
