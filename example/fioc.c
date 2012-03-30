@@ -9,18 +9,6 @@
   gcc -Wall `pkg-config fuse --cflags --libs` fioc.c -o fioc
 */
 
-#ifdef __APPLE__
-#include <stdio.h>
-
-int
-main(void)
-{
-    fprintf(stderr, "This example is not supported on this platform.\n");
-    return 1;
-}
-
-#else /* !__APPLE__ */
-
 #define FUSE_USE_VERSION 26
 
 #include <fuse.h>
@@ -92,7 +80,11 @@ static int fioc_getattr(const char *path, struct stat *stbuf)
 		stbuf->st_nlink = 2;
 		break;
 	case FIOC_FILE:
+#ifdef __APPLE__
+		stbuf->st_mode = S_IFBLK | 0644;
+#else
 		stbuf->st_mode = S_IFREG | 0644;
+#endif
 		stbuf->st_nlink = 1;
 		stbuf->st_size = fioc_size;
 		break;
@@ -221,5 +213,3 @@ int main(int argc, char *argv[])
 {
 	return fuse_main(argc, argv, &fioc_oper, NULL);
 }
-
-#endif /* __APPLE__ */
