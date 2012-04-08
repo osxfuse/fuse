@@ -1730,7 +1730,7 @@ int fuse_fs_getxattr(struct fuse_fs *fs, const char *path, const char *name,
 		     char *value, size_t size, uint32_t position)
 #else
 int fuse_fs_getxattr(struct fuse_fs *fs, const char *path, const char *name,
-		     char *value, size_t size);
+		     char *value, size_t size)
 #endif
 {
 	fuse_get_context()->private_data = fs->user_data;
