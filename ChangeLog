@@ -1,3 +1,383 @@
+2012-04-20  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.9.0
+
+2012-04-20  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add missing fuse_fs_flock to fuse_versionscript
+
+2012-04-10  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Check protocol version before sending notifications and return
+	-ENOSYS if a particular notification is not supported.
+
+	* Add 'flag_utime_omit_ok' flag to fuse_operations.  If the
+	filesystem sets this flag then ->utimens() will receive UTIME_OMIT
+	and UTIME_NOW values as specified in utimensat(2).
+
+2012-01-27  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Interpret octal escape codes in options.  Requested by Jan
+	Engelhardt
+
+2012-01-26  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add man pages for fusermount, mount.fuse and ulockmgr_server.
+	Lifted from the Debian package.  The man pages were written by
+	Daniel Baumann and Bastien Roucaries
+
+2012-01-13  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Disable symbol versions on MacOSX.  Patch by Anatol Pomozov
+
+2012-01-02  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Remove unnecessary mutex unlock at the end of multithreaded
+	event loop.
+
+2011-12-09  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix hang in wait_on_path().  Reported by Ville Silventoinen
+
+	* Don't unhash name in FORGET.  This resulted in ENOENT being
+	returned for unlinked but still open files if the kernel sent a
+	FORGET request for the parent directory.
+
+	* Free request in fuse_reply_data().
+
+2011-12-08  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix build if FUSE_NODE_SLAB is not defined.  Patch by Emmanuel
+	Dreyfus
+
+	* Check for availability of utimensat() function.  Patch by
+	Emmanuel Dreyfus
+
+2011-12-07  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add fuse_lowlevel_notify_delete() which tells the kernel that a
+	file or directory is deleted.  Patch by John Muir
+
+2011-12-06  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Update retrieve_reply() method
+
+2011-12-05  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Low level API: lock argument of fuse_reply_lock should have a
+	'const' qualifier.  Reported by Shachar Sharon
+
+	* Add support for ioctl on directories.  Reported by Antonio SJ
+	Musumeci
+
+2011-10-13  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Reply to request with ENOMEM in case of failure to allocate
+	request structure.  Otherwise the task issuing the request will
+	just freeze up until the filesystem daemon is killed.  Reported by
+	Stephan Kulow
+
+2011-09-23  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Replace daemon() function with fork().  Patch by Anatol Pomozov
+
+2011-08-26  Miklos Szeredi <miklos@szeredi.hu>
+
+	* If configured with --disable-mtab then don't call mount(8) from
+	libfuse to update the mtab.  Reported by: James Sierp
+
+2011-08-24  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Use LRU list for cleaning up the cache if the "remember=T"
+	option was given.  Patch by therealneworld@gmail.com
+
+2011-07-06  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add ->flock() operation to low and high level interfaces.  This
+	fixes problems with emulating flock() with POSIX locking.
+	Reported by Sebastian Pipping.  As with lock/setlk/getlk most
+	filesystems don't need to implement this, as the kernel takes care
+	of file locking.  The only reason to implement locking operations
+	is for network filesystems which want file locking to work between
+	clients.
+
+2011-07-02  Sebastian Pipping <sebastian@pipping.org>
+
+	* Make xmp_utimens of examples "fusexmp" and "fusexmp_fh"
+	not follow symlinks as other layers do that already.
+
+2011-06-02  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add "remember" option.  This works similar to "noforget" except
+	that eventually the node will be allowed to expire from the cache.
+	Patch by therealneworld@gmail.com
+
+2011-05-27  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Check if splice/vmsplice are supported
+
+2011-05-26  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Remove -lrt -ldl from fuse.pc for dynamic linking since
+	libfuse.so is already linked with these libraries.  Reported by:
+	Nikolaus Rath
+
+2011-05-20  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Cleaner build output.  Patch by Reuben Hawkins
+
+2011-05-19  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Disable splice by default, add "splice_read", "splice_write" and
+	"splice_move" options.  Keep the "no_splice_*" variants, which can
+	disable splice even if the filesystem explicitly enables it.
+
+2011-04-15  Max Krasnyansky <maxk@kernel.org>
+	* Added support for "auto_unmount" option which unmounts the
+	filesystem automatically on process exit (or crash).
+
+2011-03-30  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Patches by Laszlo Papp fixing various issues found by the
+	Coverity checker
+
+2011-03-11  Miklos Szeredi <miklos@szeredi.hu>
+
+	* In case of failure to add to /etc/mtab don't umount.  Reported
+	by Marc Deslauriers
+
+2011-02-02  Miklos Szeredi <miklos@szeredi.hu>
+
+	* libfuse: In fuse_session_loop_mt() don't pause when exiting the
+	worker threads.  The pause() was added in 2.2.1 to prevent
+	segfault on pthread_cancel() on an exited, detached thread.  Now
+	worker threads are not detached and pthread_cancel() should work
+	fine even after the thread exited.  Reported by Boris Protopopov
+
+2011-01-31  Miklos Szeredi <miklos@szeredi.hu>
+
+	* fusermount: chdir to / before performing mount/umount
+
+	* fusermount: only allow mount and umount if util-linux supports
+	--no-canonicalize
+
+2010-12-16  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Highlevel lib: allow hash tables to shrink
+
+	* Highlevel lib: add slab allocation for node cache.  This will
+	allow the memory used by the filesystem to grow and shrink
+	depending on how many inodes are currently cached.
+
+2010-12-13  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Highlevel lib: use dynamically resized hash table for looking up
+	by name and node ID.
+
+2010-12-07  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Allow batching of forget requests.  This allows forget requests
+	to be processed faster and doesn't require a modification to fuse
+	filesystems.  Reported by Terje Malmedal
+
+	* Add ->forget_multi() operation to the lowlevel API.  The
+	filesystem may implement this to process multiple forget requests
+	in one call
+
+	* Fix the ambiguity of ioctl ABI on the kernel/userspace boundary
+	for 32bit vs. 64bit userspace
+
+2010-11-10  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add new write_buf() method to the highlevel API.  Similarly to
+	the lowlevel write_buf() method, this allows implementing zero
+	copy writes.
+
+	* Add a new read_buf() method to the highlevel API.  This allows
+	returning a generic buffer from the read method, which in turn
+	allows zero copy reads.
+
+	* In fusexmp_fh implement the ->read_buf() and ->write_buf()
+	methods.  Leave the ->read() and ->write() implementations for
+	reference, even though they are not necessary.
+
+2010-11-08  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix check for read-only fs in mtab update
+
+	* Open /dev/null for write instead of read for redirecting stdout
+	and stderr
+
+	* If umount(8) supports --fake and --no-canonicalize (util-linux-ng
+	version 2.18 or later), and umount(2) supports the
+	UMOUNT_NOFOLLOW flag (linux kernel version 2.6.35 or later)  then,
+	"fusermount -u" will call the umount(2) system call and use
+	"umount --fake ..." to update /etc/mtab
+
+	* Added --disable-legacy-umount option to configure.  This
+	disables the runtime checking of umount(8) version.  When built
+	with this option then "fusermount -u" will fail if umount(8)
+	doesn't support the --fake and --no-canonicalize options.
+
+	* Fix fuse_buf_copy() if already at the end of the buffers
+
+	* Add new ->write_buf() method to low level interface.  This
+	allows passig a generic buffer, either containing a memory buffer
+	or a file descriptor.  This allows implementing zero copy writes.
+
+	* Add fuse_session_receive_buf() and fuse_session_process_buf()
+	which may be used in event loop implementations to replace
+	fuse_chan_recv() and fuse_session_process() respectively.
+
+	* Remove unnecessary restoring of current working directory in
+	"fusermount -u"
+
+	* Add ctx->pid to debug output
+
+	* Fix st_nlink value in high level lib if file is unlinked but
+	still open
+
+	* libfuse: add store request.  Request data to be stored in the
+	kernel buffers for a given inode.
+
+	* libfuse: add retrieve request.  Retrieve data stored in the
+	kernel buffers for a given inode.
+
+2010-10-14  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Use LTLIBICONV when linking libfuse.  This fixes building against
+	uclibc + libiconv.  Patch by Natanael Copa
+
+2010-10-05  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add missing argument check in ulockmgr.c to prevent calling
+	ulockmgr_server with illegal arguments. This would cause an ever
+	growing list of ulockmgr_server processes with an endless list of
+	open files which finally exceeds the open file handle limit.
+	Patch by Markus Ammer
+
+2010-09-28  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix ambiguous symbol version for fuse_chan_new.
+	fuse_versionscript included fuse_chan_new in both FUSE_2.4 and
+	FUSE_2.6.  Remove the FUSE_2.4, which is invalid.
+
+2010-09-28  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix option escaping for fusermount.  If the "fsname=" option
+	contained a comma then the option parser in fusermount was
+	confused (Novell bugzilla #641480).  Fix by escaping commas when
+	passing them over to fusermount.  Reported by Jan Engelhardt
+
+2010-08-27  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add NetBSD support.  Patch from Emmanuel Dreyfus
+
+2010-07-12  Miklos Szeredi <miklos@szeredi.hu>
+
+	* libfuse: add buffer interface.  Add a generic buffer interface
+	for use with I/O.  Buffer vectors are supplied and each buffer in
+	the vector may be a memory pointer or a file descriptor.
+
+	* The fuse_reply_fd() interface is converted to using buffers.
+
+2010-06-23  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Make the number of max background requests and congestion
+	threshold tunable.  New options are "max_background" and
+	"congestion_threshold".  Only effective on linux kernel versions
+	2.6.32 or greater.  Patch by Csaba Henk
+
+2010-06-17  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add fuse_reply_fd() reply function to the low level interface.
+	On linux version 2.6.35 or greater this will use splice() to move
+	data directly from a file descriptor to the fuse device without
+	needing to go though a userspace buffer.  With the
+	FUSE_REPLY_FD_MOVE flag the kernel will attempt to move the data
+	directly into the filesystem's cache.  On earlier kernels it will
+	fall back to an intermediate buffer.  The options
+	"no_splice_write" and "no_splice_move" can be used to disable
+	splicing and moving respectively.
+ 
+2010-06-15  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix out-of-source build.  Patch by Jörg Faschingbauer
+
+	* Add a "nopath" option and flag, indicating that path argument
+	need not be calculated for the following operations: read, write,
+	flush, release, fsync, readdir, releasedir, fsyncdir, ftruncate,
+	fgetattr, lock, ioctl and poll.
+
+2010-05-10  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Remove "chmod root" from install of fusermount.  Reported by
+	Lucas C. Villa Real
+
+2010-04-26  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.8.4
+
+2010-04-26  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix checking for symlinks in umount from /tmp.  Reported by Al
+	Viro
+
+	* Fix umounting if /tmp is a symlink.  Reported by Franco Broi
+
+2010-02-18  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix definition of FUSE_OPT_END for C++.  Reported by Tim
+	Bruylants
+
+2010-02-03  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix stack alignment for clone()
+
+2010-02-01  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.8.3
+
+2010-02-01  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Using "--no-canonicalize" with umount(8) conflicts with the race
+	fix, sinceit assumes the supplied path is absolute, while the race
+	fix relies on the path being relative to the current directory.
+	Reported by Tom Rindborg
+
+2010-01-26  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.8.2
+
+2010-01-21  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix race if two "fusermount -u" instances are run in parallel.
+	Reported by Dan Rosenberg
+
+	* Make sure that the path to be unmounted doesn't refer to a
+	symlink
+
+2010-01-14  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix compile error on FreeBSD.  Patch by Jay Sullivan
+
+2009-12-17  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Use '--no-canonicalize' option of mount(8) (available in
+	util-linux-ng version 2.17 or greater) to avoid calling
+	readling(2) on the newly mounted filesystem before the mount
+	procedure is finished.  This has caused a deadlock if "audit" was
+	enabled in the kernel.  Also use '--no-canonicalize' for umount to
+	avoid touching the mounted filesystem.
+
+2009-09-11  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.8.1
+
+2009-08-25  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix missing versioned symbol fuse_get_context@FUSE_2.2
+
 2009-08-18  Miklos Szeredi <miklos@szeredi.hu>
 
 	* Released 2.8.0

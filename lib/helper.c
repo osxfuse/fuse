@@ -209,14 +209,39 @@ err:
 
 int fuse_daemonize(int foreground)
 {
-	int res;
-
 	if (!foreground) {
-		res = daemon(0, 0);
-		if (res == -1) {
-			perror("fuse: failed to daemonize program\n");
+		int nullfd;
+
+		/*
+		 * demonize current process by forking it and killing the
+		 * parent.  This makes current process as a child of 'init'.
+		 */
+		switch(fork()) {
+		case -1:
+			perror("fuse_daemonize: fork");
+			return -1;
+		case 0:
+			break;
+		default:
+			_exit(0);
+		}
+
+		if (setsid() == -1) {
+			perror("fuse_daemonize: setsid");
 			return -1;
 		}
+
+		(void) chdir("/");
+
+		nullfd = open("/dev/null", O_RDWR, 0);
+		if (nullfd != -1) {
+			(void) dup2(nullfd, 0);
+			(void) dup2(nullfd, 1);
+			(void) dup2(nullfd, 2);
+			if (nullfd > 2)
+				close(nullfd);
+		}
+
 #ifdef __APPLE__
 		did_daemonize = 1;
 #endif
@@ -260,7 +285,8 @@ static void fuse_unmount_common(const char *mountpoint, struct fuse_chan *ch)
 {
 	int fd = ch ? fuse_chan_fd(ch) : -1;
 	fuse_kern_unmount(mountpoint, fd);
-	fuse_chan_destroy(ch);
+	if (ch)
+		fuse_chan_destroy(ch);
 }
 
 void fuse_unmount(const char *mountpoint, struct fuse_chan *ch)
@@ -397,7 +423,7 @@ int fuse_version(void)
 
 #include "fuse_compat.h"
 
-#if !defined(__FreeBSD__) && !defined(__APPLE__)
+#if !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__APPLE__)
 
 struct fuse *fuse_setup_compat22(int argc, char *argv[],
 				 const struct fuse_operations_compat22 *op,
@@ -455,7 +481,7 @@ FUSE_SYMVER(".symver fuse_teardown,__fuse_teardown@");
 FUSE_SYMVER(".symver fuse_main_compat2,fuse_main@");
 FUSE_SYMVER(".symver fuse_main_real_compat22,fuse_main_real@FUSE_2.2");
 
-#endif /* !__FreeBSD__ && !__APPLE__ */
+#endif /* __FreeBSD__ || __NetBSD__ || __APPLE__ */
 
 
 struct fuse *fuse_setup_compat25(int argc, char *argv[],
@@ -487,9 +513,9 @@ int fuse_mount_compat25(const char *mountpoint, struct fuse_args *args)
 	return fuse_kern_mount(mountpoint, args);
 }
 
-#ifndef __APPLE__
 FUSE_SYMVER(".symver fuse_setup_compat25,fuse_setup@FUSE_2.5");
+#ifndef __APPLE__
 FUSE_SYMVER(".symver fuse_teardown_compat22,fuse_teardown@FUSE_2.2");
+#endif
 FUSE_SYMVER(".symver fuse_main_real_compat25,fuse_main_real@FUSE_2.5");
 FUSE_SYMVER(".symver fuse_mount_compat25,fuse_mount@FUSE_2.5");
-# endif

@@ -509,27 +509,27 @@ static int subdir_open(const char *path, struct fuse_file_info *fi)
 	return err;
 }
 
-static int subdir_read(const char *path, char *buf, size_t size, off_t offset,
-		       struct fuse_file_info *fi)
+static int subdir_read_buf(const char *path, struct fuse_bufvec **bufp,
+			   size_t size, off_t offset, struct fuse_file_info *fi)
 {
 	struct subdir *d = subdir_get();
 	char *newpath;
 	int err = subdir_addpath(d, path, &newpath);
 	if (!err) {
-		err = fuse_fs_read(d->next, newpath, buf, size, offset, fi);
+		err = fuse_fs_read_buf(d->next, newpath, bufp, size, offset, fi);
 		free(newpath);
 	}
 	return err;
 }
 
-static int subdir_write(const char *path, const char *buf, size_t size,
+static int subdir_write_buf(const char *path, struct fuse_bufvec *buf,
 			off_t offset, struct fuse_file_info *fi)
 {
 	struct subdir *d = subdir_get();
 	char *newpath;
 	int err = subdir_addpath(d, path, &newpath);
 	if (!err) {
-		err = fuse_fs_write(d->next, newpath, buf, size, offset, fi);
+		err = fuse_fs_write_buf(d->next, newpath, buf, offset, fi);
 		free(newpath);
 	}
 	return err;
@@ -680,6 +680,18 @@ static int subdir_lock(const char *path, struct fuse_file_info *fi, int cmd,
 	return err;
 }
 
+static int subdir_flock(const char *path, struct fuse_file_info *fi, int op)
+{
+	struct subdir *d = subdir_get();
+	char *newpath;
+	int err = subdir_addpath(d, path, &newpath);
+	if (!err) {
+		err = fuse_fs_flock(d->next, newpath, fi, op);
+		free(newpath);
+	}
+	return err;
+}
+
 static int subdir_bmap(const char *path, size_t blocksize, uint64_t *idx)
 {
 	struct subdir *d = subdir_get();
@@ -731,8 +743,8 @@ static struct fuse_operations subdir_oper = {
 	.utimens	= subdir_utimens,
 	.create		= subdir_create,
 	.open		= subdir_open,
-	.read		= subdir_read,
-	.write		= subdir_write,
+	.read_buf	= subdir_read_buf,
+	.write_buf	= subdir_write_buf,
 	.statfs		= subdir_statfs,
 	.flush		= subdir_flush,
 	.release	= subdir_release,
@@ -743,6 +755,7 @@ static struct fuse_operations subdir_oper = {
 	.listxattr	= subdir_listxattr,
 	.removexattr	= subdir_removexattr,
 	.lock		= subdir_lock,
+	.flock		= subdir_flock,
 	.bmap		= subdir_bmap,
 #ifdef __APPLE__
 	.setvolname	= subdir_setvolname,
@@ -757,6 +770,7 @@ static struct fuse_operations subdir_oper = {
 #endif
 
 	.flag_nullpath_ok = 1,
+	.flag_nopath = 1,
 };
 
 static struct fuse_opt subdir_opts[] = {

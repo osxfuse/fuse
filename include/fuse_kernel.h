@@ -56,6 +56,30 @@
  *  - add umask flag to input argument of open, mknod and mkdir
  *  - add notification messages for invalidation of inodes and
  *    directory entries
+ *
+ * 7.13
+ *  - make max number of background requests and congestion threshold
+ *    tunables
+ *
+ * 7.14
+ *  - add splice support to fuse device
+ *
+ * 7.15
+ *  - add store notify
+ *  - add retrieve notify
+ *
+ * 7.16
+ *  - add BATCH_FORGET request
+ *  - FUSE_IOCTL_UNRESTRICTED shall now return with array of 'struct
+ *    fuse_ioctl_iovec' instead of ambiguous 'struct iovec'
+ *  - add FUSE_IOCTL_32BIT flag
+ *
+ * 7.17
+ *  - add FUSE_FLOCK_LOCKS and FUSE_RELEASE_FLOCK_UNLOCK
+ *
+ * 7.18
+ *  - add FUSE_IOCTL_DIR flag
+ *  - add FUSE_NOTIFY_DELETE
  */
 
 #ifndef _LINUX_FUSE_H
@@ -66,6 +90,7 @@
 #define __s64 int64_t
 #define __u32 uint32_t
 #define __s32 int32_t
+#define __u16 uint16_t
 
 /*
  * Version negotiation:
@@ -91,7 +116,7 @@
 #define FUSE_KERNEL_VERSION 7
 
 /** Minor version number of this interface */
-#define FUSE_KERNEL_MINOR_VERSION 12
+#define FUSE_KERNEL_MINOR_VERSION 18
 
 /** The node ID of the root inode */
 #define FUSE_ROOT_ID 1
@@ -185,8 +210,10 @@ struct fuse_file_lock {
 /**
  * INIT request/reply flags
  *
+ * FUSE_POSIX_LOCKS: remote locking for POSIX file locks
  * FUSE_EXPORT_SUPPORT: filesystem handles lookups of "." and ".."
  * FUSE_DONT_MASK: don't apply umask to file mode on create operations
+ * FUSE_FLOCK_LOCKS: remote locking for BSD style file locks
  */
 #define FUSE_ASYNC_READ		(1 << 0)
 #define FUSE_POSIX_LOCKS	(1 << 1)
@@ -195,6 +222,7 @@ struct fuse_file_lock {
 #define FUSE_EXPORT_SUPPORT	(1 << 4)
 #define FUSE_BIG_WRITES		(1 << 5)
 #define FUSE_DONT_MASK		(1 << 6)
+#define FUSE_FLOCK_LOCKS	(1 << 10)
 #ifdef __APPLE__
 #  define FUSE_CASE_INSENSITIVE	(1 << 29)
 #  define FUSE_VOL_RENAME	(1 << 30)
@@ -212,6 +240,7 @@ struct fuse_file_lock {
  * Release flags
  */
 #define FUSE_RELEASE_FLUSH	(1 << 0)
+#define FUSE_RELEASE_FLOCK_UNLOCK	(1 << 1)
 
 /**
  * Getattr flags
@@ -243,12 +272,16 @@ struct fuse_file_lock {
  * FUSE_IOCTL_COMPAT: 32bit compat ioctl on 64bit machine
  * FUSE_IOCTL_UNRESTRICTED: not restricted to well-formed ioctls, retry allowed
  * FUSE_IOCTL_RETRY: retry with new iovecs
+ * FUSE_IOCTL_32BIT: 32bit ioctl
+ * FUSE_IOCTL_DIR: is a directory
  *
  * FUSE_IOCTL_MAX_IOV: maximum of in_iovecs + out_iovecs
  */
 #define FUSE_IOCTL_COMPAT	(1 << 0)
 #define FUSE_IOCTL_UNRESTRICTED	(1 << 1)
 #define FUSE_IOCTL_RETRY	(1 << 2)
+#define FUSE_IOCTL_32BIT	(1 << 3)
+#define FUSE_IOCTL_DIR		(1 << 4)
 
 #define FUSE_IOCTL_MAX_IOV	256
 
@@ -298,6 +331,8 @@ enum fuse_opcode {
 	FUSE_DESTROY       = 38,
 	FUSE_IOCTL         = 39,
 	FUSE_POLL          = 40,
+	FUSE_NOTIFY_REPLY  = 41,
+	FUSE_BATCH_FORGET  = 42,
 #ifdef __APPLE__
 	FUSE_SETVOLNAME    = 61,
 	FUSE_GETXTIMES     = 62,
@@ -312,6 +347,9 @@ enum fuse_notify_code {
 	FUSE_NOTIFY_POLL   = 1,
 	FUSE_NOTIFY_INVAL_INODE = 2,
 	FUSE_NOTIFY_INVAL_ENTRY = 3,
+	FUSE_NOTIFY_STORE = 4,
+	FUSE_NOTIFY_RETRIEVE = 5,
+	FUSE_NOTIFY_DELETE = 6,
 	FUSE_NOTIFY_CODE_MAX,
 };
 
@@ -337,6 +375,16 @@ struct fuse_entry_out {
 
 struct fuse_forget_in {
 	__u64	nlookup;
+};
+
+struct fuse_forget_one {
+	__u64	nodeid;
+	__u64	nlookup;
+};
+
+struct fuse_batch_forget_in {
+	__u32	count;
+	__u32	dummy;
 };
 
 struct fuse_getattr_in {
@@ -548,7 +596,8 @@ struct fuse_init_out {
 	__u32	minor;
 	__u32	max_readahead;
 	__u32	flags;
-	__u32	unused;
+	__u16   max_background;
+	__u16   congestion_threshold;
 	__u32	max_write;
 };
 
@@ -596,6 +645,11 @@ struct fuse_ioctl_in {
 	__u32	out_size;
 };
 
+struct fuse_ioctl_iovec {
+	__u64	base;
+	__u64	len;
+};
+
 struct fuse_ioctl_out {
 	__s32	result;
 	__u32	flags;
@@ -641,7 +695,7 @@ struct fuse_dirent {
 	__u64	off;
 	__u32	namelen;
 	__u32	type;
-	char name[0];
+	char name[];
 };
 
 #define FUSE_NAME_OFFSET offsetof(struct fuse_dirent, name)
@@ -659,6 +713,38 @@ struct fuse_notify_inval_entry_out {
 	__u64	parent;
 	__u32	namelen;
 	__u32	padding;
+};
+
+struct fuse_notify_delete_out {
+	__u64	parent;
+	__u64	child;
+	__u32	namelen;
+	__u32	padding;
+};
+
+struct fuse_notify_store_out {
+	__u64	nodeid;
+	__u64	offset;
+	__u32	size;
+	__u32	padding;
+};
+
+struct fuse_notify_retrieve_out {
+	__u64	notify_unique;
+	__u64	nodeid;
+	__u64	offset;
+	__u32	size;
+	__u32	padding;
+};
+
+/* Matches the size of fuse_write_in */
+struct fuse_notify_retrieve_in {
+	__u64	dummy1;
+	__u64	offset;
+	__u32	size;
+	__u32	dummy2;
+	__u64	dummy3;
+	__u64	dummy4;
 };
 
 #endif /* _LINUX_FUSE_H */

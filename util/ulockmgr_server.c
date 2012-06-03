@@ -352,10 +352,23 @@ int main(int argc, char *argv[])
 	if (*end)
 		goto out_inval;
 
-	if (daemon(0, 1) == -1) {
-		perror("ulockmgr_server: daemon");
+	/* demonize current process */
+	switch(fork()) {
+	case -1:
+		perror("ulockmgr_server: fork");
+		exit(1);
+	case 0:
+		break;
+	default:
+		_exit(0);
+	}
+
+	if (setsid() == -1) {
+		perror("ulockmgr_server: setsid");
 		exit(1);
 	}
+
+	(void) chdir("/");
 
 	sigemptyset(&empty);
 	sigprocmask(SIG_SETMASK, &empty, NULL);
@@ -366,8 +379,10 @@ int main(int argc, char *argv[])
 	}
 	cfd = 4;
 	nullfd = open("/dev/null", O_RDWR);
-	dup2(nullfd, 0);
-	dup2(nullfd, 1);
+	if (nullfd >= 0) {
+		dup2(nullfd, 0);
+		dup2(nullfd, 1);
+	}
 	close(3);
 	closefrom(5);
 	while (1) {

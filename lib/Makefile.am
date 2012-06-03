@@ -15,18 +15,16 @@ endif
 
 if BSD
 mount_source = mount_bsd.c
-endif
-
+else
 if DARWIN
 mount_source =			\
 	mount_darwin.c		\
 	fuse_darwin.c		\
 	modules/threadid.c	\
 	modules/volicon.c
-endif
-
-if LINUX
+else
 mount_source = mount.c mount_util.c mount_util.h
+endif
 endif
 
 if ICONV
@@ -47,13 +45,14 @@ libfuse_la_SOURCES = 		\
 	fuse_opt.c		\
 	fuse_session.c		\
 	fuse_signals.c		\
+	buffer.c		\
 	cuse_lowlevel.c		\
 	helper.c		\
 	modules/subdir.c	\
 	$(iconv_source)		\
 	$(mount_source)
 
-fuse_version_number=2:8:0
+fuse_version_number=2:9:0
 
 if DARWIN
 libosxfuse_la_SOURCES = $(libfuse_la_SOURCES)
@@ -61,6 +60,10 @@ libosxfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number)
 else
 libfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number) \
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
+
+if NETBSD
+libfuse_la_LIBADD = -lperfuse -lpuffs
+endif
 
 libulockmgr_la_SOURCES = ulockmgr.c
 libulockmgr_la_LDFLAGS = -pthread -version-number 1:0:1

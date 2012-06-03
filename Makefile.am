@@ -2,17 +2,18 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
+if DARWIN
 SUBDIRS = @subdirs2@
+else
+SUBDIRS = @subdirs2@ doc
+endif
 
 EXTRA_DIST =			\
 	fuse.pc.in		\
 	osxfuse.pc.in		\
 	README*			\
 	Filesystems		\
-	FAQ			\
-	doc/how-fuse-works	\
-	doc/kernel.txt		\
-	doc/Doxyfile
+	FAQ
 
 pkgconfigdir = @pkgconfigdir@
 if DARWIN

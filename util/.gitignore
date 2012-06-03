@@ -1,8 +1,5 @@
-Makefile.in
-Makefile
-.deps
-.libs
 fusermount
 ulockmgr_server
 fuse_ioslave
 mount.fuse
+mount_util.c

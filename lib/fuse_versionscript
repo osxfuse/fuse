@@ -27,7 +27,6 @@ FUSE_2.4 {
 		fuse_chan_data;
 		fuse_chan_destroy;
 		fuse_chan_fd;
-		fuse_chan_new;
 		fuse_chan_receive;
 		fuse_chan_send;
 		fuse_chan_session;
@@ -179,7 +178,25 @@ FUSE_2.8 {
 		fuse_req_ctx;
 		fuse_req_getgroups;
 		fuse_session_data;
+} FUSE_2.7.5;
+
+FUSE_2.9 {
+	global:
+		fuse_buf_copy;
+		fuse_buf_size;
+		fuse_fs_read_buf;
+		fuse_fs_write_buf;
+		fuse_lowlevel_notify_retrieve;
+		fuse_lowlevel_notify_store;
+		fuse_reply_data;
+		fuse_session_process_buf;
+		fuse_session_receive_buf;
+		fuse_start_cleanup_thread;
+		fuse_stop_cleanup_thread;
+		fuse_clean_cache;
+		fuse_lowlevel_notify_delete;
+		fuse_fs_flock;
 
 	local:
 		*;
-} FUSE_2.7.5;
+} FUSE_2.8;

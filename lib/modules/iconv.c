@@ -525,27 +525,27 @@ static int iconv_open_file(const char *path, struct fuse_file_info *fi)
 	return err;
 }
 
-static int iconv_read(const char *path, char *buf, size_t size, off_t offset,
-		      struct fuse_file_info *fi)
+static int iconv_read_buf(const char *path, struct fuse_bufvec **bufp,
+			  size_t size, off_t offset, struct fuse_file_info *fi)
 {
 	struct iconv *ic = iconv_get();
 	char *newpath;
 	int err = iconv_convpath(ic, path, &newpath, 0);
 	if (!err) {
-		err = fuse_fs_read(ic->next, newpath, buf, size, offset, fi);
+		err = fuse_fs_read_buf(ic->next, newpath, bufp, size, offset, fi);
 		free(newpath);
 	}
 	return err;
 }
 
-static int iconv_write(const char *path, const char *buf, size_t size,
-		       off_t offset, struct fuse_file_info *fi)
+static int iconv_write_buf(const char *path, struct fuse_bufvec *buf,
+			   off_t offset, struct fuse_file_info *fi)
 {
 	struct iconv *ic = iconv_get();
 	char *newpath;
 	int err = iconv_convpath(ic, path, &newpath, 0);
 	if (!err) {
-		err = fuse_fs_write(ic->next, newpath, buf, size, offset, fi);
+		err = fuse_fs_write_buf(ic->next, newpath, buf, offset, fi);
 		free(newpath);
 	}
 	return err;
@@ -696,6 +696,18 @@ static int iconv_lock(const char *path, struct fuse_file_info *fi, int cmd,
 	return err;
 }
 
+static int iconv_flock(const char *path, struct fuse_file_info *fi, int op)
+{
+	struct iconv *ic = iconv_get();
+	char *newpath;
+	int err = iconv_convpath(ic, path, &newpath, 0);
+	if (!err) {
+		err = fuse_fs_flock(ic->next, newpath, fi, op);
+		free(newpath);
+	}
+	return err;
+}
+
 static int iconv_bmap(const char *path, size_t blocksize, uint64_t *idx)
 {
 	struct iconv *ic = iconv_get();
@@ -751,8 +763,8 @@ static struct fuse_operations iconv_oper = {
 	.utimens	= iconv_utimens,
 	.create		= iconv_create,
 	.open		= iconv_open_file,
-	.read		= iconv_read,
-	.write		= iconv_write,
+	.read_buf	= iconv_read_buf,
+	.write_buf	= iconv_write_buf,
 	.statfs		= iconv_statfs,
 	.flush		= iconv_flush,
 	.release	= iconv_release,
@@ -763,6 +775,7 @@ static struct fuse_operations iconv_oper = {
 	.listxattr	= iconv_listxattr,
 	.removexattr	= iconv_removexattr,
 	.lock		= iconv_lock,
+	.flock		= iconv_flock,
 	.bmap		= iconv_bmap,
 #ifdef __APPLE__
 	.setvolname	= iconv_setvolname,
@@ -777,6 +790,7 @@ static struct fuse_operations iconv_oper = {
 #endif
 
 	.flag_nullpath_ok = 1,
+	.flag_nopath = 1,
 };
 
 static struct fuse_opt iconv_opts[] = {
@@ -873,6 +887,10 @@ out_free:
 	free(ic->from_code);
 	free(ic->to_code);
 	free(ic);
+	if (old) {
+		setlocale(LC_CTYPE, old);
+		free(old);
+	}
 	return NULL;
 }
 

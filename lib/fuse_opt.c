@@ -59,10 +59,15 @@ int fuse_opt_add_arg(struct fuse_args *args, const char *arg)
 
 	assert(!args->argv || args->allocated);
 
-	newargv = realloc(args->argv, (args->argc + 2) * sizeof(char *));
-	newarg = newargv ? strdup(arg) : NULL;
-	if (!newargv || !newarg)
+	newarg = strdup(arg);
+	if (!newarg)
 		return alloc_failed();
+
+	newargv = realloc(args->argv, (args->argc + 2) * sizeof(char *));
+	if (!newargv) {
+		free(newarg);
+		return alloc_failed();
+	}
 
 	args->argv = newargv;
 	args->allocated = 1;
@@ -309,9 +314,21 @@ static int process_real_option_group(struct fuse_opt_context *ctx, char *opts)
 				return -1;
 			d = opts;
 		} else {
-			if (s[0] == '\\' && s[1] != '\0')
+			if (s[0] == '\\' && s[1] != '\0') {
 				s++;
-			*d++ = *s;
+				if (s[0] >= '0' && s[0] <= '3' &&
+				    s[1] >= '0' && s[1] <= '7' &&
+				    s[2] >= '0' && s[2] <= '7') {
+					*d++ = (s[0] - '0') * 0100 +
+						(s[1] - '0') * 0010 +
+						(s[2] - '0');
+					s += 2;
+				} else {
+					*d++ = *s;
+				}
+			} else {
+				*d++ = *s;
+			}
 		}
 		s++;
 	}
@@ -410,7 +427,5 @@ int fuse_opt_parse(struct fuse_args *args, void *data,
 	return res;
 }
 
-#ifndef __APPLE__
 /* This symbol version was mistakenly added to the version script */
 FUSE_SYMVER(".symver fuse_opt_insert_arg_compat,fuse_opt_insert_arg@FUSE_2.5");
-#endif
