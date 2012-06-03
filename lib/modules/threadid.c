@@ -272,22 +272,24 @@ threadid_open(const char *path, struct fuse_file_info *fi)
 }
 
 static int
-threadid_read(const char *path, char *buf, size_t size, off_t off,
-	      struct fuse_file_info *fi)
+threadid_read_buf(const char *path, struct fuse_bufvec **bufp, size_t size,
+		  off_t offset, struct fuse_file_info *fi)
 {
 	THREADID_PRE()
-	int res = fuse_fs_read(threadid_get()->next, path, buf, size, off, fi);
+	int res = fuse_fs_read_buf(threadid_get()->next, path, bufp, size,
+				   offset, fi);
 	THREADID_POST()
 
 	return res;
 }
 
 static int
-threadid_write(const char *path, const char *buf, size_t size, off_t off,
-	       struct fuse_file_info *fi)
+threadid_write_buf(const char *path, struct fuse_bufvec *buf, off_t offset,
+		   struct fuse_file_info *fi)
 {
 	THREADID_PRE()
-	int res = fuse_fs_write(threadid_get()->next, path, buf, size, off, fi);
+	int res = fuse_fs_write_buf(threadid_get()->next, path, buf, offset,
+				    fi);
 	THREADID_POST()
 
 	return res;
@@ -530,8 +532,8 @@ static struct fuse_operations threadid_oper = {
 	.chown       = threadid_chown,
 	.truncate    = threadid_truncate,
 	.open        = threadid_open,
-	.read        = threadid_read,
-	.write       = threadid_write,
+	.read_buf    = threadid_read_buf,
+	.write_buf   = threadid_write_buf,
 	.statfs      = threadid_statfs,
 	.flush       = threadid_flush,
 	.release     = threadid_release,
@@ -564,6 +566,7 @@ static struct fuse_operations threadid_oper = {
 	.fsetattr_x  = threadid_fsetattr_x,
 
 	.flag_nullpath_ok = 1,
+	.flag_nopath = 1,
 };
 
 static struct fuse_opt threadid_opts[] = {
