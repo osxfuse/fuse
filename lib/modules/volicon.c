@@ -299,34 +299,56 @@ volicon_open(const char *path, struct fuse_file_info *fi)
 }
 
 static int
-volicon_read(const char *path, char *buf, size_t size, off_t off,
-             struct fuse_file_info *fi)
+volicon_read_buf(const char *path, struct fuse_bufvec **bufp, size_t size,
+		 off_t offset, struct fuse_file_info *fi)
 {
 	int res = 0;
 
 	if (volicon_is_icon_magic_file(path)) {
-		size_t a_size = size;
-		if (off < volicon_get()->volicon_size) {
-			if ((off + size) > volicon_get()->volicon_size) {
-				a_size = volicon_get()->volicon_size - off;
-			}
-			memcpy(buf, (char *)(volicon_get()->volicon_data) + off, a_size);
-			res = a_size;
+		struct fuse_bufvec *buf;
+		void *mem;
+		size_t a_size;
+
+		buf = malloc(sizeof(struct fuse_bufvec));
+		if (buf == NULL) {
+			return -ENOMEM;
 		}
+
+		if ((offset + size) <= volicon_get()->volicon_size) {
+			a_size = size;
+		} else if (offset < volicon_get()->volicon_size) {
+			a_size = volicon_get()->volicon_size - offset;
+		} else {
+			a_size = 0;
+		}
+
+		mem = malloc(a_size);
+		if (mem == NULL) {
+			free(buf);
+			return -ENOMEM;
+		}
+		memcpy(mem, (char *)(volicon_get()->volicon_data) + offset,
+		       a_size);
+
+		*buf = FUSE_BUFVEC_INIT(size);
+		buf->buf[0].mem = mem;
+		buf->buf[0].size = a_size;
+		*bufp = buf;
 	} else {
-		res = fuse_fs_read(volicon_get()->next, path, buf, size, off, fi);
+		res = fuse_fs_read_buf(volicon_get()->next, path, bufp, size,
+				       offset, fi);
 	}
 
 	return res;
 }
 
 static int
-volicon_write(const char *path, const char *buf, size_t size, off_t off,
-              struct fuse_file_info *fi)
+volicon_write_buf(const char *path, struct fuse_bufvec *buf, off_t offset,
+		  struct fuse_file_info *fi)
 {
 	ERROR_IF_MAGIC_FILE(path, EACCES);
 
-	return fuse_fs_write(volicon_get()->next, path, buf, size, off, fi);
+	return fuse_fs_write_buf(volicon_get()->next, path, buf, offset, fi);
 }
 
 static int
@@ -655,8 +677,8 @@ static struct fuse_operations volicon_oper = {
 	.chown       = volicon_chown,
 	.truncate    = volicon_truncate,
 	.open        = volicon_open,
-	.read        = volicon_read,
-	.write       = volicon_write,
+	.read_buf    = volicon_read_buf,
+	.write_buf   = volicon_write_buf,
 	.statfs      = volicon_statfs,
 	.flush       = volicon_flush,
 	.release     = volicon_release,
@@ -689,6 +711,7 @@ static struct fuse_operations volicon_oper = {
 	.fsetattr_x  = volicon_fsetattr_x,
 
 	.flag_nullpath_ok = 0,
+	.flag_nopath = 0,
 };
 
 static struct fuse_opt volicon_opts[] = {
