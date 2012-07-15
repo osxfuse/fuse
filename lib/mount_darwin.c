@@ -696,7 +696,7 @@ mount:
 	if (pid == -1) {
 		perror("fuse: fork() failed");
 		close(fd);
-		exit(1);
+		return -1;
 	}
 
 	if (pid == 0) {
