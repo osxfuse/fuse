@@ -517,7 +517,7 @@ fuse_kern_unmount(const char *mountpoint, int fd)
 		return;
 	}
 
-	strtol(dev + 4, &ep, 10);
+	strtol(dev + sizeof(OSXFUSE_DEVICE_BASENAME) - 1, &ep, 10);
 	if (*ep != '\0') {
 		return;
 	}
