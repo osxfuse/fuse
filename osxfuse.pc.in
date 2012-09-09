@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: fuse
 Description: OSXFUSE
 Version: @VERSION@
-Libs: -L${libdir} -losxfuse
+Libs: -L${libdir} -losxfuse -pthread
 Libs.private: @libfuse_libs@
 Cflags: -I${includedir}/osxfuse/fuse -D_FILE_OFFSET_BITS=64 -D_DARWIN_USE_64_BIT_INODE

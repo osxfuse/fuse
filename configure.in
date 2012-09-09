@@ -1,4 +1,5 @@
-AC_INIT(fuse, 2.9.0)
+AC_INIT(fuse, 2.9.1)
+AC_PREREQ(2.59d)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
@@ -7,13 +8,8 @@ AM_CONFIG_HEADER(include/config.h)
 
 AC_PROG_LIBTOOL
 AC_PROG_CC
+AC_PROG_MKDIR_P
 AM_PROG_CC_C_O
-
-# compatibility for automake < 1.8
-if test -z "$mkdir_p"; then
-	mkdir_p="../mkinstalldirs"
-	AC_SUBST(mkdir_p)
-fi
 
 case $target_os in
      *linux*)	arch=linux;;
@@ -60,14 +56,14 @@ if test "$arch" = darwin; then
 	AC_DEFINE(_POSIX_C_SOURCE, 200112L, [Define to 200112L to build with POSIX-compliant stat structure])
 fi
 AC_CHECK_FUNCS([fork setxattr fdatasync splice vmsplice utimensat])
+AC_CHECK_FUNCS([posix_fallocate])
 AC_CHECK_MEMBERS([struct stat.st_atim])
 AC_CHECK_MEMBERS([struct stat.st_atimespec])
 
-libfuse_libs="-pthread"
 LIBS=
 AC_SEARCH_LIBS(dlopen, [dl])
 AC_SEARCH_LIBS(clock_gettime, [rt])
-libfuse_libs="$libfuse_libs $LIBS"
+libfuse_libs=$LIBS
 LIBS=
 AC_ARG_WITH([libiconv-prefix],
 [  --with-libiconv-prefix=DIR  search for libiconv in DIR/include and DIR/lib], [
@@ -77,7 +73,7 @@ AC_ARG_WITH([libiconv-prefix],
     done
    ])
 AM_ICONV
-libfuse_libs="$libfuse_libs $LTLIBICONV"
+libfuse_libs=$libfuse_libs $LTLIBICONV
 AM_CONDITIONAL(ICONV, test "$am_cv_func_iconv" = yes)
 AC_SUBST(libfuse_libs)
 

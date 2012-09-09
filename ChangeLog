@@ -1,3 +1,34 @@
+2012-07-19  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Released 2.9.1
+
+2012-07-19  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix crash caused by freeing a stack address.  Reported by Itay
+	Perl
+
+2012-07-04  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Fix install of mount.fuse from out-of-tree build.  Patch by
+	Olivier Blin
+
+	* Fix build with automake >= 1.12.1.  Patch by Olivier Blin
+
+2012-04-24  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Add fallocate operation.  Only works on linux kernels 3.5 or
+	later.  Patch by Anatol Pomozov
+
+2012-05-16  Miklos Szeredi <miklos@szeredi.hu>
+
+	* Linking to a library that uses threads requires the application
+	to be linked with -pthreads otherwise some pthread functions will
+	be linked to stubs in glibc.  So move -pthread from Libs.private
+	to Libs in fuse.pc.  Reported by Werner Fink
+
+	* Fix the compile command in the examples. Reported by Luciano
+	Dalle Ore
+
 2012-04-20  Miklos Szeredi <miklos@szeredi.hu>
 
 	* Released 2.9.0
