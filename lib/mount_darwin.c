@@ -263,7 +263,6 @@ enum {
 	KEY_QUIET,
 	KEY_RO,
 	KEY_VERSION,
-	KEY_VOLICON,
 };
 
 struct mount_opts {
@@ -271,11 +270,14 @@ struct mount_opts {
 	int allow_root;
 	int ishelp;
 	char *kernel_opts;
+	char *modules;
+	char *volicon;
 };
 
 static const struct fuse_opt fuse_mount_opts[] = {
 	{ "allow_other", offsetof(struct mount_opts, allow_other), 1 },
 	{ "allow_root", offsetof(struct mount_opts, allow_root), 1 },
+	{ "modules=%s", offsetof(struct mount_opts, modules), 0 },
 	FUSE_OPT_KEY("allow_root",          KEY_ALLOW_ROOT),
 	FUSE_OPT_KEY("auto_cache",          KEY_AUTO_CACHE),
 	FUSE_OPT_KEY("-r",                  KEY_RO),
@@ -382,7 +384,7 @@ static const struct fuse_opt fuse_mount_opts[] = {
 	FUSE_OPT_KEY("slow_statfs",         KEY_KERN),
 	FUSE_OPT_KEY("sparse",              KEY_KERN),
 	FUSE_OPT_KEY("subtype=",            KEY_IGNORED),
-	FUSE_OPT_KEY("volicon=",            KEY_VOLICON),
+	{ "volicon=%s", offsetof(struct mount_opts, volicon), 0 },
 	FUSE_OPT_KEY("volname=",            KEY_KERN),
 	FUSE_OPT_END
 };
@@ -439,24 +441,6 @@ fuse_mount_opt_proc(void *data, const char *arg, int key,
 		case KEY_QUIET:
 			quiet_mode = 1;
 			return 0;
-
-		case KEY_VOLICON:
-		{
-			char volicon_arg[MAXPATHLEN + 32];
-			char *volicon_path = strchr(arg, '=');
-			if (!volicon_path) {
-				return -1;
-			}
-			if (snprintf(volicon_arg, sizeof(volicon_arg),
-				     "-omodules=volicon,iconpath%s", volicon_path) <= 0) {
-				return -1;
-			}
-			if (fuse_opt_add_arg(outargs, volicon_arg) == -1) {
-				return -1;
-			}
-
-			return 0;
-		}
 
 		case KEY_HELP:
 			mount_help();
@@ -746,10 +730,10 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
 	memset(&mo, 0, sizeof(mo));
 
-	/* mount_fusefs should not try to spawn the daemon */
+	/* mount_osxfusefs should not try to spawn the daemon */
 	setenv("MOUNT_FUSEFS_SAFE", "1", 1);
 
-	/* to notify mount_fusefs it's called from lib */
+	/* to notify mount_osxfusefs it's called from lib */
 	setenv("MOUNT_FUSEFS_CALL_BY_LIB", "1", 1);
 
 #ifdef MACFUSE_MODE
@@ -772,6 +756,75 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 	if (mo.ishelp) {
 		res = 0;
 		goto out;
+	}
+
+	if (mo.volicon) {
+		size_t modules_len;
+		char *modules;
+		char *modules_ptr;
+
+		char iconpath_arg[MAXPATHLEN + 12];
+
+		if (mo.modules) {
+			modules_len = strlen(mo.modules);
+		} else {
+			modules_len = 0;
+		}
+
+		modules = (char *)malloc(modules_len + sizeof(":volicon"));
+		if (!modules) {
+			fprintf(stderr, "fuse: failed to allocate modules string\n");
+			goto out;
+		}
+
+		/* build new modules string */
+		modules_ptr = modules;
+		if (modules_len) {
+			modules_ptr = stpcpy(modules_ptr, mo.modules);
+			*modules_ptr = ':';
+			modules_ptr++;
+		}
+		modules_ptr = stpcpy(modules_ptr, "volicon");
+		*modules_ptr = '\0';
+
+		/* replace old modules string */
+		if (mo.modules) {
+			free(mo.modules);
+		}
+		mo.modules = modules;
+
+		/* add iconpath argument */
+		if (snprintf(iconpath_arg, sizeof(iconpath_arg),
+			     "-oiconpath=%s", mo.volicon) <= 0) {
+			fprintf(stderr, "fuse: failed to create iconpath argument\n");
+			goto out;
+		}
+		if (fuse_opt_add_arg(args, iconpath_arg) == -1) {
+			fprintf(stderr, "fuse: failed to add iconpath argument\n");
+			goto out;
+		}
+	}
+
+	if (mo.modules) {
+		int err;
+
+		size_t modules_arg_len = sizeof("-omodules=") + strlen(mo.modules);
+		char *modules_arg = (char *)malloc(modules_arg_len);
+
+		/* add modules argument */
+		err = snprintf(modules_arg, modules_arg_len, "-omodules=%s",
+			       mo.modules);
+		if (err <= 0) {
+			fprintf(stderr, "fuse: failed to create modules argument\n");
+			free(modules_arg);
+			goto out;
+		}
+		err = fuse_opt_add_arg(args, modules_arg);
+		free(modules_arg);
+		if (err == -1) {
+			fprintf(stderr, "fuse: failed to add modules argument\n");
+			goto out;
+		}
 	}
 
 	pthread_mutex_lock(&mount_lock);
@@ -804,6 +857,12 @@ out_unlock:
 
 out:
 	free(mo.kernel_opts);
+	if (mo.modules) {
+		free(mo.modules);
+	}
+	if (mo.volicon) {
+		free(mo.volicon);
+	}
 
 	return res;
 }
