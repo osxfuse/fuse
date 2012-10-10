@@ -29,7 +29,7 @@
 
 #define VOLICON_ROOT_MAGIC_PATH    "/"
 #define VOLICON_ICON_MAGIC_PATH    "/.VolumeIcon.icns"
-#define VOLICON_ICON_MAXSIZE       (1024 * 1024)
+#define VOLICON_ICON_MAXSIZE       (4 * 1024 * 1024)
 
 struct FndrGenericInfo {
     u_int32_t   ignored0;
