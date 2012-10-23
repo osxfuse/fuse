@@ -3814,7 +3814,7 @@ fuse_lookup_inode_internal_np(const char *mountpoint, const char *path)
 
 	struct node *node = NULL;
 
-        struct fuse *f = fuse_get_internal_np(mountpoint);
+	struct fuse *f = fuse_get_internal_np(mountpoint);
 	if (f == NULL) {
 		return ino;
 	}
