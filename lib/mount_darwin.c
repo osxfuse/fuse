@@ -116,16 +116,24 @@ loadkmod(void)
 	pid = fork();
 
 	if (pid == 0) {
+        char *load_prog_path;
+
+        load_prog_path = fuse_resource_path(OSXFUSE_LOAD_PROG);
+        if (!load_prog_path) {
+            goto Return;
+        }
+
 #ifdef MACFUSE_MODE
 		if (osxfuse_is_macfuse_mode_enabled()) {
 			setenv(OSXFUSE_MACFUSE_MODE_ENV, "1", 1);
 		}
 #endif
 
-		result = execl(OSXFUSE_LOAD_PROG, OSXFUSE_LOAD_PROG, NULL);
+		result = execl(load_prog_path, load_prog_path, NULL);
 
 		/* exec failed */
-		goto Return;
+		free(load_prog_path);
+        goto Return;
 	}
 
 	require_action(pid != -1, Return, result = errno);
@@ -390,16 +398,38 @@ static const struct fuse_opt fuse_mount_opts[] = {
 };
 
 static void
+mount_run(const char *mount_args)
+{
+	int err;
+
+    char *mount_prog_path;
+    char *mount_cmd;
+
+    mount_prog_path = fuse_resource_path(OSXFUSE_MOUNT_PROG);
+    if (!mount_prog_path) {
+        return;
+    }
+    err = asprintf(&mount_cmd, "%s %s", mount_prog_path, mount_args);
+    free(mount_prog_path);
+    if (err == -1) {
+        return;
+    }
+
+    system(mount_cmd);
+    free(mount_cmd);
+}
+
+static void
 mount_help(void)
 {
-	system(OSXFUSE_MOUNT_PROG " --help");
-	fputc('\n', stderr);
+	mount_run("--help");
+    fputc('\n', stderr);
 }
 
 static void
 mount_version(void)
 {
-	system(OSXFUSE_MOUNT_PROG " --version");
+    mount_run("--version");
 }
 
 static int
@@ -534,7 +564,6 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 	char *fdnam, *dev;
 	pid_t pid;
 	int status;
-	const char *mountprog = OSXFUSE_MOUNT_PROG;
 
 	if (!mountpoint) {
 		fprintf(stderr, "missing or invalid mount point\n");
@@ -684,13 +713,20 @@ mount:
 	}
 
 	if (pid == 0) {
-		const char *argv[32];
+		char *mount_prog_path;
+        const char *argv[32];
 		int a = 0;
 
-		if (! fdnam)
+        mount_prog_path = fuse_resource_path(OSXFUSE_MOUNT_PROG);
+        if (!mount_prog_path) {
+            fprintf(stderr, "fuse: mount program missing\n");
+            exit(1);
+        }
+
+		if (!fdnam)
 			asprintf(&fdnam, "%d", fd);
 
-		argv[a++] = mountprog;
+		argv[a++] = mount_prog_path;
 		if (opts) {
 			argv[a++] = "-o";
 			argv[a++] = opts;
@@ -707,8 +743,9 @@ mount:
 				setenv("MOUNT_OSXFUSEFS_DAEMON_PATH", title, 1);
 			}
 		}
-		execvp(mountprog, (char **) argv);
+		execvp(mount_prog_path, (char **) argv);
 		perror("fuse: failed to exec mount program");
+        free(mount_prog_path);
 		exit(1);
 	}
 

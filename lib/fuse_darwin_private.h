@@ -81,6 +81,8 @@ typedef fuse_sem_t sem_t;
 #  define LOCK_UN         0x08            /* unlock file */
 #endif /* !LOCK_SH */
 
+char *fuse_resource_path(const char *path);
+
 fuse_ino_t fuse_lookup_inode_internal_np(const char *mountpoint,
                                          const char *path);
 

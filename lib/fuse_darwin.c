@@ -8,10 +8,15 @@
 #include "fuse_darwin_private.h"
 
 #include <errno.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <libgen.h>
+#include <mach-o/dyld.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/param.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /*
  * Semaphore implementation based on:
@@ -256,6 +261,52 @@ const char *
 osxfuse_version(void)
 {
 	return OSXFUSE_VERSION;
+}
+
+/* Resource paths */
+
+#define EXECUTABLE_PATH "@executable_path/"
+
+char *
+fuse_resource_path(const char *path)
+{
+    char *resource_path;
+
+    if (strncmp(path, EXECUTABLE_PATH, sizeof(EXECUTABLE_PATH) - 1)) {
+        resource_path = malloc(strlen(path) + 1);
+        if (!resource_path) {
+            return NULL;
+        }
+        strcpy(resource_path, path);
+    } else {
+        int       err = 0;
+
+        char      executable_path_buf[MAXPATHLEN];
+        uint32_t  executable_path_len = MAXPATHLEN;
+        char      executable_path[MAXPATHLEN];
+        char     *executable_dir;
+
+        /* Path of executable */
+        err = _NSGetExecutablePath(executable_path_buf, &executable_path_len);
+        if (err == -1) {
+            return NULL;
+        }
+        if (!realpath(executable_path_buf, executable_path)) {
+            return NULL;
+        }
+
+        /* Parent directory of executable */
+        executable_dir = dirname(executable_path);
+        if (!executable_dir) {
+            return NULL;
+        }
+
+        /* Build resource path */
+        asprintf(&resource_path, "%s/%s", executable_dir,
+                 path + sizeof(EXECUTABLE_PATH) - 1);
+    }
+
+    return resource_path;
 }
 
 static int
