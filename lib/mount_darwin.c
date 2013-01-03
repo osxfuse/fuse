@@ -690,7 +690,7 @@ mount:
             u_int32_t len = MAXPATHLEN;
             int ret = proc_pidpath(getpid(), title, len);
             if (ret) {
-                setenv("MOUNT_FUSEFS_DAEMON_PATH", title, 1);
+                setenv("MOUNT_OSXFUSE_DAEMON_PATH", title, 1);
             }
         }
         execvp(mountprog, (char **) argv);
