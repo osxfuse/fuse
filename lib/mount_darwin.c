@@ -540,6 +540,7 @@ fuse_kern_unmount(const char *mountpoint, int fd)
 	if (rp) {
 		ret = unmount(resolved_path, 0);
 	}
+	close(fd);
 
 	return;
 }
