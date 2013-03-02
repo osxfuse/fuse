@@ -109,7 +109,8 @@ loadkmod(void)
 
 	major = fuse_os_version_major_np();
 
-	if (major < 9) { /* not Mac OS X 10.5+ */
+	if (major < OSXFUSE_MIN_DARWIN_VERSION) {
+        /* This is not a supported version of Mac OS X */
 		return EINVAL;
 	}
 
@@ -581,6 +582,11 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 	signal(SIGCHLD, SIG_DFL); /* So that we can wait4() below. */
 
 	result = loadkmod();
+#if !M_OSXFUSE_ENABLE_KEXT_VERSION_CHECK
+    if (result == EBUSY) {
+        result = 0;
+    }
+#endif
 	if (result) {
 		CFOptionFlags responseFlags;
 		if (result == EINVAL) {
