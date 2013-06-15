@@ -10,12 +10,19 @@ CFLAGS="$OTHER_CFLAGS"
 LDFLAGS=""
 
 case "$COMPILER" in
-    4.0|4.2)                       CC="gcc-$COMPILER";;
-    com.apple.compilers.llvmgcc42) CC="llvm-gcc-4.2";;
+    4.0|4.2)
+        CC="gcc-$COMPILER"
+    ;;
+    com.apple.compilers.llvmgcc42)
+        CC="llvm-gcc-4.2"
+    ;;
+    com.apple.compilers.llvm.clang.1_0)
+        CC="clang"
+    ;;
     *)
         echo "`basename $0`: unsupported compiler '$COMPILER'" >&2
         exit 1
-        ;;
+    ;;
 esac
 for arch in $ARCHS
 do
