@@ -3,6 +3,8 @@
 OSXFUSE_SRCROOT=${OSXFUSE_SRCROOT:-$1}
 OSXFUSE_SRCROOT=${OSXFUSE_SRCROOT:?}
 
+PREFIX=${PREFIX:-/usr/local}
+
 OTHER_CFLAGS="-I$OSXFUSE_SRCROOT/common"
 FRAMEWORKS="CoreFoundation"
 
@@ -57,4 +59,4 @@ export CFLAGS
 export LDFLAGS
 
 ./makeconf.sh && \
-./configure --prefix=/usr/local --disable-dependency-tracking --disable-static --disable-example
+./configure --prefix="$PREFIX" --disable-dependency-tracking --disable-static --disable-example
