@@ -1033,10 +1033,12 @@ static void queue_element_unlock(struct fuse *f, struct lock_queue_element *qe)
 	if (qe->first_locked) {
 		wnode = qe->wnode1 ? *qe->wnode1 : NULL;
 		unlock_path(f, qe->nodeid1, wnode, NULL);
+		qe->first_locked = false;
 	}
 	if (qe->second_locked) {
 		wnode = qe->wnode2 ? *qe->wnode2 : NULL;
 		unlock_path(f, qe->nodeid2, wnode, NULL);
+		qe->second_locked = false;
 	}
 }
 
@@ -4860,6 +4862,7 @@ static void fuse_lib_help(void)
 "    -o ac_attr_timeout=T   auto cache timeout for attributes (attr_timeout)\n"
 "    -o noforget            never forget cached inodes\n"
 "    -o remember=T          remember cached inodes for T seconds (0s)\n"
+"    -o nopath              don't supply path if not necessary\n"
 "    -o intr                allow requests to be interrupted\n"
 "    -o intr_signal=NUM     signal to send on interrupt (%i)\n"
 "    -o modules=M1[:M2...]  names of modules to push onto filesystem stack\n"
@@ -5143,6 +5146,10 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	if (root == NULL) {
 		fprintf(stderr, "fuse: memory allocation failed\n");
 		goto out_free_id_table;
+	}
+	if (lru_enabled(f)) {
+		struct node_lru *lnode = node_lru(root);
+		init_list_head(&lnode->lru);
 	}
 
 	strcpy(root->inline_name, "/");

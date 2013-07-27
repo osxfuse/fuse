@@ -52,13 +52,13 @@ libfuse_la_SOURCES = 		\
 	$(iconv_source)		\
 	$(mount_source)
 
-fuse_version_number=2:9:2
+fuse_version_number=2:9:3
 
 if DARWIN
 libosxfuse_la_SOURCES = $(libfuse_la_SOURCES)
-libosxfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number)
+libosxfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number)
 else
-libfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number) \
+libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number) \
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
 
 if NETBSD

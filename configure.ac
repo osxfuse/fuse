@@ -1,4 +1,4 @@
-AC_INIT(fuse, 2.9.2)
+AC_INIT(fuse, 2.9.3)
 
 AC_PREREQ(2.59d)
 AC_CONFIG_MACRO_DIR([m4])
@@ -113,8 +113,12 @@ if test "$arch" = linux -a "$cross_compiling" != "yes"; then
 		AC_MSG_RESULT([yes])
 	else
 		firstline=`umount --fake --no-canonicalize 2>&1 | head -1`
-		AC_MSG_RESULT([$firstline])
-		util_linux_ok=no
+		if test "$firstline" = 'umount: only root can use "--fake" option'; then
+			AC_MSG_RESULT([yes])
+		else
+			AC_MSG_RESULT([$firstline])
+			util_linux_ok=no
+		fi
 	fi
 fi
 
