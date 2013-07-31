@@ -704,6 +704,19 @@ static int subdir_bmap(const char *path, size_t blocksize, uint64_t *idx)
 	return err;
 }
 
+static int subdir_fallocate(const char *path, int mode, off_t offset,
+			    off_t length, struct fuse_file_info *fi)
+{
+	struct subdir *d = subdir_get();
+	char *newpath;
+	int err = subdir_addpath(d, path, &newpath);
+	if (!err) {
+		err = fuse_fs_fallocate(d->next, newpath, mode, offset, length, fi);
+		free(newpath);
+	}
+	return err;
+}
+
 static void *subdir_init(struct fuse_conn_info *conn)
 {
 	struct subdir *d = subdir_get();
@@ -757,6 +770,7 @@ static const struct fuse_operations subdir_oper = {
 	.lock		= subdir_lock,
 	.flock		= subdir_flock,
 	.bmap		= subdir_bmap,
+    .fallocate  = subdir_fallocate,
 #ifdef __APPLE__
 	.setvolname	= subdir_setvolname,
 	.exchange	= subdir_exchange,

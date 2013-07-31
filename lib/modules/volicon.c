@@ -660,6 +660,15 @@ volicon_bmap(const char *path, size_t blocksize, uint64_t *idx)
 	return fuse_fs_bmap(volicon_get()->next, path, blocksize, idx);
 }
 
+static int
+volicon_fallocate(const char *path, int mode, off_t offset, off_t length,
+		  struct fuse_file_info *fi)
+{
+	ERROR_IF_MAGIC_FILE(path, ENOTSUP);
+
+	return fuse_fs_fallocate(volicon_get()->next, path, mode, offset, length, fi);
+}
+
 /*
  * Listed in the same order as in struct fuse_operations in <fuse.h>
  */
@@ -700,6 +709,7 @@ static struct fuse_operations volicon_oper = {
 	.lock        = volicon_lock,
 	.utimens     = volicon_utimens,
 	.bmap        = volicon_bmap,
+    .fallocate   = volicon_fallocate,
 	.setvolname  = volicon_setvolname,
 	.exchange    = volicon_exchange,
 	.getxtimes   = volicon_getxtimes,

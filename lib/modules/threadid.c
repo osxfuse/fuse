@@ -515,6 +515,17 @@ threadid_bmap(const char *path, size_t blocksize, uint64_t *idx)
 	return res;
 }
 
+static int
+threadid_fallocate(const char *path, int mode, off_t offset, off_t length,
+		    struct fuse_file_info *fi)
+{
+	THREADID_PRE()
+	int res = fuse_fs_fallocate(threadid_get()->next, path, mode, offset, length, fi);
+	THREADID_POST()
+
+	return res;
+}
+
 /*
  * Listed in the same order as in struct fuse_operations in <fuse.h>
  */
@@ -555,6 +566,7 @@ static struct fuse_operations threadid_oper = {
 	.lock        = threadid_lock,
 	.utimens     = threadid_utimens,
 	.bmap        = threadid_bmap,
+    .fallocate   = threadid_fallocate,
 	.setvolname  = threadid_setvolname,
 	.exchange    = threadid_exchange,
 	.getxtimes   = threadid_getxtimes,

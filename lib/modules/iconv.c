@@ -720,6 +720,19 @@ static int iconv_bmap(const char *path, size_t blocksize, uint64_t *idx)
 	return err;
 }
 
+static int iconv_fallocate(const char *path, int mode, off_t offset,
+			   off_t length, struct fuse_file_info *fi)
+{
+	struct iconv *ic = iconv_get();
+	char *newpath;
+	int err = iconv_convpath(ic, path, &newpath, 0);
+	if (!err) {
+		err = fuse_fs_fallocate(ic->next, newpath, mode, offset, length, fi);
+		free(newpath);
+	}
+	return err;
+}
+
 static void *iconv_init(struct fuse_conn_info *conn)
 {
 	struct iconv *ic = iconv_get();
@@ -777,6 +790,7 @@ static const struct fuse_operations iconv_oper = {
 	.lock		= iconv_lock,
 	.flock		= iconv_flock,
 	.bmap		= iconv_bmap,
+	.fallocate   = iconv_fallocate,
 #ifdef __APPLE__
 	.setvolname	= iconv_setvolname,
 	.exchange	= iconv_exchange,
