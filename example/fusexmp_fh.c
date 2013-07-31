@@ -19,7 +19,11 @@
 #include <config.h>
 #endif
 
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE
+#else
 #define _GNU_SOURCE
+#endif
 
 #include <fuse.h>
 #ifndef __APPLE__
@@ -45,6 +49,9 @@
 
 #ifdef __APPLE__
 
+#include <fcntl.h>
+#include <sys/vnode.h>
+
 #if defined(_POSIX_C_SOURCE)
 typedef unsigned char  u_char;
 typedef unsigned short u_short;
@@ -59,6 +66,7 @@ typedef unsigned long  u_long;
 #define A_PREFIX			"com"
 #define A_KAUTH_FILESEC_XATTR A_PREFIX 	".apple.system.Security"
 #define XATTR_APPLE_PREFIX		"com.apple."
+
 #endif /* __APPLE__ */
 
 static int xmp_getattr(const char *path, struct stat *stbuf)
@@ -472,7 +480,7 @@ static int xmp_setbkuptime(const char *path, const struct timespec *bkuptime)
 	attributes.forkattr = 0;
 	attributes.volattr = 0;
 
-	res = setattrlist(path, &attributes, bkuptime,
+	res = setattrlist(path, &attributes, (void *)bkuptime,
 			  sizeof(struct timespec), FSOPT_NOFOLLOW);
 
 	if (res == -1)
@@ -495,7 +503,7 @@ static int xmp_setchgtime(const char *path, const struct timespec *chgtime)
 	attributes.forkattr = 0;
 	attributes.volattr = 0;
 
-	res = setattrlist(path, &attributes, chgtime,
+	res = setattrlist(path, &attributes, (void *)chgtime,
 			  sizeof(struct timespec), FSOPT_NOFOLLOW);
 
 	if (res == -1)
@@ -518,7 +526,7 @@ static int xmp_setcrtime(const char *path, const struct timespec *crtime)
 	attributes.forkattr = 0;
 	attributes.volattr = 0;
 
-	res = setattrlist(path, &attributes, crtime,
+	res = setattrlist(path, &attributes, (void *)crtime,
 			  sizeof(struct timespec), FSOPT_NOFOLLOW);
 
 	if (res == -1)
@@ -736,16 +744,42 @@ static int xmp_fsync(const char *path, int isdatasync,
 	return 0;
 }
 
-#ifdef HAVE_POSIX_FALLOCATE
+#if defined(HAVE_POSIX_FALLOCATE) || defined(__APPLE__)
 static int xmp_fallocate(const char *path, int mode,
 			off_t offset, off_t length, struct fuse_file_info *fi)
 {
+#ifdef __APPLE__
+	fstore_t fstore;
+
+	if (!(mode & PREALLOCATE))
+		return -ENOTSUP;
+
+	fstore.fst_flags = 0;
+	if (mode & ALLOCATECONTIG)
+		fstore.fst_flags |= F_ALLOCATECONTIG;
+	if (mode & ALLOCATEALL)
+		fstore.fst_flags |= F_ALLOCATEALL;
+
+	if (mode & ALLOCATEFROMPEOF)
+		fstore.fst_posmode = F_PEOFPOSMODE;
+	else if (mode & ALLOCATEFROMVOL)
+		fstore.fst_posmode = F_VOLPOSMODE;
+
+	fstore.fst_offset = offset;
+	fstore.fst_length = length;
+
+	if (fcntl(fi->fh, F_PREALLOCATE, &fstore) == -1)
+		return -errno;
+	else
+		return 0;
+#else
 	(void) path;
 
 	if (mode)
 		return -EOPNOTSUPP;
 
 	return -posix_fallocate(fi->fh, offset, length);
+#endif
 }
 #endif
 
@@ -939,7 +973,7 @@ static struct fuse_operations xmp_oper = {
 	.flush		= xmp_flush,
 	.release	= xmp_release,
 	.fsync		= xmp_fsync,
-#ifdef HAVE_POSIX_FALLOCATE
+#if defined(HAVE_POSIX_FALLOCATE) || defined(__APPLE__)
 	.fallocate	= xmp_fallocate,
 #endif
 #ifdef HAVE_SETXATTR
