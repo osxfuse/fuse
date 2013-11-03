@@ -106,24 +106,24 @@ loadkmod(void)
 	int pid, terminated_pid;
 	union wait status;
 	long major;
-
+	char *load_prog_path;
+    
 	major = fuse_os_version_major_np();
 
 	if (major < OSXFUSE_MIN_DARWIN_VERSION) {
-        /* This is not a supported version of Mac OS X */
+		/* This is not a supported version of Mac OS X */
 		return EINVAL;
 	}
-
+    
+	load_prog_path = fuse_resource_path(OSXFUSE_LOAD_PROG);
+	if (!load_prog_path) {
+		fprintf(stderr, "fuse: load program missing\n");
+		goto Return;
+	}
+    
 	pid = fork();
 
 	if (pid == 0) {
-        char *load_prog_path;
-
-        load_prog_path = fuse_resource_path(OSXFUSE_LOAD_PROG);
-        if (!load_prog_path) {
-            goto Return;
-        }
-
 #ifdef MACFUSE_MODE
 		if (osxfuse_is_macfuse_mode_enabled()) {
 			setenv(OSXFUSE_MACFUSE_MODE_ENV, "1", 1);
@@ -133,9 +133,11 @@ loadkmod(void)
 		result = execl(load_prog_path, load_prog_path, NULL);
 
 		/* exec failed */
-		free(load_prog_path);
-        goto Return;
+		check_noerr_string(result, strerror(errno));
+		_exit(1);
 	}
+
+	free(load_prog_path);
 
 	require_action(pid != -1, Return, result = errno);
 
@@ -170,10 +172,10 @@ enum osxfuse_notification {
 typedef enum osxfuse_notification osxfuse_notification_t;
 
 const char * const osxfuse_notification_names[] = {
-	"kOSXFUSEOSIsTooNew",             // NOTIFICATION_OS_IS_TOO_NEW
-	"kOSXFUSEOSIsTooOld",             // NOTIFICATION_OS_IS_TOO_OLD
+	"kOSXFUSEOSIsTooNew",			 // NOTIFICATION_OS_IS_TOO_NEW
+	"kOSXFUSEOSIsTooOld",			 // NOTIFICATION_OS_IS_TOO_OLD
 	"kOSXFUSERuntimeVersionMismatch", // NOTIFICATION_RUNTIME_VERSION_MISMATCH
-	"kOSXFUSEVersionMismatch"         // NOTIFICATION_VERSION_MISMATCH
+	"kOSXFUSEVersionMismatch"		 // NOTIFICATION_VERSION_MISMATCH
 };
 
 const char * const osxfuse_notification_object = OSXFUSE_IDENTIFIER;
@@ -184,10 +186,10 @@ const char * const osxfuse_notification_object = OSXFUSE_IDENTIFIER;
 MACFUSE_NOTIFICATION_PREFIX ".unotifications"
 
 const char * const macfuse_notification_names[] = {
-	MACFUSE_NOTIFICATION_PREFIX ".osistoonew",             // NOTIFICATION_OS_IS_TOO_NEW
-	MACFUSE_NOTIFICATION_PREFIX ".osistooold",             // NOTIFICATION_OS_IS_TOO_OLD
+	MACFUSE_NOTIFICATION_PREFIX ".osistoonew",			 // NOTIFICATION_OS_IS_TOO_NEW
+	MACFUSE_NOTIFICATION_PREFIX ".osistooold",			 // NOTIFICATION_OS_IS_TOO_OLD
 	MACFUSE_NOTIFICATION_PREFIX ".runtimeversionmismatch", // NOTIFICATION_RUNTIME_VERSION_MISMATCH
-	MACFUSE_NOTIFICATION_PREFIX ".versionmismatch"         // NOTIFICATION_VERSION_MISMATCH
+	MACFUSE_NOTIFICATION_PREFIX ".versionmismatch"		 // NOTIFICATION_VERSION_MISMATCH
 };
 
 const char * const macfuse_notification_object = MACFUSE_NOTIFICATION_OBJECT;
@@ -195,14 +197,14 @@ const char * const macfuse_notification_object = MACFUSE_NOTIFICATION_OBJECT;
 
 static void
 post_notification(const osxfuse_notification_t  notification,
-                  const char                   *dict[][2],
-                  const int                     dict_count)
+				  const char				   *dict[][2],
+				  const int					 dict_count)
 {
 	CFNotificationCenterRef notification_center =
 	CFNotificationCenterGetDistributedCenter();
 
-	CFStringRef            name      = NULL;
-	CFStringRef            object    = NULL;
+	CFStringRef			name	  = NULL;
+	CFStringRef			object	= NULL;
 	CFMutableDictionaryRef user_info = NULL;
 
 #ifdef MACFUSE_MODE
@@ -229,12 +231,12 @@ post_notification(const osxfuse_notification_t  notification,
 	if (dict_count == 0)  goto post;
 
 	user_info = CFDictionaryCreateMutable(kCFAllocatorDefault, dict_count,
-					      &kCFCopyStringDictionaryKeyCallBacks,
-					      &kCFTypeDictionaryValueCallBacks);
+						  &kCFCopyStringDictionaryKeyCallBacks,
+						  &kCFTypeDictionaryValueCallBacks);
 
 	CFStringRef key;
 	CFStringRef value;
-	int         i;
+	int		 i;
 	for (i = 0; i < dict_count; i++) {
 		key   = CFStringCreateWithCString(kCFAllocatorDefault, dict[i][0],
 						  kCFStringEncodingUTF8);
@@ -254,11 +256,11 @@ post_notification(const osxfuse_notification_t  notification,
 
 post:
 	CFNotificationCenterPostNotification(notification_center, name, object,
-					     user_info, false);
+						 user_info, false);
 
 out:
-	if (name)      CFRelease(name);
-	if (object)    CFRelease(object);
+	if (name)	  CFRelease(name);
+	if (object)	CFRelease(object);
 	if (user_info) CFRelease(user_info);
 }
 
@@ -287,114 +289,114 @@ static const struct fuse_opt fuse_mount_opts[] = {
 	{ "allow_other", offsetof(struct mount_opts, allow_other), 1 },
 	{ "allow_root", offsetof(struct mount_opts, allow_root), 1 },
 	{ "modules=%s", offsetof(struct mount_opts, modules), 0 },
-	FUSE_OPT_KEY("allow_root",          KEY_ALLOW_ROOT),
-	FUSE_OPT_KEY("auto_cache",          KEY_AUTO_CACHE),
-	FUSE_OPT_KEY("-r",                  KEY_RO),
-	FUSE_OPT_KEY("-h",                  KEY_HELP),
-	FUSE_OPT_KEY("--help",              KEY_HELP),
-	FUSE_OPT_KEY("-V",                  KEY_VERSION),
-	FUSE_OPT_KEY("--version",           KEY_VERSION),
+	FUSE_OPT_KEY("allow_root",		  KEY_ALLOW_ROOT),
+	FUSE_OPT_KEY("auto_cache",		  KEY_AUTO_CACHE),
+	FUSE_OPT_KEY("-r",				  KEY_RO),
+	FUSE_OPT_KEY("-h",				  KEY_HELP),
+	FUSE_OPT_KEY("--help",			  KEY_HELP),
+	FUSE_OPT_KEY("-V",				  KEY_VERSION),
+	FUSE_OPT_KEY("--version",		   KEY_VERSION),
 	/* standard FreeBSD mount options */
-	FUSE_OPT_KEY("dev",                 KEY_KERN),
-	FUSE_OPT_KEY("async",               KEY_KERN),
-	FUSE_OPT_KEY("atime",               KEY_KERN),
-	FUSE_OPT_KEY("dev",                 KEY_KERN),
-	FUSE_OPT_KEY("exec",                KEY_KERN),
-	FUSE_OPT_KEY("suid",                KEY_KERN),
-	FUSE_OPT_KEY("symfollow",           KEY_KERN),
-	FUSE_OPT_KEY("rdonly",              KEY_KERN),
-	FUSE_OPT_KEY("sync",                KEY_KERN),
-	FUSE_OPT_KEY("union",               KEY_KERN),
-	FUSE_OPT_KEY("userquota",           KEY_KERN),
-	FUSE_OPT_KEY("groupquota",          KEY_KERN),
-	FUSE_OPT_KEY("clusterr",            KEY_KERN),
-	FUSE_OPT_KEY("clusterw",            KEY_KERN),
-	FUSE_OPT_KEY("suiddir",             KEY_KERN),
-	FUSE_OPT_KEY("snapshot",            KEY_KERN),
-	FUSE_OPT_KEY("multilabel",          KEY_KERN),
-	FUSE_OPT_KEY("acls",                KEY_KERN),
-	FUSE_OPT_KEY("force",               KEY_KERN),
-	FUSE_OPT_KEY("update",              KEY_KERN),
-	FUSE_OPT_KEY("ro",                  KEY_KERN),
-	FUSE_OPT_KEY("rw",                  KEY_KERN),
-	FUSE_OPT_KEY("auto",                KEY_KERN),
+	FUSE_OPT_KEY("dev",				 KEY_KERN),
+	FUSE_OPT_KEY("async",			   KEY_KERN),
+	FUSE_OPT_KEY("atime",			   KEY_KERN),
+	FUSE_OPT_KEY("dev",				 KEY_KERN),
+	FUSE_OPT_KEY("exec",				KEY_KERN),
+	FUSE_OPT_KEY("suid",				KEY_KERN),
+	FUSE_OPT_KEY("symfollow",		   KEY_KERN),
+	FUSE_OPT_KEY("rdonly",			  KEY_KERN),
+	FUSE_OPT_KEY("sync",				KEY_KERN),
+	FUSE_OPT_KEY("union",			   KEY_KERN),
+	FUSE_OPT_KEY("userquota",		   KEY_KERN),
+	FUSE_OPT_KEY("groupquota",		  KEY_KERN),
+	FUSE_OPT_KEY("clusterr",			KEY_KERN),
+	FUSE_OPT_KEY("clusterw",			KEY_KERN),
+	FUSE_OPT_KEY("suiddir",			 KEY_KERN),
+	FUSE_OPT_KEY("snapshot",			KEY_KERN),
+	FUSE_OPT_KEY("multilabel",		  KEY_KERN),
+	FUSE_OPT_KEY("acls",				KEY_KERN),
+	FUSE_OPT_KEY("force",			   KEY_KERN),
+	FUSE_OPT_KEY("update",			  KEY_KERN),
+	FUSE_OPT_KEY("ro",				  KEY_KERN),
+	FUSE_OPT_KEY("rw",				  KEY_KERN),
+	FUSE_OPT_KEY("auto",				KEY_KERN),
 	/* options supported under both Linux and FBSD */
-	FUSE_OPT_KEY("allow_other",         KEY_KERN),
+	FUSE_OPT_KEY("allow_other",		 KEY_KERN),
 	FUSE_OPT_KEY("default_permissions", KEY_KERN),
 	/* FBSD FUSE specific mount options */
-	FUSE_OPT_KEY("private",             KEY_KERN),
-	FUSE_OPT_KEY("neglect_shares",      KEY_KERN),
-	FUSE_OPT_KEY("push_symlinks_in",    KEY_KERN),
+	FUSE_OPT_KEY("private",			 KEY_KERN),
+	FUSE_OPT_KEY("neglect_shares",	  KEY_KERN),
+	FUSE_OPT_KEY("push_symlinks_in",	KEY_KERN),
 	/* stock FBSD mountopt parsing routine lets anything be negated... */
-	FUSE_OPT_KEY("nodev",               KEY_KERN),
-	FUSE_OPT_KEY("noasync",             KEY_KERN),
-	FUSE_OPT_KEY("noatime",             KEY_KERN),
-	FUSE_OPT_KEY("nodev",               KEY_KERN),
-	FUSE_OPT_KEY("noexec",              KEY_KERN),
-	FUSE_OPT_KEY("nosuid",              KEY_KERN),
-	FUSE_OPT_KEY("nosymfollow",         KEY_KERN),
-	FUSE_OPT_KEY("nordonly",            KEY_KERN),
-	FUSE_OPT_KEY("nosync",              KEY_KERN),
-	FUSE_OPT_KEY("nounion",             KEY_KERN),
-	FUSE_OPT_KEY("nouserquota",         KEY_KERN),
-	FUSE_OPT_KEY("nogroupquota",        KEY_KERN),
-	FUSE_OPT_KEY("noclusterr",          KEY_KERN),
-	FUSE_OPT_KEY("noclusterw",          KEY_KERN),
-	FUSE_OPT_KEY("nosuiddir",           KEY_KERN),
-	FUSE_OPT_KEY("nosnapshot",          KEY_KERN),
-	FUSE_OPT_KEY("nomultilabel",        KEY_KERN),
-	FUSE_OPT_KEY("noacls",              KEY_KERN),
-	FUSE_OPT_KEY("noforce",             KEY_KERN),
-	FUSE_OPT_KEY("noupdate",            KEY_KERN),
-	FUSE_OPT_KEY("noro",                KEY_KERN),
-	FUSE_OPT_KEY("norw",                KEY_KERN),
-	FUSE_OPT_KEY("noauto",              KEY_KERN),
-	FUSE_OPT_KEY("noallow_other",       KEY_KERN),
+	FUSE_OPT_KEY("nodev",			   KEY_KERN),
+	FUSE_OPT_KEY("noasync",			 KEY_KERN),
+	FUSE_OPT_KEY("noatime",			 KEY_KERN),
+	FUSE_OPT_KEY("nodev",			   KEY_KERN),
+	FUSE_OPT_KEY("noexec",			  KEY_KERN),
+	FUSE_OPT_KEY("nosuid",			  KEY_KERN),
+	FUSE_OPT_KEY("nosymfollow",		 KEY_KERN),
+	FUSE_OPT_KEY("nordonly",			KEY_KERN),
+	FUSE_OPT_KEY("nosync",			  KEY_KERN),
+	FUSE_OPT_KEY("nounion",			 KEY_KERN),
+	FUSE_OPT_KEY("nouserquota",		 KEY_KERN),
+	FUSE_OPT_KEY("nogroupquota",		KEY_KERN),
+	FUSE_OPT_KEY("noclusterr",		  KEY_KERN),
+	FUSE_OPT_KEY("noclusterw",		  KEY_KERN),
+	FUSE_OPT_KEY("nosuiddir",		   KEY_KERN),
+	FUSE_OPT_KEY("nosnapshot",		  KEY_KERN),
+	FUSE_OPT_KEY("nomultilabel",		KEY_KERN),
+	FUSE_OPT_KEY("noacls",			  KEY_KERN),
+	FUSE_OPT_KEY("noforce",			 KEY_KERN),
+	FUSE_OPT_KEY("noupdate",			KEY_KERN),
+	FUSE_OPT_KEY("noro",				KEY_KERN),
+	FUSE_OPT_KEY("norw",				KEY_KERN),
+	FUSE_OPT_KEY("noauto",			  KEY_KERN),
+	FUSE_OPT_KEY("noallow_other",	   KEY_KERN),
 	FUSE_OPT_KEY("nodefault_permissions", KEY_KERN),
-	FUSE_OPT_KEY("noprivate",           KEY_KERN),
-	FUSE_OPT_KEY("noneglect_shares",    KEY_KERN),
+	FUSE_OPT_KEY("noprivate",		   KEY_KERN),
+	FUSE_OPT_KEY("noneglect_shares",	KEY_KERN),
 	FUSE_OPT_KEY("nopush_symlinks_in",  KEY_KERN),
 	/* Mac OS X options */
-	FUSE_OPT_KEY("allow_recursion",     KEY_KERN),
-	FUSE_OPT_KEY("allow_root",          KEY_KERN), /* need to pass this on */
-	FUSE_OPT_KEY("auto_xattr",          KEY_KERN),
-	FUSE_OPT_KEY("automounted",         KEY_IGNORED),
-	FUSE_OPT_KEY("blocksize=",          KEY_KERN),
-	FUSE_OPT_KEY("daemon_timeout=",     KEY_KERN),
+	FUSE_OPT_KEY("allow_recursion",	 KEY_KERN),
+	FUSE_OPT_KEY("allow_root",		  KEY_KERN), /* need to pass this on */
+	FUSE_OPT_KEY("auto_xattr",		  KEY_KERN),
+	FUSE_OPT_KEY("automounted",		 KEY_IGNORED),
+	FUSE_OPT_KEY("blocksize=",		  KEY_KERN),
+	FUSE_OPT_KEY("daemon_timeout=",	 KEY_KERN),
 	FUSE_OPT_KEY("default_permissions", KEY_KERN),
 	FUSE_OPT_KEY("defer_permissions",   KEY_KERN),
-	FUSE_OPT_KEY("direct_io",           KEY_DIO),
+	FUSE_OPT_KEY("direct_io",		   KEY_DIO),
 	FUSE_OPT_KEY("extended_security",   KEY_KERN),
-	FUSE_OPT_KEY("fsid=",               KEY_KERN),
-	FUSE_OPT_KEY("fsname=",             KEY_KERN),
-	FUSE_OPT_KEY("fssubtype=",          KEY_KERN),
-	FUSE_OPT_KEY("fstypename=",         KEY_KERN),
-	FUSE_OPT_KEY("init_timeout=",       KEY_KERN),
-	FUSE_OPT_KEY("iosize=",             KEY_KERN),
-	FUSE_OPT_KEY("jail_symlinks",       KEY_KERN),
-	FUSE_OPT_KEY("kill_on_unmount",     KEY_KERN),
-	FUSE_OPT_KEY("local",               KEY_KERN),
-	FUSE_OPT_KEY("native_xattr",        KEY_KERN),
-	FUSE_OPT_KEY("negative_vncache",    KEY_KERN),
-	FUSE_OPT_KEY("noalerts",            KEY_KERN),
-	FUSE_OPT_KEY("noappledouble",       KEY_KERN),
-	FUSE_OPT_KEY("noapplexattr",        KEY_KERN),
-	FUSE_OPT_KEY("noattrcache",         KEY_KERN),
-	FUSE_OPT_KEY("nobrowse",            KEY_KERN),
-	FUSE_OPT_KEY("nolocalcaches",       KEY_KERN),
-	FUSE_OPT_KEY("noping_diskarb",      KEY_IGNORED),
-	FUSE_OPT_KEY("noreadahead",         KEY_KERN),
-	FUSE_OPT_KEY("nosynconclose",       KEY_KERN),
-	FUSE_OPT_KEY("nosyncwrites",        KEY_KERN),
-	FUSE_OPT_KEY("noubc",               KEY_KERN),
-	FUSE_OPT_KEY("novncache",           KEY_KERN),
-	FUSE_OPT_KEY("ping_diskarb",        KEY_IGNORED),
-	FUSE_OPT_KEY("quiet",               KEY_QUIET),
-	FUSE_OPT_KEY("slow_statfs",         KEY_KERN),
-	FUSE_OPT_KEY("sparse",              KEY_KERN),
-	FUSE_OPT_KEY("subtype=",            KEY_IGNORED),
+	FUSE_OPT_KEY("fsid=",			   KEY_KERN),
+	FUSE_OPT_KEY("fsname=",			 KEY_KERN),
+	FUSE_OPT_KEY("fssubtype=",		  KEY_KERN),
+	FUSE_OPT_KEY("fstypename=",		 KEY_KERN),
+	FUSE_OPT_KEY("init_timeout=",	   KEY_KERN),
+	FUSE_OPT_KEY("iosize=",			 KEY_KERN),
+	FUSE_OPT_KEY("jail_symlinks",	   KEY_KERN),
+	FUSE_OPT_KEY("kill_on_unmount",	 KEY_KERN),
+	FUSE_OPT_KEY("local",			   KEY_KERN),
+	FUSE_OPT_KEY("native_xattr",		KEY_KERN),
+	FUSE_OPT_KEY("negative_vncache",	KEY_KERN),
+	FUSE_OPT_KEY("noalerts",			KEY_KERN),
+	FUSE_OPT_KEY("noappledouble",	   KEY_KERN),
+	FUSE_OPT_KEY("noapplexattr",		KEY_KERN),
+	FUSE_OPT_KEY("noattrcache",		 KEY_KERN),
+	FUSE_OPT_KEY("nobrowse",			KEY_KERN),
+	FUSE_OPT_KEY("nolocalcaches",	   KEY_KERN),
+	FUSE_OPT_KEY("noping_diskarb",	  KEY_IGNORED),
+	FUSE_OPT_KEY("noreadahead",		 KEY_KERN),
+	FUSE_OPT_KEY("nosynconclose",	   KEY_KERN),
+	FUSE_OPT_KEY("nosyncwrites",		KEY_KERN),
+	FUSE_OPT_KEY("noubc",			   KEY_KERN),
+	FUSE_OPT_KEY("novncache",		   KEY_KERN),
+	FUSE_OPT_KEY("ping_diskarb",		KEY_IGNORED),
+	FUSE_OPT_KEY("quiet",			   KEY_QUIET),
+	FUSE_OPT_KEY("slow_statfs",		 KEY_KERN),
+	FUSE_OPT_KEY("sparse",			  KEY_KERN),
+	FUSE_OPT_KEY("subtype=",			KEY_IGNORED),
 	{ "volicon=%s", offsetof(struct mount_opts, volicon), 0 },
-	FUSE_OPT_KEY("volname=",            KEY_KERN),
+	FUSE_OPT_KEY("volname=",			KEY_KERN),
 	FUSE_OPT_END
 };
 
@@ -403,39 +405,42 @@ mount_run(const char *mount_args)
 {
 	int err;
 
-    char *mount_prog_path;
-    char *mount_cmd;
+	char *mount_prog_path;
+	char *mount_cmd;
 
-    mount_prog_path = fuse_resource_path(OSXFUSE_MOUNT_PROG);
-    if (!mount_prog_path) {
-        return;
-    }
-    err = asprintf(&mount_cmd, "%s %s", mount_prog_path, mount_args);
-    free(mount_prog_path);
-    if (err == -1) {
-        return;
-    }
+	mount_prog_path = fuse_resource_path(OSXFUSE_MOUNT_PROG);
+	if (!mount_prog_path) {
+		fprintf(stderr, "fuse: mount program missing\n");
+		goto out;
+	}
+	err = asprintf(&mount_cmd, "%s %s", mount_prog_path, mount_args);
+	free(mount_prog_path);
+	if (err == -1) {
+		goto out;
+	}
 
-    system(mount_cmd);
-    free(mount_cmd);
+	system(mount_cmd);
+
+out:
+	free(mount_cmd);
 }
 
 static void
 mount_help(void)
 {
 	mount_run("--help");
-    fputc('\n', stderr);
+	fputc('\n', stderr);
 }
 
 static void
 mount_version(void)
 {
-    mount_run("--version");
+	mount_run("--version");
 }
 
 static int
 fuse_mount_opt_proc(void *data, const char *arg, int key,
-                    struct fuse_args *outargs)
+					struct fuse_args *outargs)
 {
 	struct mount_opts *mo = data;
 
@@ -443,13 +448,13 @@ fuse_mount_opt_proc(void *data, const char *arg, int key,
 
 		case KEY_AUTO_CACHE:
 			if (fuse_opt_add_opt(&mo->kernel_opts, "auto_cache") == -1 ||
-			    fuse_opt_add_arg(outargs, "-oauto_cache") == -1)
+				fuse_opt_add_arg(outargs, "-oauto_cache") == -1)
 				return -1;
 			return 0;
 
 		case KEY_ALLOW_ROOT:
 			if (fuse_opt_add_opt(&mo->kernel_opts, "allow_other") == -1 ||
-			    fuse_opt_add_arg(outargs, "-oallow_root") == -1)
+				fuse_opt_add_arg(outargs, "-oallow_root") == -1)
 				return -1;
 			return 0;
 
@@ -462,7 +467,7 @@ fuse_mount_opt_proc(void *data, const char *arg, int key,
 
 		case KEY_DIO:
 			if (fuse_opt_add_opt(&mo->kernel_opts, "direct_io") == -1 ||
-			    (fuse_opt_add_arg(outargs, "-odirect_io") == -1))
+				(fuse_opt_add_arg(outargs, "-odirect_io") == -1))
 				return -1;
 			return 0;
 
@@ -510,7 +515,7 @@ fuse_kern_unmount(const char *mountpoint, int fd)
 		hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
 		if (mi) {
 			hash_destroy(mount_hash, (char *)mountpoint,
-				     mount_hash_purge_helper);
+					 mount_hash_purge_helper);
 			--mount_count;
 		}
 	}
@@ -528,7 +533,7 @@ fuse_kern_unmount(const char *mountpoint, int fd)
 	devname_r(sbuf.st_rdev, S_IFCHR, dev, 128);
 
 	if (strncmp(dev, OSXFUSE_DEVICE_BASENAME,
-		    sizeof(OSXFUSE_DEVICE_BASENAME) - 1)) {
+			sizeof(OSXFUSE_DEVICE_BASENAME) - 1)) {
 		return;
 	}
 
@@ -563,7 +568,9 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 {
 	int fd;
 	int result;
-	char *fdnam, *dev;
+	char *fdnam;
+	char *dev;
+	char *mount_prog_path;
 	pid_t pid;
 	int status;
 
@@ -583,9 +590,9 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 
 	result = loadkmod();
 #if !M_OSXFUSE_ENABLE_KEXT_VERSION_CHECK
-    if (result == EBUSY) {
-        result = 0;
-    }
+	if (result == EBUSY) {
+		result = 0;
+	}
 #endif
 	if (result) {
 		CFOptionFlags responseFlags;
@@ -598,7 +605,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 					(CFURLRef)0,
 					(CFURLRef)0,
 					CFSTR("Operating System Too Old"),
-					CFSTR("The installed OSXFUSE version is too new for the operating system. Please downgrade your OSXFUSE installation to one that is compatible with the currently running operating system."),
+					CFSTR("The installed FUSE version is too new for the operating system. Please downgrade your FUSE installation to one that is compatible with the currently running operating system."),
 					CFSTR("OK"));
 			}
 			post_notification(NOTIFICATION_OS_IS_TOO_OLD, NULL, 0);
@@ -610,14 +617,14 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 					(CFURLRef)0,
 					(CFURLRef)0,
 					(CFURLRef)0,
-					CFSTR("OSXFUSE Version Mismatch"),
-					CFSTR("OSXFUSE has been updated but an incompatible or old version of the OSXFUSE kernel extension is already loaded. It failed to unload, possibly because a OSXFUSE volume is currently mounted.\n\nPlease eject all OSXFUSE volumes and try again, or simply restart the system for changes to take effect."),
+					CFSTR("FUSE Version Mismatch"),
+					CFSTR("FUSE has been updated but an incompatible or old version of the FUSE kernel extension is already loaded. It failed to unload, possibly because a FUSE volume is currently mounted.\n\nPlease eject all FUSE volumes and try again, or simply restart the system for changes to take effect."),
 					CFSTR("OK"));
 			}
 			post_notification(NOTIFICATION_VERSION_MISMATCH,
 					  NULL, 0);
 		}
-		fprintf(stderr, "the OSXFUSE file system is not available (%d)\n",
+		fprintf(stderr, "the FUSE file system is not available (%d)\n",
 			result);
 		return -1;
 	} else {
@@ -629,13 +636,13 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 		size_t version_len_desired = 0;
 
 		result = sysctlbyname(SYSCTL_OSXFUSE_VERSION_NUMBER, version,
-				      &version_len, NULL, (size_t)0);
+					  &version_len, NULL, (size_t)0);
 		if (result == 0) {
 			/* sysctlbyname() includes the trailing '\0' in version_len */
 			version_len_desired = strlen(OSXFUSE_VERSION) + 1;
 
 			if ((version_len != version_len_desired) ||
-			    strncmp(OSXFUSE_VERSION, version, version_len)) {
+				strncmp(OSXFUSE_VERSION, version, version_len)) {
 				result = -1;
 			}
 		}
@@ -649,15 +656,15 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 				(CFURLRef)0,
 				(CFURLRef)0,
 				(CFURLRef)0,
-				CFSTR("OSXFUSE Runtime Version Mismatch"),
-				CFSTR("The OSXFUSE library version this program is using is incompatible with the loaded OSXFUSE kernel extension."),
+				CFSTR("FUSE Runtime Version Mismatch"),
+				CFSTR("The FUSE library version this program is using is incompatible with the loaded FUSE kernel extension."),
 				CFSTR("OK"));
 		}
 		post_notification(NOTIFICATION_RUNTIME_VERSION_MISMATCH,
 				  NULL, 0);
 		fprintf(stderr,
-			"this OSXFUSE library version is incompatible with "
-			"the OSXFUSE kernel extension\n");
+			"this FUSE library version is incompatible with "
+			"the FUSE kernel extension\n");
 		return -1;
 	}
 
@@ -708,30 +715,25 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 	}
 
 mount:
-	if (getenv("FUSE_NO_MOUNT") || ! mountpoint)
+	if (getenv("FUSE_NO_MOUNT") || ! mountpoint) {
 		goto out;
+	}
+
+	mount_prog_path = fuse_resource_path(OSXFUSE_MOUNT_PROG);
+	if (!mount_prog_path) {
+		fprintf(stderr, "fuse: mount program missing\n");
+		goto mount_err_out;
+	}
 
 	pid = fork();
 
-	if (pid == -1) {
-		perror("fuse: fork() failed");
-		close(fd);
-		return -1;
-	}
-
 	if (pid == 0) {
-		char *mount_prog_path;
-        const char *argv[32];
+		const char *argv[32];
 		int a = 0;
 
-        mount_prog_path = fuse_resource_path(OSXFUSE_MOUNT_PROG);
-        if (!mount_prog_path) {
-            fprintf(stderr, "fuse: mount program missing\n");
-            exit(1);
-        }
-
-		if (!fdnam)
+		if (!fdnam) {
 			asprintf(&fdnam, "%d", fd);
+		}
 
 		argv[a++] = mount_prog_path;
 		if (opts) {
@@ -750,17 +752,29 @@ mount:
 				setenv("MOUNT_OSXFUSE_DAEMON_PATH", title, 1);
 			}
 		}
+
 		execvp(mount_prog_path, (char **) argv);
 		perror("fuse: failed to exec mount program");
-        free(mount_prog_path);
-		exit(1);
+		_exit(1);
+	}
+
+	free(mount_prog_path);
+
+	if (pid == -1) {
+		perror("fuse: fork failed");
+		goto mount_err_out;
 	}
 
 	if (waitpid(pid, &status, 0) == -1 || WEXITSTATUS(status) != 0) {
 		perror("fuse: failed to mount file system");
-		close(fd);
-		return -1;
+		goto mount_err_out;
 	}
+
+	goto out;
+
+mount_err_out:
+	close(fd);
+	fd = -1;
 
 out:
 	return fd;
@@ -787,7 +801,7 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 #endif
 
 	if (args &&
-	    fuse_opt_parse(args, &mo, fuse_mount_opts, fuse_mount_opt_proc) == -1) {
+		fuse_opt_parse(args, &mo, fuse_mount_opts, fuse_mount_opt_proc) == -1) {
 		return -1;
 	}
 
@@ -839,7 +853,7 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
 		/* add iconpath argument */
 		if (snprintf(iconpath_arg, sizeof(iconpath_arg),
-			     "-oiconpath=%s", mo.volicon) <= 0) {
+				 "-oiconpath=%s", mo.volicon) <= 0) {
 			fprintf(stderr, "fuse: failed to create iconpath argument\n");
 			goto out;
 		}
@@ -857,7 +871,7 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
 		/* add modules argument */
 		err = snprintf(modules_arg, modules_arg_len, "-omodules=%s",
-			       mo.modules);
+				   mo.modules);
 		if (err <= 0) {
 			fprintf(stderr, "fuse: failed to create modules argument\n");
 			free(modules_arg);
