@@ -120,16 +120,16 @@ loadkmod(void)
 		fprintf(stderr, "fuse: load program missing\n");
 		goto Return;
 	}
-    
+
+#ifdef MACFUSE_MODE
+	if (osxfuse_is_macfuse_mode_enabled()) {
+		setenv(OSXFUSE_MACFUSE_MODE_ENV, "1", 1);
+	}
+#endif
+
 	pid = fork();
 
 	if (pid == 0) {
-#ifdef MACFUSE_MODE
-		if (osxfuse_is_macfuse_mode_enabled()) {
-			setenv(OSXFUSE_MACFUSE_MODE_ENV, "1", 1);
-		}
-#endif
-
 		result = execl(load_prog_path, load_prog_path, NULL);
 
 		/* exec failed */
@@ -725,15 +725,22 @@ mount:
 		goto mount_err_out;
 	}
 
+	asprintf(&fdnam, "%d", fd);
+
+	{
+		char title[MAXPATHLEN + 1] = { 0 };
+		u_int32_t len = MAXPATHLEN;
+		int ret = proc_pidpath(getpid(), title, len);
+		if (ret) {
+			setenv("MOUNT_OSXFUSE_DAEMON_PATH", title, 1);
+		}
+	}
+
 	pid = fork();
 
 	if (pid == 0) {
 		const char *argv[32];
 		int a = 0;
-
-		if (!fdnam) {
-			asprintf(&fdnam, "%d", fd);
-		}
 
 		argv[a++] = mount_prog_path;
 		if (opts) {
@@ -744,21 +751,13 @@ mount:
 		argv[a++] = mountpoint;
 		argv[a++] = NULL;
 
-		{
-			char title[MAXPATHLEN + 1] = { 0 };
-			u_int32_t len = MAXPATHLEN;
-			int ret = proc_pidpath(getpid(), title, len);
-			if (ret) {
-				setenv("MOUNT_OSXFUSE_DAEMON_PATH", title, 1);
-			}
-		}
-
-		execvp(mount_prog_path, (char **) argv);
+		execv(mount_prog_path, (char **)argv);
 		perror("fuse: failed to exec mount program");
 		_exit(1);
 	}
 
 	free(mount_prog_path);
+	free(fdnam);
 
 	if (pid == -1) {
 		perror("fuse: fork failed");
