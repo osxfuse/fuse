@@ -2010,7 +2010,9 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		outarg.flags |= FUSE_VOL_RENAME;
 	if (f->conn.enable.xtimes)
 		outarg.flags |= FUSE_XTIMES;
-#endif
+	if (f->conn.enable.case_insensitive)
+		outarg.flags |= FUSE_CASE_INSENSITIVE;
+#endif /* __APPLE__ */
 
 	if (f->debug) {
 		fprintf(stderr, "   INIT: %u.%u\n", outarg.major, outarg.minor);
