@@ -247,8 +247,9 @@ struct fuse_conn_info {
 };
 
 #ifdef __APPLE__
-#  define FUSE_ENABLE_SETVOLNAME(i)	(i)->enable.setvolname = 1
-#  define FUSE_ENABLE_XTIMES(i)		(i)->enable.xtimes = 1
+#  define FUSE_ENABLE_SETVOLNAME(i)		(i)->enable.setvolname = 1
+#  define FUSE_ENABLE_XTIMES(i)			(i)->enable.xtimes = 1
+#  define FUSE_ENABLE_CASE_INSENSITIVE(i)	(i)->enable.case_insensitive = 1
 #endif
 
 struct fuse_session;
