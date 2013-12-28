@@ -391,8 +391,8 @@ int main(int argc, char *argv[])
 int
 main(void)
 {
-    fprintf(stderr, "Please use fusexmp_fh instead of this program.\n");
-    return 1;
+	fprintf(stderr, "Please use fusexmp_fh instead of this program.\n");
+	return 1;
 }
 
 #endif /* !__APPLE__ */

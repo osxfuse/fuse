@@ -433,41 +433,41 @@ struct fuse_operations {
 	int (*bmap) (const char *, size_t blocksize, uint64_t *idx);
 
 #ifdef __APPLE__
-        int (*reserved00)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved01)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved02)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved03)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved04)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved05)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved06)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved07)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved08)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved09)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
-        int (*reserved10)(void *, void *, void *, void *, void *, void *,
-                          void *, void *);
+	int (*reserved00)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved01)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved02)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved03)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved04)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved05)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved06)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved07)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved08)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved09)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
+	int (*reserved10)(void *, void *, void *, void *, void *, void *,
+			  void *, void *);
 
-        int (*setvolname) (const char *);
+	int (*setvolname) (const char *);
 
 	int (*exchange) (const char *, const char *, unsigned long);
 
-        int (*getxtimes) (const char *, struct timespec *bkuptime,
+	int (*getxtimes) (const char *, struct timespec *bkuptime,
 			  struct timespec *crtime);
 
-        int (*setbkuptime) (const char *, const struct timespec *tv);
+	int (*setbkuptime) (const char *, const struct timespec *tv);
 
-        int (*setchgtime) (const char *, const struct timespec *tv);
+	int (*setchgtime) (const char *, const struct timespec *tv);
 
-        int (*setcrtime) (const char *, const struct timespec *tv);
+	int (*setcrtime) (const char *, const struct timespec *tv);
 
 	int (*chflags) (const char *, uint32_t);
 
