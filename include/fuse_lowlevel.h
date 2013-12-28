@@ -826,36 +826,36 @@ struct fuse_lowlevel_ops {
 
 #ifdef __APPLE__
 
-        void (*reserved00) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved01) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved02) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved03) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved04) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved05) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved06) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved07) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved08) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved09) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
-        void (*reserved10) (fuse_req_t req, fuse_ino_t ino,
-                            void *, void *, void *, void *, void *, void *);
+	void (*reserved00) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved01) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved02) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved03) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved04) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved05) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved06) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved07) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved08) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved09) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
+	void (*reserved10) (fuse_req_t req, fuse_ino_t ino,
+			    void *, void *, void *, void *, void *, void *);
 
-        void (*setvolname) (fuse_req_t req, const char *name);
+	void (*setvolname) (fuse_req_t req, const char *name);
 
 	void (*exchange) (fuse_req_t req, fuse_ino_t parent, const char *name,
 			  fuse_ino_t newparent, const char *newname,
-                          unsigned long options);
+			  unsigned long options);
 
-        void (*getxtimes) (fuse_req_t req, fuse_ino_t ino,
+	void (*getxtimes) (fuse_req_t req, fuse_ino_t ino,
 			   struct fuse_file_info *);
 
 	void (*setattr_x) (fuse_req_t req, fuse_ino_t ino,

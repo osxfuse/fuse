@@ -755,7 +755,7 @@ static inline int fuse_compat_statfs(struct fuse_fs *fs, const char *path,
 }
 
 int fuse_fs_setattr_x(struct fuse_fs *fs, const char *path,
-      		      struct setattr_x *attr)
+		      struct setattr_x *attr)
 {
 	fuse_get_context()->private_data = fs->user_data;
 	if (fs->op.setattr_x)
@@ -765,7 +765,7 @@ int fuse_fs_setattr_x(struct fuse_fs *fs, const char *path,
 }
 
 int fuse_fs_fsetattr_x(struct fuse_fs *fs, const char *path,
-      		       struct setattr_x *attr, struct fuse_file_info *fi)
+		       struct setattr_x *attr, struct fuse_file_info *fi)
 {
 	fuse_get_context()->private_data = fs->user_data;
 	if (fs->op.fsetattr_x)
@@ -1143,9 +1143,9 @@ int fuse_fs_mkdir(struct fuse_fs *fs, const char *path, mode_t mode)
 
 int fuse_fs_setxattr(struct fuse_fs *fs, const char *path, const char *name,
 #ifdef __APPLE__
-  	             const char *value, size_t size, int flags, uint32_t position)
+		     const char *value, size_t size, int flags, uint32_t position)
 #else
-  	             const char *value, size_t size, int flags);
+		     const char *value, size_t size, int flags);
 #endif
 {
 	fuse_get_context()->private_data = fs->user_data;
@@ -2002,8 +2002,8 @@ static void fuse_lib_rename(fuse_req_t req, fuse_ino_t olddir,
 #ifdef __APPLE__
 
 static int exchange_node(struct fuse *f, fuse_ino_t olddir, const char *oldname,
-		         fuse_ino_t newdir, const char *newname,
-                         unsigned long options)
+			 fuse_ino_t newdir, const char *newname,
+			 unsigned long options)
 {
 	struct node *node;
 	struct node *newnode;
@@ -2080,11 +2080,11 @@ static void fuse_lib_exchange(fuse_req_t req, fuse_ino_t olddir,
 			fuse_prepare_interrupt(f, req, &d);
 			if (!err) {
 				err = fuse_fs_exchange(f->fs, oldpath, newpath,
-                                                       options);
+						       options);
 				if (!err)
 					err = exchange_node(f, olddir, oldname,
 							    newdir, newname,
-                                                            options);
+							    options);
 			}
 			fuse_finish_interrupt(f, req, &d);
 			free(newpath);
@@ -3211,8 +3211,8 @@ static struct fuse_lowlevel_ops fuse_path_ops = {
 	.setlk = fuse_lib_setlk,
 	.bmap = fuse_lib_bmap,
 #ifdef __APPLE__
-        .setvolname = fuse_lib_setvolname,
-        .exchange = fuse_lib_exchange,
+	.setvolname = fuse_lib_setvolname,
+	.exchange = fuse_lib_exchange,
 	.getxtimes = fuse_lib_getxtimes,
 	.setattr_x = fuse_lib_setattr_x,
 #endif
@@ -3618,7 +3618,7 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 
 #ifdef __APPLE__
 	f->fs->fuse = f;
-        fuse_set_fuse_internal_np(fuse_chan_fd(ch), f);
+	fuse_set_fuse_internal_np(fuse_chan_fd(ch), f);
 #endif
 
 	return f;
@@ -3659,7 +3659,7 @@ void fuse_destroy(struct fuse *f)
 	size_t i;
 
 #ifdef __APPLE__
-        fuse_unset_fuse_internal_np(f);
+	fuse_unset_fuse_internal_np(f);
 #endif
 
 	if (f->conf.intr && f->intr_installed)
@@ -3733,64 +3733,64 @@ void fuse_register_module(struct fuse_module *mod)
 #ifdef __APPLE__
 
 struct find_mountpoint_arg {
-    struct fuse *fuse;
-    const char *mountpoint;
+	struct fuse *fuse;
+	const char *mountpoint;
 };
 
 static int
 find_mountpoint_helper(const char *mountpoint, struct mount_info *mi,
-                       struct find_mountpoint_arg *arg)
+		       struct find_mountpoint_arg *arg)
 {
-    if (mi->fuse == arg->fuse) {
-        arg->mountpoint = mountpoint;
-        return 0;
-    }
+	if (mi->fuse == arg->fuse) {
+		arg->mountpoint = mountpoint;
+		return 0;
+	}
 
-    return 1;
+	return 1;
 }
 
 const char *
 fuse_mountpoint_for_fs_np(struct fuse_fs *fs)
 {
-    if (!fs) {
-        return (const char *)0;
-    }
+	if (!fs) {
+		return (const char *)0;
+	}
 
-    struct find_mountpoint_arg arg;
+	struct find_mountpoint_arg arg;
 
-    arg.fuse = fs->fuse;
-    arg.mountpoint = NULL;
+	arg.fuse = fs->fuse;
+	arg.mountpoint = NULL;
 
-    pthread_mutex_lock(&mount_lock);
-    hash_traverse(mount_hash, (int(*)())find_mountpoint_helper, &arg);
-    pthread_mutex_unlock(&mount_lock);
-    
-    return arg.mountpoint;
+	pthread_mutex_lock(&mount_lock);
+	hash_traverse(mount_hash, (int(*)())find_mountpoint_helper, &arg);
+	pthread_mutex_unlock(&mount_lock);
+
+	return arg.mountpoint;
 }
 
 struct fuse *
 fuse_get_internal_np(const char *mountpoint)
 {
-    struct fuse *fuse = NULL;
-    if (mountpoint) {
-        pthread_mutex_lock(&mount_lock);
-        struct mount_info *mi =
-            hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
-        if (mi) {
-            fuse = mi->fuse;
-            pthread_mutex_lock(&fuse->lock);
-        }
-        pthread_mutex_unlock(&mount_lock);
-    }
-    return fuse;
+	struct fuse *fuse = NULL;
+	if (mountpoint) {
+		pthread_mutex_lock(&mount_lock);
+		struct mount_info *mi =
+			hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
+		if (mi) {
+			fuse = mi->fuse;
+			pthread_mutex_lock(&fuse->lock);
+		}
+		pthread_mutex_unlock(&mount_lock);
+	}
+	return fuse;
 }
 
 void
 fuse_put_internal_np(struct fuse *fuse)
 {
-    if (fuse) {
-        pthread_mutex_unlock(&fuse->lock);
-    }
+	if (fuse) {
+		pthread_mutex_unlock(&fuse->lock);
+	}
 }
 
 fuse_ino_t
@@ -3871,7 +3871,7 @@ fuse_resize_node_internal_np(const char *mountpoint, const char *path,
 
 	struct node *node = NULL;
 
-        struct fuse *f = fuse_get_internal_np(mountpoint);
+	struct fuse *f = fuse_get_internal_np(mountpoint);
 	if (f == NULL) {
 		return EINVAL;
 	}
