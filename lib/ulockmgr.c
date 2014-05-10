@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2014 Benjamin Fleischer
  */
 
 /* #define DEBUG 1 */
@@ -24,9 +24,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 #ifdef __APPLE__
-#undef _POSIX_C_SOURCE
 #include <sys/socket.h>
-#define _POSIX_C_SOURCE 200112L
 #else
 #include <sys/socket.h>
 #endif

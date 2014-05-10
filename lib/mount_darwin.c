@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2014 Benjamin Fleischer
  *
  * Derived from mount_bsd.c from the FUSE distribution.
  *
@@ -11,7 +11,6 @@
  *  See the file COPYING.LIB.
  */
 
-#undef _POSIX_C_SOURCE
 #include <sys/types.h>
 #include <CoreFoundation/CoreFoundation.h>
 

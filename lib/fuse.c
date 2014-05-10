@@ -1572,7 +1572,7 @@ static int fuse_compat_statfs(struct fuse_fs *fs, const char *path,
 
 #else /* __FreeBSD__ || __NetBSD__ || __APPLE__ */
 
-static inline int fuse_compat_open(struct fuse_fs *fs, char *path,
+static inline int fuse_compat_open(struct fuse_fs *fs, const char *path,
 				   struct fuse_file_info *fi)
 {
 	return fs->op.open(path, fi);
@@ -5075,7 +5075,11 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	f->conf.negative_timeout = 0.0;
 	f->conf.intr_signal = FUSE_DEFAULT_INTR_SIGNAL;
 
+#if __APPLE__
+	f->pagesize = sysconf(_SC_PAGESIZE);
+#else
 	f->pagesize = getpagesize();
+#endif
 	init_list_head(&f->partial_slabs);
 	init_list_head(&f->full_slabs);
 	init_list_head(&f->lru_table);

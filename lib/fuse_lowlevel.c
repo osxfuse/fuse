@@ -58,7 +58,11 @@ static size_t pagesize;
 
 static __attribute__((constructor)) void fuse_ll_init_pagesize(void)
 {
+#if __APPLE__
+	pagesize = sysconf(_SC_PAGESIZE);
+#else
 	pagesize = getpagesize();
+#endif
 }
 
 static void convert_stat(const struct stat *stbuf, struct fuse_attr *attr)

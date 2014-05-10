@@ -90,7 +90,7 @@ static void fuse_kern_chan_destroy(struct fuse_chan *ch)
 
 	if (fd != -1) {
 #ifdef __APPLE__
-        (void)ioctl(fd, FUSEDEVIOCSETDAEMONDEAD, &fd);
+		(void)ioctl(fd, FUSEDEVIOCSETDAEMONDEAD, &fd);
 #endif
 		close(fd);
     }
@@ -109,7 +109,12 @@ struct fuse_chan *fuse_kern_chan_new(int fd)
 		.send = fuse_kern_chan_send,
 		.destroy = fuse_kern_chan_destroy,
 	};
-	size_t bufsize = getpagesize() + 0x1000;
+	size_t bufsize = 0x1000;
+#if __APPLE__
+	bufsize += sysconf(_SC_PAGESIZE);
+#else
+	bufsize += getpagesize();
+#endif
 	bufsize = bufsize < MIN_BUFSIZE ? MIN_BUFSIZE : bufsize;
 	return fuse_chan_new(&op, fd, bufsize, NULL);
 }

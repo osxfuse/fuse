@@ -11,9 +11,7 @@
 
 #define FUSE_USE_VERSION 26
 
-#undef _POSIX_C_SOURCE
 #include <sys/types.h>
-#define _POSIX_C_SOURCE 200112L
 #include <sys/attr.h>
 #include <sys/xattr.h>
 #include <sys/vnode.h>
