@@ -650,6 +650,12 @@ struct fuse_fs;
  * fuse_fs_releasedir and fuse_fs_statfs, which return 0.
  */
 
+#ifdef __APPLE__
+int fuse_fs_setattr_x(struct fuse_fs *fs, const char *path,
+		      struct setattr_x *attr);
+int fuse_fs_fsetattr_x(struct fuse_fs *fs, const char *path,
+		       struct setattr_x *attr, struct fuse_file_info *fi);
+#endif /* __APPLE__ */
 int fuse_fs_getattr(struct fuse_fs *fs, const char *path, struct stat *buf);
 int fuse_fs_fgetattr(struct fuse_fs *fs, const char *path, struct stat *buf,
 		     struct fuse_file_info *fi);

@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include <fuse_lowlevel.h>
 #include "fuse_darwin_private.h"

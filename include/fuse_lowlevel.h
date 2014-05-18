@@ -890,6 +890,11 @@ int fuse_reply_err(fuse_req_t req, int err);
  */
 void fuse_reply_none(fuse_req_t req);
 
+#ifdef __APPLE__
+int fuse_reply_xtimes(fuse_req_t req, const struct timespec *bkuptime,
+		      const struct timespec *crtime);
+#endif
+
 /**
  * Reply with a directory entry
  *
