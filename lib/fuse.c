@@ -2918,7 +2918,13 @@ static void fuse_lib_setattr_x(fuse_req_t req, fuse_ino_t ino,
 	char *path;
 	int err;
 
-	err = get_path(f, ino, &path);
+	if ((f->fs->op.fsetattr_x || (!f->fs->op.setattr_x &&
+				      valid == FUSE_SET_ATTR_SIZE &&
+				      f->fs->op.ftruncate)) &&
+	    fi != NULL && f->fs->op.fgetattr)
+		err = get_path_nullok(f, ino, &path);
+	else
+		err = get_path(f, ino, &path);
 	if (!err) {
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
