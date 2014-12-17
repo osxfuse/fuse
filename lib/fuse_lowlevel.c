@@ -133,7 +133,13 @@ static void convert_attr(const struct fuse_setattr_in *attr, struct stat *stbuf)
 
 	stbuf->st_ctime = attr->chgtime;
 	stbuf->st_ctimensec = attr->chgtimensec;
-#endif
+
+	/* XXX: aaaaaaaaaaaargh */
+	stbuf->st_qspare[0] = attr->bkuptime;
+	stbuf->st_lspare = attr->bkuptimensec;
+	stbuf->st_qspare[1] = attr->crtime;
+	stbuf->st_gen = attr->crtimensec;
+#endif /* __APPLE__ */
 }
 
 static	size_t iov_length(const struct iovec *iov, size_t count)
