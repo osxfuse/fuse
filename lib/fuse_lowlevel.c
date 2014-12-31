@@ -220,7 +220,7 @@ static int send_reply_iov(fuse_req_t req, int error, struct iovec *iov,
 		fprintf(stderr,
 			"   unique: %llu, error: %i (%s), outsize: %i\n",
 			(unsigned long long) out.unique, out.error,
-			strerror(-out.error), out.len);
+			out.error ? strerror(-out.error) : "OK", out.len);
 	res = fuse_chan_send(req->ch, iov, count);
 	free_req(req);
 
