@@ -139,7 +139,7 @@ Return:
     return result;
 }
 
-/* OSXFUSE notifications */
+/* MacFUSE notifications */
 
 enum osxfuse_notification {
     NOTIFICATION_OS_IS_TOO_NEW,
@@ -152,7 +152,7 @@ typedef enum osxfuse_notification osxfuse_notification_t;
 
 #define MACFUSE_NOTIFICATION_PREFIX "com.google.filesystems.libfuse"
 #define MACFUSE_NOTIFICATION_OBJECT \
-    MACFUSE_NOTIFICATION_PREFIX ".unotifications"
+        MACFUSE_NOTIFICATION_PREFIX ".unotifications"
 
 const char * const macfuse_notification_names[] = {
     MACFUSE_NOTIFICATION_PREFIX ".osistoonew",             // NOTIFICATION_OS_IS_TOO_NEW
@@ -524,7 +524,8 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
     if (fuse_running_under_rosetta()) {
-        fprintf(stderr, "OSXFUSE does not work under Rosetta\n");
+        fprintf(stderr, "%s does not work under Rosetta\n",
+                OSXFUSE_DISPLAY_NAME);
         return -1;
     }
 #endif
@@ -543,7 +544,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                     (CFURLRef)0,
                     (CFURLRef)0,
                     CFSTR("Operating System Too Old"),
-                    CFSTR("The installed OSXFUSE version is too new for the operating system. Please downgrade your OSXFUSE installation to one that is compatible with the currently running operating system."),
+                    CFSTR("The installed " OSXFUSE_DISPLAY_NAME " version is too new for the operating system. Please downgrade your " OSXFUSE_DISPLAY_NAME " installation to one that is compatible with the currently running operating system."),
                     CFSTR("OK")
                 );
             }
@@ -556,15 +557,15 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                     (CFURLRef)0,
                     (CFURLRef)0,
                     (CFURLRef)0,
-                    CFSTR("OSXFUSE Version Mismatch"),
-                    CFSTR("OSXFUSE has been updated but an incompatible or old version of the OSXFUSE kernel extension is already loaded. It failed to unload, possibly because a OSXFUSE volume is currently mounted.\n\nPlease eject all OSXFUSE volumes and try again, or simply restart the system for changes to take effect."),
+                    CFSTR(OSXFUSE_DISPLAY_NAME " Version Mismatch"),
+                    CFSTR(OSXFUSE_DISPLAY_NAME " has been updated but an incompatible or old version of the " OSXFUSE_DISPLAY_NAME " kernel extension is already loaded. It failed to unload, possibly because a " OSXFUSE_DISPLAY_NAME " volume is currently mounted.\n\nPlease eject all " OSXFUSE_DISPLAY_NAME " volumes and try again, or simply restart the system for changes to take effect."),
                     CFSTR("OK")
                 );
             }
             post_notification(NOTIFICATION_VERSION_MISMATCH,
                               NULL, 0);
         }
-        fprintf(stderr, "the OSXFUSE file system is not available (%d)\n",
+        fprintf(stderr, "the " OSXFUSE_DISPLAY_NAME " file system is not available (%d)\n",
                 result);
         return -1;
     } else {
@@ -575,7 +576,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
         size_t version_len = MAXHOSTNAMELEN;
         size_t version_len_desired = 0;
 
-        result = sysctlbyname(SYSCTL_OSXFUSE_VERSION_NUMBER, version,
+        result = sysctlbyname(OSXFUSE_SYSCTL_VERSION_NUMBER, version,
                               &version_len, NULL, (size_t)0);
         if (result == 0) {
             /* sysctlbyname() includes the trailing '\0' in version_len */
@@ -596,16 +597,16 @@ fuse_mount_core(const char *mountpoint, const char *opts)
                 (CFURLRef)0,
                 (CFURLRef)0,
                 (CFURLRef)0,
-                CFSTR("OSXFUSE Runtime Version Mismatch"),
-                CFSTR("The OSXFUSE library version this program is using is incompatible with the loaded OSXFUSE kernel extension."),
+                CFSTR(OSXFUSE_DISPLAY_NAME " Runtime Version Mismatch"),
+                CFSTR("The " OSXFUSE_DISPLAY_NAME " library version this program is using is incompatible with the loaded " OSXFUSE_DISPLAY_NAME " kernel extension."),
                 CFSTR("OK")
             );
         }
         post_notification(NOTIFICATION_RUNTIME_VERSION_MISMATCH,
                           NULL, 0);
         fprintf(stderr,
-                "this OSXFUSE library version is incompatible with "
-                "the OSXFUSE kernel extension\n");
+                "this " OSXFUSE_DISPLAY_NAME " library version is incompatible with "
+                "the " OSXFUSE_DISPLAY_NAME " kernel extension\n");
         return -1;
     }
 
