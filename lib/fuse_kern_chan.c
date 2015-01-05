@@ -8,12 +8,16 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2015 Benjamin Fleischer
  */
 
 #include "fuse_lowlevel.h"
 #include "fuse_kernel.h"
 #include "fuse_i.h"
+
+#ifdef __APPLE__
+#include "fuse_darwin_private.h"
+#endif
 
 #include <stdio.h>
 #include <errno.h>
@@ -80,10 +84,6 @@ static int fuse_kern_chan_send(struct fuse_chan *ch, const struct iovec iov[],
 	return 0;
 }
 
-#ifdef __APPLE__
-#include "fuse_darwin_private.h"
-#endif
-
 static void fuse_kern_chan_destroy(struct fuse_chan *ch)
 {
 	int fd = fuse_chan_fd(ch);
@@ -109,12 +109,7 @@ struct fuse_chan *fuse_kern_chan_new(int fd)
 		.send = fuse_kern_chan_send,
 		.destroy = fuse_kern_chan_destroy,
 	};
-	size_t bufsize = 0x1000;
-#if __APPLE__
-	bufsize += sysconf(_SC_PAGESIZE);
-#else
-	bufsize += getpagesize();
-#endif
+	size_t bufsize = sysconf(_SC_PAGESIZE) + 0x1000;
 	bufsize = bufsize < MIN_BUFSIZE ? MIN_BUFSIZE : bufsize;
 	return fuse_chan_new(&op, fd, bufsize, NULL);
 }
