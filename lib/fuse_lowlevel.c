@@ -1933,6 +1933,18 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 			f->conn.capable |= FUSE_CAP_DONT_MASK;
 		if (arg->flags & FUSE_FLOCK_LOCKS)
 			f->conn.capable |= FUSE_CAP_FLOCK_LOCKS;
+#ifdef __APPLE__
+		if (arg->flags & FUSE_ALLOCATE)
+			f->conn.capable |= FUSE_CAP_ALLOCATE;
+		if (arg->flags & FUSE_EXCHANGE_DATA)
+			f->conn.capable |= FUSE_CAP_EXCHANGE_DATA;
+		if (arg->flags & FUSE_CASE_INSENSITIVE)
+			f->conn.capable |= FUSE_CAP_CASE_INSENSITIVE;
+		if (arg->flags & FUSE_VOL_RENAME)
+			f->conn.capable |= FUSE_CAP_VOL_RENAME;
+		if (arg->flags & FUSE_XTIMES)
+			f->conn.capable |= FUSE_CAP_XTIMES;
+#endif /* __APPLE__ */
 	} else {
 		f->conn.async_read = 0;
 		f->conn.max_readahead = 0;
@@ -1963,6 +1975,16 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		f->conn.want |= FUSE_CAP_FLOCK_LOCKS;
 	if (f->big_writes)
 		f->conn.want |= FUSE_CAP_BIG_WRITES;
+#ifdef __APPLE__
+	if (f->op.fallocate)
+		f->conn.want |= FUSE_CAP_ALLOCATE;
+	if (f->op.exchange)
+		f->conn.want |= FUSE_CAP_EXCHANGE_DATA;
+	if (f->op.setvolname)
+		f->conn.want |= FUSE_CAP_VOL_RENAME;
+	if (f->op.getxtimes)
+		f->conn.want |= FUSE_CAP_XTIMES;
+#endif /* __APPLE__ */
 
 	if (bufsize < FUSE_MIN_READ_BUFFER) {
 		fprintf(stderr, "fuse: warning: buffer size too small: %zu\n",
@@ -1999,6 +2021,18 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		outarg.flags |= FUSE_DONT_MASK;
 	if (f->conn.want & FUSE_CAP_FLOCK_LOCKS)
 		outarg.flags |= FUSE_FLOCK_LOCKS;
+#ifdef __APPLE__
+	if (f->conn.want & FUSE_CAP_ALLOCATE)
+		outarg.flags |= FUSE_ALLOCATE;
+	if (f->conn.want & FUSE_CAP_EXCHANGE_DATA)
+		outarg.flags |= FUSE_EXCHANGE_DATA;
+	if ((f->conn.want & FUSE_CAP_CASE_INSENSITIVE) || f->conn.enable.case_insensitive)
+		outarg.flags |= FUSE_CASE_INSENSITIVE;
+	if ((f->conn.want & FUSE_CAP_VOL_RENAME) || f->conn.enable.setvolname)
+		outarg.flags |= FUSE_VOL_RENAME;
+	if ((f->conn.want & FUSE_CAP_XTIMES) || f->conn.enable.xtimes)
+		outarg.flags |= FUSE_XTIMES;
+#endif /* __APPLE__ */
 	outarg.max_readahead = f->conn.max_readahead;
 	outarg.max_write = f->conn.max_write;
 	if (f->conn.proto_minor >= 13) {
@@ -2014,15 +2048,6 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		outarg.max_background = f->conn.max_background;
 		outarg.congestion_threshold = f->conn.congestion_threshold;
 	}
-
-#ifdef __APPLE__
-	if (f->conn.enable.setvolname)
-		outarg.flags |= FUSE_VOL_RENAME;
-	if (f->conn.enable.xtimes)
-		outarg.flags |= FUSE_XTIMES;
-	if (f->conn.enable.case_insensitive)
-		outarg.flags |= FUSE_CASE_INSENSITIVE;
-#endif /* __APPLE__ */
 
 	if (f->debug) {
 		fprintf(stderr, "   INIT: %u.%u\n", outarg.major, outarg.minor);

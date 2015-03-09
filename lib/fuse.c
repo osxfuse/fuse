@@ -2728,6 +2728,16 @@ void fuse_fs_init(struct fuse_fs *fs, struct fuse_conn_info *conn)
 		conn->want &= ~FUSE_CAP_POSIX_LOCKS;
 	if (!fs->op.flock)
 		conn->want &= ~FUSE_CAP_FLOCK_LOCKS;
+#ifdef __APPLE__
+	if (!fs->op.fallocate)
+		conn->want &= ~FUSE_CAP_ALLOCATE;
+	if (!fs->op.exchange)
+		conn->want &= ~FUSE_CAP_EXCHANGE_DATA;
+	if (!fs->op.setvolname)
+		conn->want &= ~FUSE_CAP_VOL_RENAME;
+	if (!fs->op.getxtimes)
+		conn->want &= ~FUSE_CAP_XTIMES;
+#endif /* __APPLE__ */
 	if (fs->op.init)
 		fs->user_data = fs->op.init(conn);
 }

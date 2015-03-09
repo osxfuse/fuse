@@ -227,6 +227,8 @@ struct fuse_file_lock {
 #define FUSE_DONT_MASK		(1 << 6)
 #define FUSE_FLOCK_LOCKS	(1 << 10)
 #ifdef __APPLE__
+#  define FUSE_ALLOCATE		(1 << 27)
+#  define FUSE_EXCHANGE_DATA	(1 << 28)
 #  define FUSE_CASE_INSENSITIVE	(1 << 29)
 #  define FUSE_VOL_RENAME	(1 << 30)
 #  define FUSE_XTIMES		(1 << 31)

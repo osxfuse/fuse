@@ -157,6 +157,13 @@ struct fuse_file_info {
 #define FUSE_CAP_SPLICE_READ	(1 << 9)
 #define FUSE_CAP_FLOCK_LOCKS	(1 << 10)
 #define FUSE_CAP_IOCTL_DIR	(1 << 11)
+#ifdef __APPLE__
+#  define FUSE_CAP_ALLOCATE		(1 << 27)
+#  define FUSE_CAP_EXCHANGE_DATA		(1 << 28)
+#  define FUSE_CAP_CASE_INSENSITIVE	(1 << 29)
+#  define FUSE_CAP_VOL_RENAME		(1 << 30)
+#  define FUSE_CAP_XTIMES		(1 << 31)
+#endif
 
 /**
  * Ioctl flags
@@ -209,6 +216,9 @@ struct fuse_conn_info {
 	unsigned max_readahead;
 
 #ifdef __APPLE__
+	/*
+	 * Deprecated, use capability flags instead
+	 */
 	struct {
 		unsigned case_insensitive	:1;
 		unsigned setvolname		:1;
@@ -247,9 +257,12 @@ struct fuse_conn_info {
 };
 
 #ifdef __APPLE__
-#  define FUSE_ENABLE_SETVOLNAME(i)		(i)->enable.setvolname = 1
-#  define FUSE_ENABLE_XTIMES(i)			(i)->enable.xtimes = 1
-#  define FUSE_ENABLE_CASE_INSENSITIVE(i)	(i)->enable.case_insensitive = 1
+   /*
+    * Deprecated, use capability flags directly
+    */
+#  define FUSE_ENABLE_SETVOLNAME(i)		(i)->want |= FUSE_CAP_VOL_RENAME
+#  define FUSE_ENABLE_XTIMES(i)			(i)->want |= FUSE_CAP_XTIMES
+#  define FUSE_ENABLE_CASE_INSENSITIVE(i)	(i)->want |= FUSE_CAP_CASE_INSENSITIVE
 #endif
 
 struct fuse_session;
