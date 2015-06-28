@@ -2993,8 +2993,12 @@ static void fuse_lib_setattr_x(fuse_req_t req, fuse_ino_t ino,
 			err = fuse_fs_utimens(f->fs, path, tv);
 		}
 	done:
-		if (!err)
-			err = fuse_fs_getattr(f->fs,  path, &buf);
+		if (!err) {
+			if (fi)
+				err = fuse_fs_fgetattr(f->fs, path, &buf, fi);
+			else
+				err = fuse_fs_getattr(f->fs, path, &buf);
+		}
 		fuse_finish_interrupt(f, req, &d);
 		free_path(f, ino, path);
 	}
