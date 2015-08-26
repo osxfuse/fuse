@@ -1,4 +1,4 @@
-AC_INIT(fuse, 2.9.3)
+AC_INIT(fuse, 2.9.4)
 
 AC_PREREQ(2.59d)
 AC_CONFIG_MACRO_DIR([m4])
@@ -80,14 +80,17 @@ AC_SUBST(libfuse_libs)
 
 if test -z "$MOUNT_FUSE_PATH"; then
 	MOUNT_FUSE_PATH=/sbin
+	AC_MSG_NOTICE([MOUNT_FUSE_PATH env var not set, using default $MOUNT_FUSE_PATH])
 fi
 AC_SUBST(MOUNT_FUSE_PATH)
 if test -z "$UDEV_RULES_PATH"; then
 	UDEV_RULES_PATH=/etc/udev/rules.d
+	AC_MSG_NOTICE([UDEV_RULES_PATH env var not set, using default $UDEV_RULES_PATH])
 fi
 AC_SUBST(UDEV_RULES_PATH)
 if test -z "$INIT_D_PATH"; then
 	INIT_D_PATH=/etc/init.d
+	AC_MSG_NOTICE([INIT_D_PATH env var not set, using default $INIT_D_PATH])
 fi
 AC_SUBST(INIT_D_PATH)
 

@@ -52,7 +52,7 @@ libfuse_la_SOURCES = 		\
 	$(iconv_source)		\
 	$(mount_source)
 
-fuse_version_number=2:9:3
+fuse_version_number=2:9:4
 
 if DARWIN
 libosxfuse_la_SOURCES = $(libfuse_la_SOURCES)
