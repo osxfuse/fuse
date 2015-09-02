@@ -25,8 +25,6 @@ struct fuse_fs;
 
 int fuse_device_fd_np(const char *mountpoint);
 const char *fuse_mountpoint_for_fs_np(struct fuse_fs *fs);
-int fuse_knote_np(const char *mountpoint, const char *path, uint32_t note);
-int fuse_purge_np(const char *mountpoint, const char *path, off_t *newsize);
 
 #ifdef __cplusplus
 }

@@ -86,8 +86,9 @@ char *fuse_resource_path(const char *path);
 fuse_ino_t fuse_lookup_inode_internal_np(const char *mountpoint,
                                          const char *path);
 
-int fuse_resize_node_internal_np(const char *mountpoint, const char *path,
-                                 off_t newsize);
+int fuse_knote_np(const char *mountpoint, const char *path, uint32_t note);
+
+int fuse_purge_np(const char *mountpoint, const char *path, off_t *newsize);
 
 void fuse_exit_handler_internal_np(void);
 
