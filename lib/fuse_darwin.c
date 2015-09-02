@@ -1,10 +1,10 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
  * Copyright (c) 2012 Anatol Pomozov
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2015 Benjamin Fleischer
  */
 
-#include "fuse_lowlevel.h"
+#include "fuse_i.h"
 #include "fuse_darwin_private.h"
 
 #include <dlfcn.h>
@@ -420,15 +420,20 @@ fuse_device_fd_np(const char *mountpoint)
 	return fd;
 }
 
-/* XXX: <sys/ubc.h> */
-#define UBC_INVALIDATE 0x04
-
+/*
+ * Note: fuse_purge_np is deprecated and will be removed in a future release.
+ *
+ * Use fuse_lowlevel_notify_inval_inode instead.
+ */
 int
 fuse_purge_np(const char *mountpoint, const char *path, off_t *newsize)
 {
+	(void) newsize;
+	
 	struct fuse_avfi_ioctl avfi;
 	fuse_ino_t ino = 0;
-	int fd = -1;
+	struct fuse *f;
+	struct fuse_chan *ch = NULL;
 
 	if (!path) {
 		return EINVAL;
@@ -439,28 +444,25 @@ fuse_purge_np(const char *mountpoint, const char *path, off_t *newsize)
 		return ENOENT;
 	}
 
-	fd = fuse_device_fd_np(mountpoint);
-	if (fd < 0) {
+	f = fuse_get_internal_np(mountpoint);
+	if (f) {
+		struct fuse_session *se = fuse_get_session(f);
+		ch = fuse_session_next_chan(se, NULL);
+		fuse_put_internal_np(f);
+	}
+	if (!ch) {
 		return ENXIO;
 	}
 
-	avfi.inode = ino;
-	avfi.cmd = FUSE_AVFI_UBC | FUSE_AVFI_PURGEATTRCACHE;
-	avfi.ubc_flags = UBC_INVALIDATE;
-
-	if (newsize) {
-		avfi.cmd |= FUSE_AVFI_UBC_SETSIZE;
-		avfi.size = *newsize;
-	}
-
-	int ret = ioctl(fd, FUSEDEVIOCALTERVNODEFORINODE, (void *)&avfi);
-	if ((ret == 0) && newsize) {
-		ret = fuse_resize_node_internal_np(mountpoint, path, *newsize);;
-	}
-
-	return ret;
+	return fuse_lowlevel_notify_inval_inode(ch, ino, 0, 0);
 }
 
+/*
+ * Note: fuse_knote_np is deprecated and will be removed in a future release.
+ *
+ * In Mac OS X 10.5 the file system implementation is responsible for posting
+ * kqueue events. Starting with Mac OS X 10.6 the VFS layer takes over the job.
+ */
 int
 fuse_knote_np(const char *mountpoint, const char *path, uint32_t note)
 {
