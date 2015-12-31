@@ -52,7 +52,7 @@ libfuse_la_SOURCES = 		\
 	$(iconv_source)		\
 	$(mount_source)
 
-fuse_version_number=2:7:3
+fuse_version_number=2:7:4
 
 if DARWIN
 libfuse_la_CPPFLAGS = $(AM_CPPFLAGS) -D_DARWIN_NO_64_BIT_INODE
