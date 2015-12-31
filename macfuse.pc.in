@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: fuse
 Description: MacFUSE
 Version: @VERSION@
-Libs: -L${libdir} -lfuse_ino64 @libfuse_libs@
+Libs: -L${libdir} -lfuse_ino64
 Cflags: -I${includedir}/macfuse/fuse -D_FILE_OFFSET_BITS=64 -D_DARWIN_USE_64_BIT_INODE

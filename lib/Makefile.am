@@ -56,12 +56,12 @@ fuse_version_number=2:7:3
 
 if DARWIN
 libfuse_la_CPPFLAGS = $(AM_CPPFLAGS) -D_DARWIN_NO_64_BIT_INODE
-libfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number)
+libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number)
 libfuse_ino64_la_SOURCES = $(libfuse_la_SOURCES)
 libfuse_ino64_la_CPPFLAGS = $(AM_CPPFLAGS) -D_DARWIN_USE_64_BIT_INODE
-libfuse_ino64_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number)
+libfuse_ino64_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number)
 else
-libfuse_la_LDFLAGS = @libfuse_libs@ -version-number $(fuse_version_number) \
+libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number) \
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
 
 libulockmgr_la_SOURCES = ulockmgr.c
