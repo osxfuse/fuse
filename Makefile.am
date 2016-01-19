@@ -7,13 +7,12 @@ SUBDIRS = @subdirs2@
 else
 SUBDIRS = @subdirs2@ doc
 endif
+AUTOMAKE_OPTIONS = subdir-objects
 
 EXTRA_DIST =			\
 	fuse.pc.in		\
 	osxfuse.pc.in		\
-	README*			\
-	Filesystems		\
-	FAQ
+	README*
 
 pkgconfigdir = @pkgconfigdir@
 if DARWIN

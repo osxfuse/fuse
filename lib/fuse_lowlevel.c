@@ -769,11 +769,11 @@ static int fuse_send_data_iov(struct fuse_ll *f, struct fuse_chan *ch,
 				goto clear_pipe;
 			}
 			res = read_back(llp->pipe[0], tmpbuf, headerlen);
+			free(tmpbuf);
 			if (res != 0) {
 				free(mbuf);
 				goto clear_pipe;
 			}
-			free(tmpbuf);
 			res = read_back(llp->pipe[0], mbuf, now_len);
 			if (res != 0) {
 				free(mbuf);
@@ -2265,6 +2265,7 @@ int fuse_lowlevel_notify_store(struct fuse_chan *ch, fuse_ino_t ino,
 	outarg.nodeid = ino;
 	outarg.offset = offset;
 	outarg.size = size;
+	outarg.padding = 0;
 
 	iov[0].iov_base = &out;
 	iov[0].iov_len = sizeof(out);

@@ -1,45 +1,44 @@
-2015-05-22  Miklos Szeredi <miklos@szeredi.hu>
+FUSE 2.9.5 (2016-01-14)
+=======================
 
-	* Released 2.9.4
+* New maintainer: Nikolaus Rath <Nikolaus@rath.org>. Many thanks to
+  Miklos Szeredi <miklos@szeredi.hu> for bringing FUSE to where it is
+  now!
 
-2015-05-22  Miklos Szeredi <miklos@szeredi.hu>
+* fix warning in mount.c:receive_fd().  Reported by Albert Berger
 
-	* libfuse: fix exec environment for mount and umount.  Found by
-	Tavis Ormandy (CVE-2015-3202).
+* fix possible memory leak.  Reported by Jose R. Guzman
 
-2015-02-26  Miklos Szeredi <miklos@szeredi.hu>
+FUSE 2.9.4 (2015-05-22)
+=======================
 
-	* libfuse: fix fuse_remove_signal_handlers() to properly restore
-	the default signal handler.  Reported by: Chris Johnson
+* fix exec environment for mount and umount.  Found by Tavis Ormandy
+  (CVE-2015-3202).
 
-2014-07-21  Miklos Szeredi <miklos@szeredi.hu>
+* fix fuse_remove_signal_handlers() to properly restore the default
+  signal handler.  Reported by: Chris Johnson
 
-	* libfuse: highlevel API: fix directory file handle passed to
-	ioctl() method.  Reported by Eric Biggers
+* highlevel API: fix directory file handle passed to ioctl() method.
+  Reported by Eric Biggers
 
-2014-07-15  Miklos Szeredi <miklos@szeredi.hu>
+* libfuse: document deadlock avoidance for fuse_notify_inval_entry()
+  and fuse_notify_delete()
 
-	* libfuse: document deadlock avoidance for
-	fuse_notify_inval_entry() and fuse_notify_delete()
+* fusermount, libfuse: send value as unsigned in "user_id=" and
+  "group_id=" options.  Uids/gids larger than 2147483647 would result
+  in EINVAL when mounting the filesystem.  This also needs a fix in
+  the kernel.
 
-	* fusermount, libfuse: send value as unsigned in "user_id=" and
-	"group_id=" options.  Uids/gids larger than 2147483647 would
-	result in EINVAL when mounting the filesystem.  This also needs a
-	fix in the kernel.
+* Initilaize stat buffer passed to ->getattr() and ->fgetattr() to
+  zero in all cases.  Reported by Daniel Iwan
 
-2014-03-26  Miklos Szeredi <miklos@szeredi.hu>
+* libfuse: Add missing includes.  This allows compiling fuse with
+  musl.  Patch by Daniel Thau
 
-	* Initilaize stat buffer passed to ->getattr() and ->fgetattr() to
-	zero in all cases.  Reported by Daniel Iwan
 
-2013-08-26  Miklos Szeredi <miklos@szeredi.hu>
+Older Versions (before 2013-01-01)
+==================================
 
-	* libfuse: Add missing includes.  This allows compiling fuse with
-	musl.  Patch by Daniel Thau
-
-2013-07-01  Miklos Szeredi <miklos@szeredi.hu>
-
-	* Released 2.9.3
 
 2013-06-20  Miklos Szeredi <miklos@szeredi.hu>
 
