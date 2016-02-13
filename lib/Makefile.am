@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+fuse_version_number=2:9:5
+
 AUTOMAKE_OPTIONS = subdir-objects
 AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
  -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26
@@ -15,16 +17,19 @@ lib_LTLIBRARIES = libfuse.la libulockmgr.la
 endif
 
 if BSD
-mount_source = mount_bsd.c
+target_source = mount_bsd.c
 else
 if DARWIN
-mount_source =			\
-	mount_darwin.c		\
+target_source =			\
 	fuse_darwin.c		\
 	modules/threadid.c	\
-	modules/volicon.c
+	modules/volicon.c	\
+	mount_darwin.c
 else
-mount_source = mount.c mount_util.c mount_util.h
+target_source =			\
+	mount.c			\
+	mount_util.c		\
+	mount_util.h
 endif
 endif
 
@@ -50,10 +55,9 @@ libfuse_la_SOURCES = 		\
 	cuse_lowlevel.c		\
 	helper.c		\
 	modules/subdir.c	\
-	$(iconv_source)		\
-	$(mount_source)
+	$(target_source)	\
+	$(iconv_source)
 
-fuse_version_number=2:9:5
 
 if DARWIN
 libosxfuse_la_SOURCES = $(libfuse_la_SOURCES)

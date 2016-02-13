@@ -14,13 +14,13 @@ fuseinclude_HEADERS = \
 	fuse_common_compat.h    \
 	fuse_lowlevel.h		\
 	fuse_lowlevel_compat.h	\
-	fuse_opt.h		\
-	cuse_lowlevel.h
+	fuse_opt.h
 
 if DARWIN
 fuseinclude_HEADERS += fuse_darwin.h
 osxfuseinclude_HEADERS = old/fuse.h
 else
+fuseinclude_HEADERS += cuse_lowlevel.h
 include_HEADERS = old/fuse.h ulockmgr.h
 endif
 
