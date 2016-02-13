@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+fuse_version_number=2:7:4
+
 AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
  -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26
 
@@ -18,11 +20,7 @@ mount_source = mount_bsd.c
 endif
 
 if DARWIN
-mount_source =			\
-	mount_darwin.c		\
-	fuse_darwin.c		\
-	modules/threadid.c	\
-	modules/volicon.c
+mount_source = mount_darwin.c
 endif
 
 if LINUX
@@ -52,9 +50,11 @@ libfuse_la_SOURCES = 		\
 	$(iconv_source)		\
 	$(mount_source)
 
-fuse_version_number=2:7:4
-
 if DARWIN
+libfuse_la_SOURCES += 		\
+	fuse_darwin.c		\
+	modules/threadid.c	\
+	modules/volicon.c
 libfuse_la_CPPFLAGS = $(AM_CPPFLAGS) -D_DARWIN_NO_64_BIT_INODE
 libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number)
 libfuse_ino64_la_SOURCES = $(libfuse_la_SOURCES)
