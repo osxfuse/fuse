@@ -102,11 +102,6 @@ void fuse_set_fuse_internal_np(int fd, struct fuse *f);
 
 void fuse_unset_fuse_internal_np(struct fuse *f);
 
-#ifdef MACFUSE_MODE
-void osxfuse_enable_macfuse_mode(bool arg);
-bool osxfuse_is_macfuse_mode_enabled();
-#endif
-
 /*
  * The mount_hash maps char* mountpoint -> struct mount_info. It is protected
  * by the mount_lock mutex, which is held across a mount operation.

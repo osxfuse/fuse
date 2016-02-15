@@ -41,10 +41,6 @@
 
 #include "fuse_darwin_private.h"
 
-#ifdef MACFUSE_MODE
-#define OSXFUSE_MACFUSE_MODE_ENV "OSXFUSE_MACFUSE_MODE"
-#endif
-
 static int quiet_mode = 0;
 
 long
@@ -120,12 +116,6 @@ loadkmod(void)
 		goto Return;
 	}
 
-#ifdef MACFUSE_MODE
-	if (osxfuse_is_macfuse_mode_enabled()) {
-		setenv(OSXFUSE_MACFUSE_MODE_ENV, "1", 1);
-	}
-#endif
-
 	pid = fork();
 
 	if (pid == 0) {
@@ -179,21 +169,6 @@ const char * const osxfuse_notification_names[] = {
 
 const char * const osxfuse_notification_object = OSXFUSE_IDENTIFIER;
 
-#ifdef MACFUSE_MODE
-#define MACFUSE_NOTIFICATION_PREFIX "com.google.filesystems.libfuse"
-#define MACFUSE_NOTIFICATION_OBJECT \
-		MACFUSE_NOTIFICATION_PREFIX ".unotifications"
-
-const char * const macfuse_notification_names[] = {
-	MACFUSE_NOTIFICATION_PREFIX ".osistoonew",	       // NOTIFICATION_OS_IS_TOO_NEW
-	MACFUSE_NOTIFICATION_PREFIX ".osistooold",	       // NOTIFICATION_OS_IS_TOO_OLD
-	MACFUSE_NOTIFICATION_PREFIX ".runtimeversionmismatch", // NOTIFICATION_RUNTIME_VERSION_MISMATCH
-	MACFUSE_NOTIFICATION_PREFIX ".versionmismatch"	       // NOTIFICATION_VERSION_MISMATCH
-};
-
-const char * const macfuse_notification_object = MACFUSE_NOTIFICATION_OBJECT;
-#endif /* MACFUSE_MODE */
-
 static void
 post_notification(const osxfuse_notification_t  notification,
 		  const char		       *dict[][2],
@@ -206,32 +181,19 @@ post_notification(const osxfuse_notification_t  notification,
 	CFStringRef	       object	 = NULL;
 	CFMutableDictionaryRef user_info = NULL;
 
-#ifdef MACFUSE_MODE
-	if (osxfuse_is_macfuse_mode_enabled()) {
-		name   = CFStringCreateWithCString(kCFAllocatorDefault,
-						   macfuse_notification_names[notification],
-						   kCFStringEncodingUTF8);
-		object = CFStringCreateWithCString(kCFAllocatorDefault,
-						   macfuse_notification_object,
-						   kCFStringEncodingUTF8);
-	} else {
-#endif
-		name   = CFStringCreateWithCString(kCFAllocatorDefault,
-						   osxfuse_notification_names[notification],
-						   kCFStringEncodingUTF8);
-		object = CFStringCreateWithCString(kCFAllocatorDefault,
-						   osxfuse_notification_object,
-						   kCFStringEncodingUTF8);
-#ifdef MACFUSE_MODE
-	}
-#endif
+	name   = CFStringCreateWithCString(kCFAllocatorDefault,
+					   osxfuse_notification_names[notification],
+					   kCFStringEncodingUTF8);
+	object = CFStringCreateWithCString(kCFAllocatorDefault,
+					   osxfuse_notification_object,
+					   kCFStringEncodingUTF8);
 
 	if (!name || !object) goto out;
 	if (dict_count == 0)  goto post;
 
 	user_info = CFDictionaryCreateMutable(kCFAllocatorDefault, dict_count,
-						  &kCFCopyStringDictionaryKeyCallBacks,
-						  &kCFTypeDictionaryValueCallBacks);
+					      &kCFCopyStringDictionaryKeyCallBacks,
+					      &kCFTypeDictionaryValueCallBacks);
 
 	CFStringRef key;
 	CFStringRef value;
@@ -792,12 +754,6 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
 	/* to notify mount_osxfusefs it's called from lib */
 	setenv("MOUNT_FUSEFS_CALL_BY_LIB", "1", 1);
-
-#ifdef MACFUSE_MODE
-	if (osxfuse_is_macfuse_mode_enabled()) {
-		setenv(OSXFUSE_MACFUSE_MODE_ENV, "1", 1);
-	}
-#endif
 
 	if (args &&
 		fuse_opt_parse(args, &mo, fuse_mount_opts, fuse_mount_opt_proc) == -1) {

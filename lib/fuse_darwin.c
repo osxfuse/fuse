@@ -495,18 +495,6 @@ fuse_knote_np(const char *mountpoint, const char *path, uint32_t note)
 
 /********************/
 
-#ifdef MACFUSE_MODE
-static bool osxfuse_macfuse_mode = false;
-
-void osxfuse_enable_macfuse_mode(bool arg) {
-	osxfuse_macfuse_mode = arg;
-}
-
-bool osxfuse_is_macfuse_mode_enabled() {
-	return osxfuse_macfuse_mode;
-}
-#endif
-
 pthread_mutex_t mount_lock;
 hash_table     *mount_hash;
 int             mount_count;
