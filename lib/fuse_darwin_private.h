@@ -83,9 +83,6 @@ typedef fuse_sem_t sem_t;
 
 char *fuse_resource_path(const char *path);
 
-fuse_ino_t fuse_lookup_inode_internal_np(const char *mountpoint,
-                                         const char *path);
-
 void fuse_exit_handler_internal_np(void);
 
 int fuse_remove_signal_handlers_internal_np(void);

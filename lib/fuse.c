@@ -5376,61 +5376,6 @@ fuse_put_internal_np(struct fuse *fuse)
 	}
 }
 
-fuse_ino_t
-fuse_lookup_inode_internal_np(const char *mountpoint, const char *path)
-{
-	fuse_ino_t ino = 0; /* invalid */
-	fuse_ino_t parent_ino = FUSE_ROOT_ID;
-	char scratch[MAXPATHLEN];
-
-	if (!path) {
-		return ino;
-	}
-
-	if (*path != '/') {
-		return ino;
-	}
-
-	strncpy(scratch, path + 1, sizeof(scratch));
-	char* p = scratch;
-	char* q = p; /* First (and maybe last) path component */
-
-	struct node *node = NULL;
-
-	struct fuse *f = fuse_get_internal_np(mountpoint);
-	if (f == NULL) {
-		return ino;
-	}
-
-	while (p) {
-		p = strchr(p, '/');
-		if (p) {
-			*p = '\0'; /* Terminate string for use by q */
-			++p;	   /* One past the NULL (or former '/') */
-		}
-		if (*q == '.' && *(q+1) == '\0') {
-			fuse_put_internal_np(f);
-			goto out;
-		}
-		if (*q) { /* ignore consecutive '/'s */
-			node = lookup_node(f, parent_ino, q);
-			if (!node) {
-				fuse_put_internal_np(f);
-				goto out;
-			}
-			parent_ino = node->nodeid;
-		}
-		q = p;
-	}
-	if (node) {
-		ino = node->nodeid;
-	}
-	fuse_put_internal_np(f);
-
-out:
-	return ino;
-}
-
 #endif /* __APPLE__ */
 
 #if !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__APPLE__)
