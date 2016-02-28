@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-fuse_version_number=2:7:4
+fuse_version_number=2:7:5
 
 AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
  -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26
@@ -65,7 +65,7 @@ libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_numb
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
 
 libulockmgr_la_SOURCES = ulockmgr.c
-libulockmgr_la_LDFLAGS = -version-number 1:0:1
+libulockmgr_la_LDFLAGS = -pthread -version-number 1:0:1
 
 EXTRA_DIST = fuse_versionscript
 endif
