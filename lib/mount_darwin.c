@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2014 Benjamin Fleischer
+ * Copyright (c) 2011-2016 Benjamin Fleischer
  *
  * Derived from mount_bsd.c from the FUSE distribution.
  *
@@ -11,35 +11,32 @@
  *  See the file COPYING.LIB.
  */
 
-#include <sys/types.h>
-#include <CoreFoundation/CoreFoundation.h>
-
 #include "fuse_i.h"
 #include "fuse_opt.h"
+#include "fuse_darwin_private.h"
 
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <sys/sysctl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stddef.h>
-#include <fcntl.h>
+#include <AssertMacros.h>
 #include <errno.h>
-#include <string.h>
+#include <fcntl.h>
+#include <libproc.h>
 #include <paths.h>
 #include <stdbool.h>
-
-#include <libproc.h>
-#include <sys/utsname.h>
-
-#include <sys/param.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/mount.h>
-#include <AssertMacros.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <sys/utsname.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
-#include <AvailabilityMacros.h>
-
-#include "fuse_darwin_private.h"
+#include <CoreFoundation/CoreFoundation.h>
 
 #ifdef MACFUSE_MODE
 #define OSXFUSE_MACFUSE_MODE_ENV "OSXFUSE_MACFUSE_MODE"
@@ -106,14 +103,14 @@ loadkmod(void)
 	union wait status;
 	long major;
 	char *load_prog_path;
-    
+
 	major = fuse_os_version_major_np();
 
 	if (major < OSXFUSE_MIN_DARWIN_VERSION) {
 		/* This is not a supported version of Mac OS X */
 		return EINVAL;
 	}
-    
+
 	load_prog_path = fuse_resource_path(OSXFUSE_LOAD_PROG);
 	if (!load_prog_path) {
 		fprintf(stderr, "fuse: load program missing\n");
@@ -562,14 +559,60 @@ fuse_unmount_compat22(const char *mountpoint)
 	return;
 }
 
+/* return value:
+ * >= 0	 => fd
+ * -1	 => error
+ */
+static int receive_fd(int sock_fd)
+{
+	struct msghdr msg;
+	struct iovec iov;
+	char buf[1];
+	size_t rv;
+	char ccmsg[CMSG_SPACE(sizeof(int))];
+	struct cmsghdr *cmsg;
+	int fd;
+
+	iov.iov_base = buf;
+	iov.iov_len = 1;
+
+	memset(&msg, 0, sizeof(msg));
+	msg.msg_name = 0;
+	msg.msg_namelen = 0;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	msg.msg_control = ccmsg;
+	msg.msg_controllen = sizeof(ccmsg);
+
+	while (((rv = recvmsg(sock_fd, &msg, 0)) == -1) && errno == EINTR);
+	if (rv == -1) {
+		perror("recvmsg");
+		return -1;
+	}
+	if (!rv) {
+		/* EOF */
+		return -1;
+	}
+
+	cmsg = CMSG_FIRSTHDR(&msg);
+	if (cmsg->cmsg_type != SCM_RIGHTS) {
+		fprintf(stderr, "got control message of unknown type %d\n",
+			cmsg->cmsg_type);
+		return -1;
+	}
+
+	memcpy(&fd, CMSG_DATA(cmsg), sizeof(fd));
+	return fd;
+}
+
 static int
 fuse_mount_core(const char *mountpoint, const char *opts)
 {
 	int fd;
 	int result;
-	char *fdnam;
 	char *dev;
 	char *mount_prog_path;
+	int fds[2];
 	pid_t pid;
 	int status;
 
@@ -668,53 +711,6 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 		return -1;
 	}
 
-	fdnam = getenv("FUSE_DEV_FD");
-
-	if (fdnam) {
-
-		char *ep;
-
-		fd = strtol(fdnam, &ep, 10);
-
-		if (*ep != '\0') {
-			fprintf(stderr, "invalid value given in FUSE_DEV_FD\n");
-			return -1;
-		}
-
-		if (fd < 0)
-			return -1;
-
-		goto mount;
-	}
-
-	dev = getenv("FUSE_DEV_NAME");
-
-	if (dev) {
-		if ((fd = open(dev, O_RDWR)) < 0) {
-			perror("fuse: failed to open device");
-			return -1;
-		}
-	} else {
-		int r, devidx = -1;
-		char devpath[MAXPATHLEN];
-
-		for (r = 0; r < OSXFUSE_NDEVICES; r++) {
-			snprintf(devpath, MAXPATHLEN - 1,
-				 _PATH_DEV OSXFUSE_DEVICE_BASENAME "%d", r);
-			fd = open(devpath, O_RDWR);
-			if (fd >= 0) {
-				dev = devpath;
-				devidx = r;
-				break;
-			}
-		}
-		if (devidx == -1) {
-			perror("fuse: failed to open device");
-			return -1;
-		}
-	}
-
-mount:
 	if (getenv("FUSE_NO_MOUNT") || ! mountpoint) {
 		goto out;
 	}
@@ -722,32 +718,46 @@ mount:
 	mount_prog_path = fuse_resource_path(OSXFUSE_MOUNT_PROG);
 	if (!mount_prog_path) {
 		fprintf(stderr, "fuse: mount program missing\n");
-		goto mount_err_out;
+		return -1;
 	}
 
-	asprintf(&fdnam, "%d", fd);
-
-	{
-		char title[MAXPATHLEN + 1] = { 0 };
-		u_int32_t len = MAXPATHLEN;
-		int ret = proc_pidpath(getpid(), title, len);
-		if (ret) {
-			setenv("MOUNT_OSXFUSE_DAEMON_PATH", title, 1);
-		}
-	}
+        result = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
+        if (result == -1) {
+                fprintf(stderr, "fuse: socketpair() failed");
+                return -1;
+        }
 
 	pid = fork();
 
+        if (pid == -1) {
+            perror("fuse: fork failed");
+            close(fds[0]);
+            close(fds[1]);
+            return -1;
+        }
+
 	if (pid == 0) {
+		char daemon_path[PROC_PIDPATHINFO_MAXSIZE];
+		char commfd[10];
+
 		const char *argv[32];
 		int a = 0;
+
+		close(fds[1]);
+		fcntl(fds[0], F_SETFD, 0);
+
+		if (proc_pidpath(getpid(), daemon_path, PROC_PIDPATHINFO_MAXSIZE)) {
+			setenv("MOUNT_OSXFUSE_DAEMON_PATH", daemon_path, 1);
+		}
+
+		snprintf(commfd, sizeof(commfd), "%i", fds[0]);
+		setenv("_FUSE_COMMFD", commfd, 1);
 
 		argv[a++] = mount_prog_path;
 		if (opts) {
 			argv[a++] = "-o";
 			argv[a++] = opts;
 		}
-		argv[a++] = fdnam;
 		argv[a++] = mountpoint;
 		argv[a++] = NULL;
 
@@ -756,13 +766,10 @@ mount:
 		_exit(1);
 	}
 
-	free(mount_prog_path);
-	free(fdnam);
+        free(mount_prog_path);
 
-	if (pid == -1) {
-		perror("fuse: fork failed");
-		goto mount_err_out;
-	}
+        close(fds[0]);
+        fd = receive_fd(fds[1]);
 
 	if (waitpid(pid, &status, 0) == -1 || WEXITSTATUS(status) != 0) {
 		perror("fuse: failed to mount file system");
@@ -787,10 +794,10 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
 	memset(&mo, 0, sizeof(mo));
 
-	/* mount_osxfusefs should not try to spawn the daemon */
+	/* mount_osxfuse should not try to spawn the daemon */
 	setenv("MOUNT_FUSEFS_SAFE", "1", 1);
 
-	/* to notify mount_osxfusefs it's called from lib */
+	/* to notify mount_osxfuse it's called from lib */
 	setenv("MOUNT_FUSEFS_CALL_BY_LIB", "1", 1);
 
 #ifdef MACFUSE_MODE
