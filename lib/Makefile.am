@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-fuse_version_number=2:9:5
+fuse_version_number=2:9:6
 
 AUTOMAKE_OPTIONS = subdir-objects
 AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
