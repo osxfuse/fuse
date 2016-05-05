@@ -794,11 +794,8 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
 	memset(&mo, 0, sizeof(mo));
 
-	/* mount_osxfuse should not try to spawn the daemon */
-	setenv("MOUNT_FUSEFS_SAFE", "1", 1);
-
 	/* to notify mount_osxfuse it's called from lib */
-	setenv("MOUNT_FUSEFS_CALL_BY_LIB", "1", 1);
+	setenv("MOUNT_OSXFUSE_CALL_BY_LIB", "1", 1);
 
 #ifdef MACFUSE_MODE
 	if (osxfuse_is_macfuse_mode_enabled()) {
