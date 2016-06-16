@@ -103,7 +103,7 @@ loadkmod(void)
 	major = fuse_os_version_major_np();
 
 	if (major < OSXFUSE_MIN_DARWIN_VERSION) {
-		/* This is not a supported version of Mac OS X */
+		/* This is not a supported version of macOS */
 		return EINVAL;
 	}
 
@@ -314,7 +314,7 @@ static const struct fuse_opt fuse_mount_opts[] = {
 	FUSE_OPT_KEY("noprivate",	      KEY_KERN),
 	FUSE_OPT_KEY("noneglect_shares",      KEY_KERN),
 	FUSE_OPT_KEY("nopush_symlinks_in",    KEY_KERN),
-	/* Mac OS X options */
+	/* macOS options */
 	FUSE_OPT_KEY("allow_recursion",	      KEY_KERN),
 	FUSE_OPT_KEY("allow_root",	      KEY_KERN), /* need to pass this on */
 	FUSE_OPT_KEY("auto_xattr",	      KEY_KERN),
