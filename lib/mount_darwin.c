@@ -324,6 +324,7 @@ static const struct fuse_opt fuse_mount_opts[] = {
 	FUSE_OPT_KEY("default_permissions",   KEY_KERN),
 	FUSE_OPT_KEY("defer_permissions",     KEY_KERN),
 	FUSE_OPT_KEY("direct_io",	      KEY_DIO),
+	FUSE_OPT_KEY("excl_create",	      KEY_KERN),
 	FUSE_OPT_KEY("extended_security",     KEY_KERN),
 	FUSE_OPT_KEY("fsid=",		      KEY_KERN),
 	FUSE_OPT_KEY("fsname=",		      KEY_KERN),
