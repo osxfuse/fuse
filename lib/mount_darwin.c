@@ -722,20 +722,20 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 		return -1;
 	}
 
-        result = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
-        if (result == -1) {
-                fprintf(stderr, "fuse: socketpair() failed");
-                return -1;
-        }
+	result = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
+	if (result == -1) {
+		fprintf(stderr, "fuse: socketpair() failed");
+		return -1;
+	}
 
 	pid = fork();
 
-        if (pid == -1) {
-            perror("fuse: fork failed");
-            close(fds[0]);
-            close(fds[1]);
-            return -1;
-        }
+	if (pid == -1) {
+		perror("fuse: fork failed");
+		close(fds[0]);
+		close(fds[1]);
+		return -1;
+	}
 
 	if (pid == 0) {
 		char daemon_path[PROC_PIDPATHINFO_MAXSIZE];
@@ -767,10 +767,10 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 		_exit(1);
 	}
 
-        free(mount_prog_path);
+	free(mount_prog_path);
 
-        close(fds[0]);
-        fd = receive_fd(fds[1]);
+	close(fds[0]);
+	fd = receive_fd(fds[1]);
 
 	if (waitpid(pid, &status, 0) == -1 || WEXITSTATUS(status) != 0) {
 		perror("fuse: failed to mount file system");
