@@ -17,14 +17,6 @@ extern "C" {
 /* Versioning */
 
 const char *osxfuse_version(void);
-long fuse_os_version_major_np(void);
-
-/* Advanced */
-
-struct fuse_fs;
-
-int fuse_device_fd_np(const char *mountpoint);
-const char *fuse_mountpoint_for_fs_np(struct fuse_fs *fs);
 
 #ifdef __cplusplus
 }

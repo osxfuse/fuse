@@ -81,6 +81,8 @@ typedef fuse_sem_t sem_t;
 #  define LOCK_UN         0x08            /* unlock file */
 #endif /* !LOCK_SH */
 
+long fuse_os_version_major_np(void);
+
 char *fuse_resource_path(const char *path);
 
 fuse_ino_t fuse_lookup_inode_internal_np(const char *mountpoint,
@@ -89,6 +91,11 @@ fuse_ino_t fuse_lookup_inode_internal_np(const char *mountpoint,
 int fuse_knote_np(const char *mountpoint, const char *path, uint32_t note);
 
 int fuse_purge_np(const char *mountpoint, const char *path, off_t *newsize);
+
+int fuse_device_fd_np(const char *mountpoint);
+
+struct fuse_fs;
+const char *fuse_mountpoint_for_fs_np(struct fuse_fs *fs);
 
 void fuse_exit_handler_internal_np(void);
 
