@@ -40,57 +40,6 @@
 
 static int quiet_mode = 0;
 
-long
-fuse_os_version_major_np(void)
-{
-	int ret = 0;
-	long major = 0;
-	char *c = NULL;
-	struct utsname u;
-	size_t oldlen;
-
-	oldlen = sizeof(u.release);
-
-	ret = sysctlbyname("kern.osrelease", u.release, &oldlen, NULL, 0);
-	if (ret != 0) {
-		return -1;
-	}
-
-	c = strchr(u.release, '.');
-	if (c == NULL) {
-		return -1;
-	}
-
-	*c = '\0';
-
-	errno = 0;
-	major = strtol(u.release, NULL, 10);
-	if ((errno == EINVAL) || (errno == ERANGE)) {
-		return -1;
-	}
-
-	return major;
-}
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
-
-int
-fuse_running_under_rosetta(void)
-{
-	int result = 0;
-	int is_native = 1;
-	size_t sz = sizeof(result);
-
-	int ret = sysctlbyname("sysctl.proc_native", &result, &sz, NULL, (size_t)0);
-	if ((ret == 0) && !result) {
-		is_native = 0;
-	}
-
-	return !is_native;
-}
-
-#endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1070 */
-
 static int
 loadkmod(void)
 {
@@ -99,13 +48,6 @@ loadkmod(void)
 	union wait status;
 	long major;
 	char *load_prog_path;
-
-	major = fuse_os_version_major_np();
-
-	if (major < OSXFUSE_MIN_DARWIN_VERSION) {
-		/* This is not a supported version of macOS */
-		return EINVAL;
-	}
 
 	load_prog_path = fuse_resource_path(OSXFUSE_LOAD_PROG);
 	if (!load_prog_path) {
@@ -583,14 +525,6 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 		fprintf(stderr, "missing or invalid mount point\n");
 		return -1;
 	}
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
-	if (fuse_running_under_rosetta()) {
-		fprintf(stderr, "%s does not work under Rosetta\n",
-			OSXFUSE_DISPLAY_NAME);
-		return -1;
-	}
-#endif
 
 	signal(SIGCHLD, SIG_DFL); /* So that we can wait4() below. */
 

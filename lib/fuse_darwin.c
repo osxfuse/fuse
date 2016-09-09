@@ -406,20 +406,6 @@ fuse_unset_fuse_internal_np(struct fuse *f)
 	pthread_mutex_unlock(&mount_lock);
 }
 
-int
-fuse_device_fd_np(const char *mountpoint)
-{
-	int fd = -1;
-	pthread_mutex_lock(&mount_lock);
-	struct mount_info* mi =
-        hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
-	if (mi != NULL) {
-		fd = mi->fd;
-	}
-	pthread_mutex_unlock(&mount_lock);
-	return fd;
-}
-
 /********************/
 
 pthread_mutex_t mount_lock;

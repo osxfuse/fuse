@@ -5332,25 +5332,6 @@ find_mountpoint_helper(const char *mountpoint, struct mount_info *mi,
 	return 1;
 }
 
-const char *
-fuse_mountpoint_for_fs_np(struct fuse_fs *fs)
-{
-	if (!fs) {
-		return (const char *)0;
-	}
-
-	struct find_mountpoint_arg arg;
-
-	arg.fuse = fs->fuse;
-	arg.mountpoint = NULL;
-
-	pthread_mutex_lock(&mount_lock);
-	hash_traverse(mount_hash, (int(*)())find_mountpoint_helper, &arg);
-	pthread_mutex_unlock(&mount_lock);
-
-	return arg.mountpoint;
-}
-
 struct fuse *
 fuse_get_internal_np(const char *mountpoint)
 {
