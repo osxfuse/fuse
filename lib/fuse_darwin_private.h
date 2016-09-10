@@ -87,21 +87,12 @@ void fuse_exit_handler_internal_np(void);
 
 int fuse_remove_signal_handlers_internal_np(void);
 
-struct fuse *fuse_get_internal_np(const char *mountpoint);
-
-void fuse_put_internal_np(struct fuse *fuse);
-
-void fuse_set_fuse_internal_np(int fd, struct fuse *f);
-
-void fuse_unset_fuse_internal_np(struct fuse *f);
-
 /*
  * The mount_hash maps char* mountpoint -> struct mount_info. It is protected
  * by the mount_lock mutex, which is held across a mount operation.
  */
 struct mount_info {
 	int fd;            /* Valid when under mount_lock. */
-	struct fuse *fuse; /* Non-NULL only if user fs created a struct fuse. */
 };
 
 extern pthread_mutex_t  mount_lock;

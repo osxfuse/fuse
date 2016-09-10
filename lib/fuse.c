@@ -94,9 +94,6 @@ struct fuse_fs {
 	void *user_data;
 	int compat;
 	int debug;
-#ifdef __APPLE__
-	struct fuse *fuse;
-#endif
 };
 
 struct fusemod_so {
@@ -5013,9 +5010,6 @@ struct fuse_fs *fuse_fs_new(const struct fuse_operations *op, size_t op_size,
 	}
 
 	fs->user_data = user_data;
-#ifdef __APPLE__
-	fs->fuse = NULL;
-#endif
 	if (op)
 		memcpy(&fs->op, op, op_size);
 	return fs;
@@ -5198,11 +5192,6 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	inc_nlookup(root);
 	hash_id(f, root);
 
-#ifdef __APPLE__
-	f->fs->fuse = f;
-	fuse_set_fuse_internal_np(fuse_chan_fd(ch), f);
-#endif
-
 	return f;
 
 out_free_root:
@@ -5237,10 +5226,6 @@ struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
 void fuse_destroy(struct fuse *f)
 {
 	size_t i;
-
-#ifdef __APPLE__
-	fuse_unset_fuse_internal_np(f);
-#endif
 
 	if (f->conf.intr && f->intr_installed)
 		fuse_restore_intr_signal(f->conf.intr_signal);
@@ -5319,43 +5304,6 @@ struct find_mountpoint_arg {
 	struct fuse *fuse;
 	const char *mountpoint;
 };
-
-static int
-find_mountpoint_helper(const char *mountpoint, struct mount_info *mi,
-		       struct find_mountpoint_arg *arg)
-{
-	if (mi->fuse == arg->fuse) {
-		arg->mountpoint = mountpoint;
-		return 0;
-	}
-
-	return 1;
-}
-
-struct fuse *
-fuse_get_internal_np(const char *mountpoint)
-{
-	struct fuse *fuse = NULL;
-	if (mountpoint) {
-		pthread_mutex_lock(&mount_lock);
-		struct mount_info *mi =
-		hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
-		if (mi) {
-			fuse = mi->fuse;
-			pthread_mutex_lock(&fuse->lock);
-		}
-		pthread_mutex_unlock(&mount_lock);
-	}
-	return fuse;
-}
-
-void
-fuse_put_internal_np(struct fuse *fuse)
-{
-	if (fuse) {
-		pthread_mutex_unlock(&fuse->lock);
-	}
-}
 
 #endif /* __APPLE__ */
 

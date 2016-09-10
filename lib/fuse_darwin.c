@@ -365,47 +365,6 @@ fuse_remove_signal_handlers_internal_np(void)
 	return res;
 }
 
-static int
-set_fuse_helper(char *mountpoint, struct mount_info *mi, struct mount_info *arg)
-{
-	if (mi->fd == arg->fd) {
-		mi->fuse = arg->fuse;
-		return 0;
-	}
-	return 1;
-}
-
-static int
-unset_fuse_helper(char *mountpoint, struct mount_info *mi, struct fuse *f)
-{
-	if (mi->fuse == f) {
-		mi->fuse = NULL;
-		return 0;
-	}
-	return 1;
-}
-
-void
-fuse_set_fuse_internal_np(int fd, struct fuse *f)
-{
-	struct mount_info mi;
-
-	mi.fd = fd;
-	mi.fuse = f;
-
-	pthread_mutex_lock(&mount_lock);
-	hash_traverse(mount_hash, (int(*)())set_fuse_helper, &mi);
-	pthread_mutex_unlock(&mount_lock);
-}
-
-void
-fuse_unset_fuse_internal_np(struct fuse *f)
-{
-	pthread_mutex_lock(&mount_lock);
-	hash_traverse(mount_hash, (int(*)())unset_fuse_helper, f);
-	pthread_mutex_unlock(&mount_lock);
-}
-
 /********************/
 
 pthread_mutex_t mount_lock;
