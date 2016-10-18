@@ -11,9 +11,7 @@
 
 #define FUSE_USE_VERSION 26
 
-#undef _POSIX_C_SOURCE
 #include <sys/types.h>
-#define _POSIX_C_SOURCE 200112L
 #include <sys/attr.h>
 #include <sys/xattr.h>
 #include <sys/vnode.h>
@@ -386,7 +384,7 @@ static int
 volicon_getxattr(const char *path, const char *name, char *value, size_t size,
                  uint32_t position)
 {
-    ERROR_IF_MAGIC_FILE(path, EPERM);
+    ERROR_IF_MAGIC_FILE(path, ENOATTR);
 
     ssize_t res = 0;
 
@@ -426,7 +424,7 @@ volicon_getxattr(const char *path, const char *name, char *value, size_t size,
 static int
 volicon_listxattr(const char *path, char *list, size_t size)
 {
-    ERROR_IF_MAGIC_FILE(path, EPERM);
+    ERROR_IF_MAGIC_FILE(path, 0);
 
     ssize_t res = fuse_fs_listxattr(volicon_get()->next, path, list, size);
 
