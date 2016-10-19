@@ -51,10 +51,10 @@ static const char finder_info[32] = {
 };
 #define XATTR_FINDERINFO_SIZE 32
 
-#define ERROR_IF_MAGIC_FILE(path, e)     \
-if (volicon_is_a_magic_file(path)) { \
-return -e;                       \
-}
+#define ERROR_IF_MAGIC_FILE(path, e) \
+	if (volicon_is_a_magic_file(path)) { \
+		return -e; \
+	}
 
 struct volicon {
 	char *volicon;
@@ -410,7 +410,7 @@ static int
 volicon_getxattr(const char *path, const char *name, char *value, size_t size,
                  uint32_t position)
 {
-	ERROR_IF_MAGIC_FILE(path, EPERM);
+	ERROR_IF_MAGIC_FILE(path, ENOATTR);
 
 	ssize_t res = 0;
 
@@ -450,7 +450,7 @@ volicon_getxattr(const char *path, const char *name, char *value, size_t size,
 static int
 volicon_listxattr(const char *path, char *list, size_t size)
 {
-	ERROR_IF_MAGIC_FILE(path, EPERM);
+	ERROR_IF_MAGIC_FILE(path, 0);
 
 	ssize_t res = fuse_fs_listxattr(volicon_get()->next, path, list, size);
 
