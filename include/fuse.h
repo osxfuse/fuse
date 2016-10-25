@@ -471,7 +471,7 @@ struct fuse_operations {
 	 * as the first argument for the following operations:
 	 *
 	 * read, write, flush, release, fsync, readdir, releasedir,
-	 * fsyncdir, ftruncate, fgetattr, lock, ioctl and poll
+	 * fsyncdir, ftruncate, fgetattr, lock, ioctl, poll and fsetattr_x
 	 *
 	 * If this flag is set these operations continue to work on
 	 * unlinked files even if "-ohard_remove" option was specified.
@@ -483,7 +483,7 @@ struct fuse_operations {
 	 * the following operations:
 	 *
 	 * read, write, flush, release, fsync, readdir, releasedir,
-	 * fsyncdir, ftruncate, fgetattr, lock, ioctl and poll
+	 * fsyncdir, ftruncate, fgetattr, lock, ioctl, poll and fsetattr_x
 	 *
 	 * Closely related to flag_nullpath_ok, but if this flag is
 	 * set then the path will not be calculaged even if the file
