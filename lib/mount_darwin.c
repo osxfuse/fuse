@@ -490,36 +490,49 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 	}
 
 	if (pid == 0) {
-		char daemon_path[PROC_PIDPATHINFO_MAXSIZE];
-		char commfd[10];
+		pid_t cpid = fork();
 
-		const char *argv[32];
-		int a = 0;
-
-		close(fds[1]);
-		fcntl(fds[0], F_SETFD, 0);
-
-		if (proc_pidpath(getpid(), daemon_path, PROC_PIDPATHINFO_MAXSIZE)) {
-			setenv("MOUNT_OSXFUSE_DAEMON_PATH", daemon_path, 1);
+		if (cpid == -1) {
+			perror("fuse: fork failed");
+			close(fds[0]);
+			close(fds[1]);
+			_exit(1);
 		}
 
-		snprintf(commfd, sizeof(commfd), "%i", fds[0]);
-		setenv("_FUSE_COMMFD", commfd, 1);
+		if (cpid == 0) {
+			char daemon_path[PROC_PIDPATHINFO_MAXSIZE];
+			char commfd[10];
 
-		argv[a++] = mount_prog_path;
-		if (opts) {
-			argv[a++] = "-o";
-			argv[a++] = opts;
-		}
-		if (quiet_mode) {
-			argv[a++] = "-q";
-		}
-		argv[a++] = mountpoint;
-		argv[a++] = NULL;
+			const char *argv[32];
+			int a = 0;
 
-		execv(mount_prog_path, (char **)argv);
-		perror("fuse: failed to exec mount program");
-		_exit(1);
+			close(fds[1]);
+			fcntl(fds[0], F_SETFD, 0);
+
+			if (proc_pidpath(getpid(), daemon_path, PROC_PIDPATHINFO_MAXSIZE)) {
+				setenv("MOUNT_OSXFUSE_DAEMON_PATH", daemon_path, 1);
+			}
+
+			snprintf(commfd, sizeof(commfd), "%i", fds[0]);
+			setenv("_FUSE_COMMFD", commfd, 1);
+
+			argv[a++] = mount_prog_path;
+			if (opts) {
+				argv[a++] = "-o";
+				argv[a++] = opts;
+			}
+			if (quiet_mode) {
+				argv[a++] = "-q";
+			}
+			argv[a++] = mountpoint;
+			argv[a++] = NULL;
+
+			execv(mount_prog_path, (char **)argv);
+			perror("fuse: failed to exec mount program");
+			_exit(1);
+		}
+
+		_exit(0);
 	}
 
 	free(mount_prog_path);
