@@ -1602,20 +1602,34 @@ int fuse_fs_setattr_x(struct fuse_fs *fs, const char *path,
       		      struct setattr_x *attr)
 {
 	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.setattr_x)
+	if (fs->op.setattr_x) {
+		if (fs->debug)
+			fprintf(stderr, "setattr_x %s\n", path);
+
 		return fs->op.setattr_x(path, attr);
-	else
+	} else {
 		return -ENOSYS;
+	}
 }
 
 int fuse_fs_fsetattr_x(struct fuse_fs *fs, const char *path,
       		       struct setattr_x *attr, struct fuse_file_info *fi)
 {
 	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.fsetattr_x)
+	if (fs->op.fsetattr_x) {
+		if (fs->debug)
+			fprintf(stderr, "fsetattr_x[%llu] %s\n",
+				(unsigned long long) fi->fh, path);
+
 		return fs->op.fsetattr_x(path, attr, fi);
-	else
+	} else if (path && fs->op.setattr_x) {
+		if (fs->debug)
+			fprintf(stderr, "setattr_x %s\n", path);
+
+		return fs->op.setattr_x(path, attr);
+	} else {
 		return -ENOSYS;
+	}
 }
 
 #endif /* __APPLE__ */
@@ -1672,60 +1686,87 @@ int fuse_fs_rename(struct fuse_fs *fs, const char *oldpath,
 int fuse_fs_setvolname(struct fuse_fs *fs, const char *volname)
 {
 	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.setvolname)
+	if (fs->op.setvolname) {
+		if (fs->debug)
+			fprintf(stderr, "setvolname %s\n", volname);
+
 		return fs->op.setvolname(volname);
-	else
+	} else {
 		return -ENOSYS;
+	}
 }
 
 int fuse_fs_exchange(struct fuse_fs *fs, const char *path1,
 		     const char *path2, unsigned long options)
 {
 	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.exchange)
+	if (fs->op.exchange) {
+		if (fs->debug)
+			fprintf(stderr, "exchange %s %s\n", path1, path2);
+
 		return fs->op.exchange(path1, path2, options);
-	else
+	} else {
 		return -ENOSYS;
+	}
 }
 
 int fuse_fs_getxtimes(struct fuse_fs *fs, const char *path,
 		      struct timespec *bkuptime, struct timespec *crtime)
 {
 	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.getxtimes)
+	if (fs->op.getxtimes) {
+		if (fs->debug)
+			fprintf(stderr, "getxtimes %s\n", path);
+
 		return fs->op.getxtimes(path, bkuptime, crtime);
-	else
+	} else {
 		return -ENOSYS;
+	}
 }
 
 int fuse_fs_setbkuptime(struct fuse_fs *fs, const char *path,
 			const struct timespec *tv)
 {
 	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.setbkuptime)
+	if (fs->op.setbkuptime) {
+		if (fs->debug)
+			fprintf(stderr, "setbkuptime %s %li.%09lu\n", path,
+				tv->tv_sec, tv->tv_nsec);
+
 		return fs->op.setbkuptime(path, tv);
-	else
+	} else {
 		return -ENOSYS;
+	}
 }
 
 int fuse_fs_setchgtime(struct fuse_fs *fs, const char *path,
 		       const struct timespec *tv)
 {
 	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.setchgtime)
+	if (fs->op.setchgtime) {
+		if (fs->debug)
+			fprintf(stderr, "setchgtime %s %li.%09lu\n", path,
+				tv->tv_sec, tv->tv_nsec);
+
 		return fs->op.setchgtime(path, tv);
-	else
+	} else {
 		return -ENOSYS;
+	}
 }
 
 int fuse_fs_setcrtime(struct fuse_fs *fs, const char *path,
 		      const struct timespec *tv)
 {
 	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.setcrtime)
+	if (fs->op.setcrtime) {
+		if (fs->debug)
+			fprintf(stderr, "setcrtime %s %li.%09lu\n", path,
+				tv->tv_sec, tv->tv_nsec);
+
 		return fs->op.setcrtime(path, tv);
-	else
+	} else {
 		return -ENOSYS;
+	}
 }
 
 #endif /* __APPLE__ */
