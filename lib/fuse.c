@@ -76,6 +76,7 @@ struct fuse_config {
 	int hard_remove;
 	int use_ino;
 	int readdir_ino;
+	int internal_ino;
 	int set_mode;
 	int set_uid;
 	int set_gid;
@@ -850,7 +851,7 @@ static void inc_nlookup(struct node *node)
 }
 
 static struct node *find_node(struct fuse *f, fuse_ino_t parent,
-			      const char *name)
+			      const char *name, ino_t fs_inode)
 {
 	struct node *node;
 
@@ -864,7 +865,11 @@ static struct node *find_node(struct fuse *f, fuse_ino_t parent,
 		if (node == NULL)
 			goto out_err;
 
-		node->nodeid = next_id(f);
+		if (f->conf.internal_ino) {
+			node->nodeid = fs_inode;
+		} else {
+			node->nodeid = next_id(f);
+		}
 		node->generation = f->generation;
 		if (f->conf.remember)
 			inc_nlookup(node);
@@ -2649,7 +2654,7 @@ static int lookup_path(struct fuse *f, fuse_ino_t nodeid,
 	if (res == 0) {
 		struct node *node;
 
-		node = find_node(f, nodeid, name);
+		node = find_node(f, nodeid, name, e->attr.st_ino);
 		if (node == NULL)
 			res = -ENOMEM;
 		else {
@@ -4887,6 +4892,7 @@ static const struct fuse_opt fuse_lib_opts[] = {
 	FUSE_LIB_OPT("hard_remove",	      hard_remove, 1),
 	FUSE_LIB_OPT("use_ino",		      use_ino, 1),
 	FUSE_LIB_OPT("readdir_ino",	      readdir_ino, 1),
+	FUSE_LIB_OPT("internal_ino",          internal_ino, 1),
 	FUSE_LIB_OPT("direct_io",	      direct_io, 1),
 	FUSE_LIB_OPT("kernel_cache",	      kernel_cache, 1),
 	FUSE_LIB_OPT("auto_cache",	      auto_cache, 1),
@@ -4917,6 +4923,7 @@ static void fuse_lib_help(void)
 "    -o hard_remove         immediate removal (don't hide files)\n"
 "    -o use_ino             let filesystem set inode numbers\n"
 "    -o readdir_ino         try to fill in d_ino in readdir\n"
+"    -o internal_ino        use filesystem-set inode numbers internally\n"
 "    -o direct_io           use direct I/O\n"
 "    -o kernel_cache        cache files in kernel\n"
 "    -o [no]auto_cache      enable caching based on modification times (off)\n"
