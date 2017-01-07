@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2016 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #include "config.h"
@@ -29,6 +29,11 @@
 #include <limits.h>
 #include <errno.h>
 #include <sys/param.h>
+
+#ifdef __APPLE__
+#  include <CoreFoundation/CoreFoundation.h>
+#  include <DiskArbitration/DiskArbitration.h>
+#endif
 
 enum  {
 	KEY_HELP,
@@ -257,6 +262,11 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 	struct fuse_chan *ch;
 	int fd;
 
+#ifdef __APPLE__
+	CFURLRef mountpoint_url;
+	DADiskRef disk;
+#endif
+
 	/*
 	 * Make sure file descriptors 0, 1 and 2 are open, otherwise chaos
 	 * would ensue.
@@ -274,6 +284,17 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 	ch = fuse_kern_chan_new(fd);
 	if (!ch)
 		fuse_kern_unmount(mountpoint, fd);
+
+#ifdef __APPLE__
+	mountpoint_url = CFURLCreateFromFileSystemRepresentation(
+		NULL, (const UInt8 *)mountpoint, strlen(mountpoint), TRUE);
+
+	disk = DADiskCreateFromVolumePath(NULL, fuse_dasession, mountpoint_url);
+	fuse_chan_set_disk(ch, disk);
+	CFRelease(disk);
+
+	CFRelease(mountpoint_url);
+#endif
 
 	return ch;
 }

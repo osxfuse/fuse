@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2016 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #ifdef __APPLE__
@@ -24,15 +24,16 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
-    
+
+#include <DiskArbitration/DiskArbitration.h>
+
 #ifdef __cplusplus
 }
 #endif
 
 /* Semaphores */
 
-struct __local_sem_t
-{
+struct __local_sem_t {
 	unsigned int    count;
 	pthread_mutex_t count_lock;
 	pthread_cond_t  count_cond;
@@ -86,6 +87,8 @@ char *fuse_resource_path(const char *path);
 void fuse_exit_handler_internal_np(void);
 
 int fuse_remove_signal_handlers_internal_np(void);
+
+extern DASessionRef fuse_dasession;
 
 /*
  * The mount_hash maps char* mountpoint -> struct mount_info. It is protected

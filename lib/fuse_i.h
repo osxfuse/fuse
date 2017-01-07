@@ -6,8 +6,16 @@
   See the file COPYING.LIB
 */
 
+/*
+ * Copyright (c) 2017 Benjamin Fleischer
+ */
+
 #include "fuse.h"
 #include "fuse_lowlevel.h"
+
+#ifdef __APPLE__
+#  include <DiskArbitration/DiskArbitration.h>
+#endif
 
 struct fuse_chan;
 struct fuse_ll;
@@ -106,6 +114,12 @@ struct fuse_session *fuse_lowlevel_new_common(struct fuse_args *args,
 					size_t op_size, void *userdata);
 
 void fuse_kern_unmount_compat22(const char *mountpoint);
+
+#ifdef __APPLE__
+DADiskRef fuse_chan_disk(struct fuse_chan *ch);
+void fuse_chan_set_disk(struct fuse_chan *ch, DADiskRef disk);
+#endif
+
 int fuse_chan_clearfd(struct fuse_chan *ch);
 
 void fuse_kern_unmount(const char *mountpoint, int fd);

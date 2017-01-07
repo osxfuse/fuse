@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
  * Copyright (c) 2012 Anatol Pomozov
- * Copyright (c) 2011-2016 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #include "fuse_i.h"
@@ -19,6 +19,8 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include <CoreFoundation/CoreFoundation.h>
 
 /*
  * Semaphore implementation based on:
@@ -367,6 +369,8 @@ fuse_remove_signal_handlers_internal_np(void)
 
 /********************/
 
+DASessionRef fuse_dasession;
+
 pthread_mutex_t mount_lock;
 hash_table     *mount_hash;
 int             mount_count;
@@ -378,6 +382,8 @@ static void fuse_lib_destructor(void)  __attribute__((destructor));
 static void
 fuse_lib_constructor(void)
 {
+	fuse_dasession = DASessionCreate(NULL);
+
 	pthread_mutex_init(&mount_lock, NULL);
 	mount_hash = hash_create(OSXFUSE_NDEVICES);
 	mount_count = 0;
@@ -398,4 +404,7 @@ fuse_lib_destructor(void)
 	free(mount_hash);
 	mount_hash = NULL;
 	mount_count = 0;
+
+	CFRelease(fuse_dasession);
+	fuse_dasession = NULL;
 }

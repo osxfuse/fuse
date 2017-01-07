@@ -76,6 +76,9 @@ AC_ARG_WITH([libiconv-prefix],
 AM_ICONV
 libfuse_libs="$libfuse_libs $LTLIBICONV"
 AM_CONDITIONAL(ICONV, test "$am_cv_func_iconv" = yes)
+if test "$arch" = darwin; then
+    libfuse_libs="$libfuse_libs -framework CoreFoundation -framework DiskArbitration"
+fi
 AC_SUBST(libfuse_libs)
 
 if test -z "$MOUNT_FUSE_PATH"; then
