@@ -2621,7 +2621,7 @@ static void curr_time(struct timespec *now)
 		perror("fuse: clock_gettime");
 		abort();
 	}
-#endif /* !(_POSIX_TIMERS > 0) */
+#endif /* _POSIX_TIMERS > 0 */
 }
 
 static void update_stat(struct node *node, const struct stat *stbuf)
@@ -5338,15 +5338,6 @@ void fuse_register_module(struct fuse_module *mod)
 	mod->next = fuse_modules;
 	fuse_modules = mod;
 }
-
-#ifdef __APPLE__
-
-struct find_mountpoint_arg {
-	struct fuse *fuse;
-	const char *mountpoint;
-};
-
-#endif /* __APPLE__ */
 
 #if !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__APPLE__)
 

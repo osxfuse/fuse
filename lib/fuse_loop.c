@@ -42,5 +42,6 @@ int fuse_session_loop(struct fuse_session *se)
 
 	free(buf);
 	fuse_session_reset(se);
+
 	return res < 0 ? -1 : 0;
 }

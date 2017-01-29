@@ -263,7 +263,6 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 	int fd;
 
 #ifdef __APPLE__
-	CFURLRef mountpoint_url;
 	DADiskRef disk;
 #endif
 
@@ -281,21 +280,28 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 	if (fd == -1)
 		return NULL;
 
+#ifdef __APPLE__
+	{
+		CFURLRef url = CFURLCreateFromFileSystemRepresentation(
+			NULL, (const UInt8 *)mountpoint, strlen(mountpoint),
+			TRUE);
+		disk = DADiskCreateFromVolumePath(NULL, fuse_dasession, url);
+		CFRelease(url);
+	}
+#endif
+	
 	ch = fuse_kern_chan_new(fd);
 	if (!ch)
+#ifndef __APPLE__
 		fuse_kern_unmount(mountpoint, fd);
-
-#ifdef __APPLE__
-	mountpoint_url = CFURLCreateFromFileSystemRepresentation(
-		NULL, (const UInt8 *)mountpoint, strlen(mountpoint), TRUE);
-
-	disk = DADiskCreateFromVolumePath(NULL, fuse_dasession, mountpoint_url);
-	fuse_chan_set_disk(ch, disk);
+#else
+		fuse_kern_unmount(disk, fd);
+	else
+		fuse_chan_set_disk(ch, disk);
+	
 	CFRelease(disk);
-
-	CFRelease(mountpoint_url);
 #endif
-
+	
 	return ch;
 }
 
@@ -305,13 +311,37 @@ struct fuse_chan *fuse_mount(const char *mountpoint, struct fuse_args *args)
 }
 
 static void fuse_unmount_common(const char *mountpoint, struct fuse_chan *ch)
-{
+{	
+#ifdef __APPLE__
+	int fd = ch ? fuse_chan_fd(ch) : -1;
+	DADiskRef disk = NULL;
+
+	if (mountpoint) {
+		CFURLRef url = CFURLCreateFromFileSystemRepresentation(
+			NULL, (const UInt8 *)mountpoint, strlen(mountpoint),
+			TRUE);
+		disk = DADiskCreateFromVolumePath(NULL, fuse_dasession, url);
+		CFRelease(url);
+	} else if (ch) {
+		disk = fuse_chan_disk(ch);
+		if (disk)
+			CFRetain(disk);
+	}
+
+	fuse_kern_unmount(disk, fd);
+
+	if (disk)
+		CFRelease(disk);
+	else if (ch)
+		fuse_chan_destroy(ch);
+#else /* __APPLE__ */
 	if (mountpoint) {
 		int fd = ch ? fuse_chan_clearfd(ch) : -1;
 		fuse_kern_unmount(mountpoint, fd);
 		if (ch)
 			fuse_chan_destroy(ch);
 	}
+#endif /* __APPLE__ */
 }
 
 void fuse_unmount(const char *mountpoint, struct fuse_chan *ch)
@@ -391,7 +421,11 @@ static void fuse_teardown_common(struct fuse *fuse, char *mountpoint)
 	struct fuse_session *se = fuse_get_session(fuse);
 	struct fuse_chan *ch = fuse_session_next_chan(se, NULL);
 	fuse_remove_signal_handlers(se);
+#if __APPLE__
+	fuse_unmount_common(NULL, ch);
+#else
 	fuse_unmount_common(mountpoint, ch);
+#endif
 	fuse_destroy(fuse);
 	free(mountpoint);
 }

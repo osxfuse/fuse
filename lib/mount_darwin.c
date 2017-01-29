@@ -35,6 +35,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <DiskArbitration/DiskArbitration.h>
+
 static int quiet_mode = 0;
 
 enum {
@@ -273,28 +275,25 @@ mount_hash_purge_helper(char *key, void *data)
 }
 
 void
-fuse_kern_unmount(const char *mountpoint, int fd)
+fuse_kern_unmount(DADiskRef disk, int fd)
 {
 	int ret;
 	struct stat sbuf;
 	char dev[128];
-	char resolved_path[PATH_MAX];
 	char *ep, *rp = NULL, *umount_cmd;
 
 	unsigned int hs_complete = 0;
 
-	pthread_mutex_lock(&mount_lock);
-	if ((mount_count > 0) && mountpoint) {
-		struct mount_info* mi =
-		hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
-		if (mi) {
-			hash_destroy(mount_hash, (char *)mountpoint,
-				     mount_hash_purge_helper);
-			--mount_count;
-		}
+	if (!disk) {
+		/*
+		 * Filesystem has already been unmounted, all we need to do is
+		 * make sure fd is closed.
+		 */
+		if (fd != -1)
+			close(fd);
+		return;
 	}
-	pthread_mutex_unlock(&mount_lock);
-
+	
 	ret = ioctl(fd, FUSEDEVIOCGETHANDSHAKECOMPLETE, &hs_complete);
 	if (ret || !hs_complete) {
 		return;
@@ -316,13 +315,7 @@ fuse_kern_unmount(const char *mountpoint, int fd)
 		return;
 	}
 
-	rp = realpath(mountpoint, resolved_path);
-	if (rp) {
-		ret = unmount(resolved_path, 0);
-	}
-	close(fd);
-
-	return;
+	DADiskUnmount(disk, kDADiskUnmountOptionDefault, NULL, NULL);
 }
 
 void

@@ -8,13 +8,10 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #include "fuse_lowlevel.h"
-#ifdef __APPLE__
-#  include "fuse_darwin_private.h"
-#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -25,12 +22,17 @@ static struct fuse_session *fuse_instance;
 static void exit_handler(int sig)
 {
 	(void) sig;
+
+	if (fuse_instance) {
 #ifdef __APPLE__
-	fuse_exit_handler_internal_np();
+		struct fuse_chan *ch = fuse_session_next_chan(fuse_instance,
+							      NULL);
+		if (ch)
+			fuse_unmount(NULL, ch);
 #else
-	if (fuse_instance)
 		fuse_session_exit(fuse_instance);
 #endif
+    }
 }
 
 static int set_one_signal_handler(int sig, void (*handler)(int), int remove)
@@ -70,17 +72,11 @@ int fuse_set_signal_handlers(struct fuse_session *se)
 
 void fuse_remove_signal_handlers(struct fuse_session *se)
 {
-#ifdef __APPLE__
-	if (fuse_remove_signal_handlers_internal_np() != 0) {
-		return;
-	}
-#else
 	if (fuse_instance != se)
 		fprintf(stderr,
 			"fuse: fuse_remove_signal_handlers: unknown session\n");
 	else
 		fuse_instance = NULL;
-#endif
 
 	set_one_signal_handler(SIGHUP, exit_handler, 1);
 	set_one_signal_handler(SIGINT, exit_handler, 1);

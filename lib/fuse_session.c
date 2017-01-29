@@ -34,11 +34,11 @@ struct fuse_chan {
 
 	struct fuse_session *se;
 
+	int fd;
+
 #ifdef __APPLE__
 	DADiskRef disk;
 #endif
-
-	int fd;
 
 	size_t bufsize;
 
@@ -207,6 +207,11 @@ void fuse_chan_set_disk(struct fuse_chan *ch, DADiskRef disk)
 	if (disk)
 		CFRetain(disk);
 	ch->disk = disk;
+}
+
+void fuse_chan_cleardisk(struct fuse_chan *ch)
+{
+	fuse_chan_set_disk(ch, NULL);
 }
 
 #endif /* __APPLE__ */

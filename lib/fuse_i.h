@@ -115,14 +115,15 @@ struct fuse_session *fuse_lowlevel_new_common(struct fuse_args *args,
 
 void fuse_kern_unmount_compat22(const char *mountpoint);
 
-#ifdef __APPLE__
-DADiskRef fuse_chan_disk(struct fuse_chan *ch);
-void fuse_chan_set_disk(struct fuse_chan *ch, DADiskRef disk);
-#endif
-
 int fuse_chan_clearfd(struct fuse_chan *ch);
 
+#ifdef __APPLE__
+void fuse_chan_set_disk(struct fuse_chan *ch, DADiskRef disk);
+void fuse_kern_unmount(DADiskRef disk, int fd);
+#else
 void fuse_kern_unmount(const char *mountpoint, int fd);
+#endif
+
 int fuse_kern_mount(const char *mountpoint, struct fuse_args *args);
 
 int fuse_send_reply_iov_nofree(fuse_req_t req, int error, struct iovec *iov,

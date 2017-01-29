@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #define _GNU_SOURCE
@@ -2075,6 +2075,10 @@ static void do_destroy(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	f->got_destroy = 1;
 	if (f->op.destroy)
 		f->op.destroy(f->userdata);
+
+#ifdef __APPLE__
+	fuse_chan_cleardisk(req->ch);
+#endif
 
 	send_reply_ok(req, NULL, 0);
 }

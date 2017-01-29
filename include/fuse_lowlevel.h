@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #ifndef _FUSE_LOWLEVEL_H_
@@ -36,6 +36,10 @@
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 #include <sys/uio.h>
+
+#ifdef __APPLE__
+  #include <DiskArbitration/DiskArbitration.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -1815,6 +1819,25 @@ struct fuse_chan *fuse_chan_new(struct fuse_chan_ops *op, int fd,
  * @return the file descriptor passed to fuse_chan_new()
  */
 int fuse_chan_fd(struct fuse_chan *ch);
+
+#ifdef __APPLE__
+
+/**
+ * Query the disk of the channel
+ *
+ * @param ch the channel
+ * @return the disk set by fuse_mount()
+ */
+DADiskRef fuse_chan_disk(struct fuse_chan *ch);
+
+/**
+ * Clear the disk of the channel after the filesystem has been unmounted
+ *
+ * @param ch the channel
+ */
+void fuse_chan_cleardisk(struct fuse_chan *ch);
+
+#endif /* __APPLE__ */
 
 /**
  * Query the minimal receive buffer size
