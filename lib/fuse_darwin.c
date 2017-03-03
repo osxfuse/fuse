@@ -329,52 +329,9 @@ fuse_resource_path(const char *path)
     return resource_path;
 }
 
-static int
-schedule_umount(char* mountpoint, struct mount_info* mi, void* arg)
-{
-	int fd;
-	pid_t pid;
-
-	fd = mi->fd;
-	pid = fork();
-	if (pid == 0) { /* child */
-		fcntl(fd, F_SETFD, 1); /* close-on-exec */
-		execl("/sbin/umount", "/sbin/umount", mountpoint, NULL);
-	} else {
-		/* We do nothing in the parent. */
-	}
-	return 1;  /* Keep processing mountpoints. */
-}
-
-void
-fuse_exit_handler_internal_np(void)
-{
-	pthread_mutex_lock(&mount_lock);
-	hash_traverse(mount_hash, (int(*)())schedule_umount, NULL);
-	pthread_mutex_unlock(&mount_lock);
-}
-
-int
-fuse_remove_signal_handlers_internal_np(void)
-{
-	int res = 0;
-	pthread_mutex_lock(&mount_lock);
-	if (mount_count > 1) {
-		/* Leave signal handlers up if we have > 1 mouned fs. */
-		res = -1;
-	}
-	pthread_mutex_unlock(&mount_lock);
-	return res;
-}
-
 /********************/
 
 DASessionRef fuse_dasession;
-
-pthread_mutex_t mount_lock;
-hash_table     *mount_hash;
-int             mount_count;
-int             did_daemonize;
 
 static void fuse_lib_constructor(void) __attribute__((constructor));
 static void fuse_lib_destructor(void)  __attribute__((destructor));
@@ -383,28 +340,11 @@ static void
 fuse_lib_constructor(void)
 {
 	fuse_dasession = DASessionCreate(NULL);
-
-	pthread_mutex_init(&mount_lock, NULL);
-	mount_hash = hash_create(OSXFUSE_NDEVICES);
-	mount_count = 0;
-	did_daemonize = 0;
-}
-
-static void
-mount_hash_purge_helper(char *key, void *value)
-{
-	free(key);
-	free(value);
 }
 
 static void
 fuse_lib_destructor(void)
 {
-	hash_purge(mount_hash, mount_hash_purge_helper);
-	free(mount_hash);
-	mount_hash = NULL;
-	mount_count = 0;
-
 	CFRelease(fuse_dasession);
 	fuse_dasession = NULL;
 }

@@ -267,13 +267,6 @@ fuse_mount_opt_proc(void *data, const char *arg, int key,
 	return 1;
 }
 
-static void
-mount_hash_purge_helper(char *key, void *data)
-{
-	free(key);
-	free(data);
-}
-
 void
 fuse_kern_unmount(DADiskRef disk, int fd)
 {
@@ -581,33 +574,7 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 		}
 	}
 
-	pthread_mutex_lock(&mount_lock);
-	if (hash_search(mount_hash, (char *)mountpoint, NULL, NULL) != NULL) {
-		fprintf(stderr, "fuse: attempt to remount on active mount point: %s",
-			mountpoint);
-		goto out_unlock;
-	}
-	if (did_daemonize && mount_count > 0) {
-		fprintf(stderr, "fuse: attempt to multi-mount after daemonized: %s",
-			mountpoint);
-		goto out_unlock;
-	}
-	struct mount_info *mi = calloc(1, sizeof(struct mount_info));
-	if (!mi) {
-		goto out_unlock;
-	}
-
 	res = fuse_mount_core(mountpoint, mo.kernel_opts);
-	if (res < 0) {
-		free(mi);
-	} else {
-		mi->fd = res;
-		hash_search(mount_hash, (char *)mountpoint, mi, NULL);
-		++mount_count;
-	}
-
-out_unlock:
-	pthread_mutex_unlock(&mount_lock);
 
 out:
 	free(mo.kernel_opts);

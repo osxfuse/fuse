@@ -248,10 +248,6 @@ int fuse_daemonize(int foreground)
 		write(waiter[1], &completed, sizeof(completed));
 		close(waiter[0]);
 		close(waiter[1]);
-
-#ifdef __APPLE__
-		did_daemonize = 1;
-#endif
 	}
 	return 0;
 }

@@ -84,24 +84,7 @@ typedef fuse_sem_t sem_t;
 
 char *fuse_resource_path(const char *path);
 
-void fuse_exit_handler_internal_np(void);
-
-int fuse_remove_signal_handlers_internal_np(void);
-
 extern DASessionRef fuse_dasession;
-
-/*
- * The mount_hash maps char* mountpoint -> struct mount_info. It is protected
- * by the mount_lock mutex, which is held across a mount operation.
- */
-struct mount_info {
-	int fd;            /* Valid when under mount_lock. */
-};
-
-extern pthread_mutex_t  mount_lock;
-extern hash_table      *mount_hash;
-extern int              mount_count; /* also the # of entries in mount_hash */
-extern int              did_daemonize;
 
 #endif /* _FUSE_DARWIN_PRIVATE_H_ */
 
