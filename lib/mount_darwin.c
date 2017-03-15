@@ -15,6 +15,7 @@
 #include "fuse_opt.h"
 #include "fuse_darwin_private.h"
 
+#include <AvailabilityMacros.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libproc.h>
@@ -392,6 +393,27 @@ fuse_unmount_compat22(const char *mountpoint)
 	return;
 }
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED <= 1050
+
+#define FUSE_ALIGNBYTES32 (sizeof(__uint32_t) - 1)
+#define FUSE_ALIGN32(p) \
+	((__darwin_size_t)((char *)(__darwin_size_t)(p) + FUSE_ALIGNBYTES32) \
+	 & ~FUSE_ALIGNBYTES32)
+
+#define FUSE_CMSG_DATA(cmsg) \
+	((unsigned char *)(cmsg) + FUSE_ALIGN32(sizeof(struct cmsghdr)))
+#define FUSE_CMSG_SPACE(l) \
+	(FUSE_ALIGN32(sizeof(struct cmsghdr)) + FUSE_ALIGN32(l))
+#define FUSE_CMSG_LEN(l) (FUSE_ALIGN32(sizeof(struct cmsghdr)) + (l))
+
+#else /* MAC_OS_X_VERSION_MAX_ALLOWED <= 1050 */
+
+#define FUSE_CMSG_DATA(cmsg) CMSG_DATA(cmsg)
+#define FUSE_CMSG_SPACE(l) CMSG_SPACE(l)
+#define FUSE_CMSG_LEN(l) CMSG_LEN(l)
+
+#endif /* MAC_OS_X_VERSION_MAX_ALLOWED <= 1050 */
+
 /* return value:
  * >= 0	 => fd
  * -1	 => error
@@ -402,7 +424,7 @@ static int receive_fd(int sock_fd)
 	struct iovec iov;
 	char buf[1];
 	size_t rv;
-	char ccmsg[CMSG_SPACE(sizeof(int))];
+	char ccmsg[FUSE_CMSG_SPACE(sizeof(int))];
 	struct cmsghdr *cmsg;
 	int fd;
 
@@ -434,7 +456,7 @@ static int receive_fd(int sock_fd)
 		return -1;
 	}
 
-	memcpy(&fd, CMSG_DATA(cmsg), sizeof(fd));
+	memcpy(&fd, FUSE_CMSG_DATA(cmsg), sizeof(fd));
 	return fd;
 }
 
