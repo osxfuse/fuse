@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2016 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  *
  * Derived from mount_bsd.c from the FUSE distribution.
  *
