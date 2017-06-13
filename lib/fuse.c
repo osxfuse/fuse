@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #include "config.h"
@@ -3128,13 +3128,17 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 
 			if (valid & FUSE_SET_ATTR_ATIME_NOW)
 				tv[0].tv_nsec = UTIME_NOW;
-			else if (valid & FUSE_SET_ATTR_ATIME)
-				tv[0] = attr->st_atim;
+			else if (valid & FUSE_SET_ATTR_ATIME) {
+				tv[0].tv_sec = attr->st_atime;
+				tv[0].tv_nsec = ST_ATIM_NSEC(attr);
+			}
 
 			if (valid & FUSE_SET_ATTR_MTIME_NOW)
 				tv[1].tv_nsec = UTIME_NOW;
-			else if (valid & FUSE_SET_ATTR_MTIME)
-				tv[1] = attr->st_mtim;
+			else if (valid & FUSE_SET_ATTR_MTIME) {
+				tv[1].tv_sec = attr->st_mtime;
+				tv[1].tv_nsec = ST_MTIM_NSEC(attr);
+			}
 
 			err = fuse_fs_utimens(f->fs, path, tv);
 		} else
