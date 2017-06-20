@@ -353,34 +353,38 @@ fuse_kern_unmount(const char *mountpoint, int fd)
 	}
 	pthread_mutex_unlock(&mount_lock);
 
-	ret = ioctl(fd, FUSEDEVIOCGETHANDSHAKECOMPLETE, &hs_complete);
-	if (ret || !hs_complete) {
+	if (fd == -1) {
 		return;
 	}
 
+	ret = ioctl(fd, FUSEDEVIOCGETHANDSHAKECOMPLETE, &hs_complete);
+	if (ret || !hs_complete) {
+		goto out;
+	}
+
 	if (fstat(fd, &sbuf) == -1) {
-		return;
+		goto out;
 	}
 
 	devname_r(sbuf.st_rdev, S_IFCHR, dev, 128);
 
 	if (strncmp(dev, OSXFUSE_DEVICE_BASENAME,
 		    sizeof(OSXFUSE_DEVICE_BASENAME) - 1)) {
-		return;
+		goto out;
 	}
 
 	strtol(dev + sizeof(OSXFUSE_DEVICE_BASENAME) - 1, &ep, 10);
 	if (*ep != '\0') {
-		return;
+		goto out;
 	}
 
 	rp = realpath(mountpoint, resolved_path);
 	if (rp) {
 		ret = unmount(resolved_path, 0);
 	}
-	close(fd);
 
-	return;
+out:
+	close(fd);
 }
 
 void
