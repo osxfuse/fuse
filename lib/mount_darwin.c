@@ -447,10 +447,8 @@ mount_hash_purge_helper(char *key, void *data)
 void
 fuse_kern_unmount(const char *mountpoint, int fd)
 {
-    int ret;
     struct stat sbuf;
     char dev[128];
-    char resolved_path[PATH_MAX];
     char *ep, *rp = NULL, *umount_cmd;
 
     unsigned int hs_complete = 0;
@@ -466,11 +464,6 @@ fuse_kern_unmount(const char *mountpoint, int fd)
         }
     }
     pthread_mutex_unlock(&mount_lock);
-
-    ret = ioctl(fd, FUSEDEVIOCGETHANDSHAKECOMPLETE, &hs_complete);
-    if (ret || !hs_complete) {
-        return;
-    }
 
     if (fstat(fd, &sbuf) == -1) {
         return;
@@ -488,24 +481,13 @@ fuse_kern_unmount(const char *mountpoint, int fd)
         return;
     }
 
-    rp = realpath(mountpoint, resolved_path);
-    if (rp) {
-        ret = unmount(resolved_path, 0);
-    }
-
-    return;
+    (void)unmount(mountpoint, 0);
 }
 
 void
 fuse_unmount_compat22(const char *mountpoint)
 {
-    char resolved_path[PATH_MAX];
-    char *rp = realpath(mountpoint, resolved_path);
-    if (rp) {
-        (void)unmount(resolved_path, 0);
-    }
-
-    return;
+    (void)unmount(mountpoint, 0);
 }
 
 static int
