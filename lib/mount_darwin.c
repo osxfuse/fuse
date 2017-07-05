@@ -333,10 +333,8 @@ mount_hash_purge_helper(char *key, void *data)
 void
 fuse_kern_unmount(const char *mountpoint, int fd)
 {
-	int ret;
 	struct stat sbuf;
 	char dev[128];
-	char resolved_path[PATH_MAX];
 	char *ep, *rp = NULL, *umount_cmd;
 
 	unsigned int hs_complete = 0;
@@ -357,11 +355,6 @@ fuse_kern_unmount(const char *mountpoint, int fd)
 		return;
 	}
 
-	ret = ioctl(fd, FUSEDEVIOCGETHANDSHAKECOMPLETE, &hs_complete);
-	if (ret || !hs_complete) {
-		goto out;
-	}
-
 	if (fstat(fd, &sbuf) == -1) {
 		goto out;
 	}
@@ -378,10 +371,7 @@ fuse_kern_unmount(const char *mountpoint, int fd)
 		goto out;
 	}
 
-	rp = realpath(mountpoint, resolved_path);
-	if (rp) {
-		ret = unmount(resolved_path, 0);
-	}
+	(void)unmount(mountpoint, 0);
 
 out:
 	close(fd);
@@ -390,13 +380,7 @@ out:
 void
 fuse_unmount_compat22(const char *mountpoint)
 {
-	char resolved_path[PATH_MAX];
-	char *rp = realpath(mountpoint, resolved_path);
-	if (rp) {
-		(void)unmount(resolved_path, 0);
-	}
-
-	return;
+	(void)unmount(mountpoint, 0);
 }
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED <= 1050
