@@ -57,6 +57,7 @@ struct mount_opts {
 	int ishelp;
 	char *kernel_opts;
 	char *modules;
+	char *iconpath;
 	char *volicon;
 };
 
@@ -171,6 +172,7 @@ static const struct fuse_opt fuse_mount_opts[] = {
 	FUSE_OPT_KEY("slow_statfs",	      KEY_KERN),
 	FUSE_OPT_KEY("sparse",		      KEY_KERN),
 	FUSE_OPT_KEY("subtype=",	      KEY_IGNORED),
+	{ "iconpath=%s", offsetof(struct mount_opts, volicon), 0 },
 	{ "volicon=%s", offsetof(struct mount_opts, volicon), 0 },
 	FUSE_OPT_KEY("volname=",	      KEY_KERN),
 	FUSE_OPT_END
@@ -270,12 +272,9 @@ fuse_mount_opt_proc(void *data, const char *arg, int key,
 void
 fuse_kern_unmount(DADiskRef disk, int fd)
 {
-	int ret;
 	struct stat sbuf;
 	char dev[128];
 	char *ep, *rp = NULL, *umount_cmd;
-
-	unsigned int hs_complete = 0;
 
 	if (!disk) {
 		/*
@@ -284,11 +283,6 @@ fuse_kern_unmount(DADiskRef disk, int fd)
 		 */
 		if (fd != -1)
 			close(fd);
-		return;
-	}
-	
-	ret = ioctl(fd, FUSEDEVIOCGETHANDSHAKECOMPLETE, &hs_complete);
-	if (ret || !hs_complete) {
 		return;
 	}
 
@@ -314,13 +308,7 @@ fuse_kern_unmount(DADiskRef disk, int fd)
 void
 fuse_unmount_compat22(const char *mountpoint)
 {
-	char resolved_path[PATH_MAX];
-	char *rp = realpath(mountpoint, resolved_path);
-	if (rp) {
-		(void)unmount(resolved_path, 0);
-	}
-
-	return;
+	(void)unmount(mountpoint, 0);
 }
 
 /* return value:
@@ -505,6 +493,18 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 		goto out;
 	}
 
+	if (!mo.iconpath && !mo.volicon) {
+		char *volicon;
+		struct stat sbuf;
+
+		volicon = fuse_resource_path(OSXFUSE_RESOURCES_PATH "/Volume.icns");
+		if (stat(volicon, &sbuf) == 0) {
+			mo.volicon = volicon;
+		} else {
+			free(volicon);
+		}
+	}
+
 	if (mo.volicon) {
 		size_t modules_len;
 		char *modules;
@@ -580,6 +580,9 @@ out:
 	free(mo.kernel_opts);
 	if (mo.modules) {
 		free(mo.modules);
+	}
+	if (mo.iconpath) {
+		free(mo.iconpath);
 	}
 	if (mo.volicon) {
 		free(mo.volicon);
