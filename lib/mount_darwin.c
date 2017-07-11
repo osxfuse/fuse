@@ -270,12 +270,15 @@ fuse_mount_opt_proc(void *data, const char *arg, int key,
 void
 fuse_kern_unmount(DADiskRef disk, int fd)
 {
+    fprintf(stderr, "fuse_kern_unmount\n");
+
 	struct stat sbuf;
 	char dev[128];
 	char *ep, *rp = NULL, *umount_cmd;
 
 	if (!disk) {
-		/*
+        fprintf(stderr, "fuse_kern_unmount !disk\n");
+        /*
 		 * Filesystem has already been unmounted, all we need to do is
 		 * make sure fd is closed.
 		 */
@@ -285,6 +288,7 @@ fuse_kern_unmount(DADiskRef disk, int fd)
 	}
 
 	if (fstat(fd, &sbuf) == -1) {
+        fprintf(stderr, "fuse_kern_unmount fstat failed\n");
 		return;
 	}
 
@@ -292,15 +296,27 @@ fuse_kern_unmount(DADiskRef disk, int fd)
 
 	if (strncmp(dev, OSXFUSE_DEVICE_BASENAME,
 		    sizeof(OSXFUSE_DEVICE_BASENAME) - 1)) {
+        fprintf(stderr, "fuse_kern_unmount strcmp failed\n");
 		return;
 	}
 
 	strtol(dev + sizeof(OSXFUSE_DEVICE_BASENAME) - 1, &ep, 10);
 	if (*ep != '\0') {
+        fprintf(stderr, "fuse_kern_unmount strtol failed\n");
 		return;
 	}
 
-	DADiskUnmount(disk, kDADiskUnmountOptionDefault, NULL, NULL);
+    fprintf(stderr, "fuse_kern_unmount DADiskUnmount %p\n", disk);
+
+    CFDictionaryRef dict = DADiskCopyDescription(disk);
+    fprintf(stderr, "fuse_kern_unmount DADiskCopyDescription -> %p\n", dict);
+    CFShow(dict);
+    CFRelease(dict);
+
+    DADiskUnmount(disk, kDADiskUnmountOptionForce, NULL, NULL);
+    fprintf(stderr, "fuse_kern_unmount done\n");
+
+    // TODO https://github.com/osxfuse/osxfuse/issues/385
 }
 
 void
