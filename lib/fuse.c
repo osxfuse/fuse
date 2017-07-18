@@ -86,6 +86,9 @@ struct fuse_config {
 	int intr_signal;
 	int help;
 	char *modules;
+#ifdef __APPLE__
+	char *iconpath;
+#endif
 };
 
 struct fuse_fs {
@@ -2366,7 +2369,8 @@ int fuse_fs_mkdir(struct fuse_fs *fs, const char *path, mode_t mode)
 
 #ifdef __APPLE__
 int fuse_fs_setxattr(struct fuse_fs *fs, const char *path, const char *name,
-		     const char *value, size_t size, int flags, uint32_t position)
+		     const char *value, size_t size, int flags,
+		     uint32_t position)
 #else
 int fuse_fs_setxattr(struct fuse_fs *fs, const char *path, const char *name,
 		     const char *value, size_t size, int flags)
@@ -2377,7 +2381,8 @@ int fuse_fs_setxattr(struct fuse_fs *fs, const char *path, const char *name,
 		if (fs->debug)
 #ifdef __APPLE__
 			fprintf(stderr, "setxattr %s %s %lu 0x%x %lu\n",
-				path, name, (unsigned long) size, flags, (unsigned long) position);
+				path, name, (unsigned long) size, flags,
+				(unsigned long) position);
 #else
 			fprintf(stderr, "setxattr %s %s %lu 0x%x\n",
 				path, name, (unsigned long) size, flags);
@@ -2406,7 +2411,8 @@ int fuse_fs_getxattr(struct fuse_fs *fs, const char *path, const char *name,
 		if (fs->debug)
 #ifdef __APPLE__
 			fprintf(stderr, "getxattr %s %s %lu %lu\n",
-				path, name, (unsigned long) size, (unsigned long) position);
+				path, name, (unsigned long) size,
+				(unsigned long) position);
 #else
 			fprintf(stderr, "getxattr %s %s %lu\n",
 				path, name, (unsigned long) size);
@@ -4058,7 +4064,8 @@ static void fuse_lib_statfs(fuse_req_t req, fuse_ino_t ino)
 
 #ifdef __APPLE__
 static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-			      const char *value, size_t size, int flags, uint32_t position)
+			      const char *value, size_t size, int flags,
+			      uint32_t position)
 #else
 static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 			      const char *value, size_t size, int flags)
@@ -4073,7 +4080,8 @@ static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
 #ifdef __APPLE__
-		err = fuse_fs_setxattr(f->fs, path, name, value, size, flags, position);
+		err = fuse_fs_setxattr(f->fs, path, name, value, size, flags,
+				       position);
 #else
 		err = fuse_fs_setxattr(f->fs, path, name, value, size, flags);
 #endif
@@ -4085,7 +4093,8 @@ static void fuse_lib_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 
 #ifdef __APPLE__
 static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
-			   const char *name, char *value, size_t size, uint32_t position)
+			   const char *name, char *value, size_t size,
+			   uint32_t position)
 #else
 static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
 			   const char *name, char *value, size_t size)
@@ -4099,7 +4108,8 @@ static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
 #ifdef __APPLE__
-		err = fuse_fs_getxattr(f->fs, path, name, value, size, position);
+		err = fuse_fs_getxattr(f->fs, path, name, value, size,
+				       position);
 #else
 		err = fuse_fs_getxattr(f->fs, path, name, value, size);
 #endif
@@ -4912,6 +4922,9 @@ static const struct fuse_opt fuse_lib_opts[] = {
 	FUSE_LIB_OPT("intr",		      intr, 1),
 	FUSE_LIB_OPT("intr_signal=%d",	      intr_signal, 0),
 	FUSE_LIB_OPT("modules=%s",	      modules, 0),
+#ifdef __APPLE__
+	FUSE_LIB_OPT("iconpath=%s",	      iconpath, 0),
+#endif
 	FUSE_OPT_END
 };
 
@@ -5143,7 +5156,7 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	f->conf.negative_timeout = 0.0;
 	f->conf.intr_signal = FUSE_DEFAULT_INTR_SIGNAL;
 
-#if __APPLE__
+#ifdef __APPLE__
 	f->pagesize = sysconf(_SC_PAGESIZE);
 #else
 	f->pagesize = getpagesize();
@@ -5155,6 +5168,58 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	if (fuse_opt_parse(args, &f->conf, fuse_lib_opts,
 			   fuse_lib_opt_proc) == -1)
 		goto out_free_fs;
+
+#ifdef __APPLE__
+	if (!f->conf.iconpath) {
+		char *iconpath = fuse_resource_path(OSXFUSE_VOLUME_ICON);
+		struct stat stbuf;
+
+		if (stat(iconpath, &stbuf) == 0) {
+			char *modules;
+			size_t modules_len = 0;
+			char *modules_ptr;
+
+			if (f->conf.modules)
+				modules_len = strlen(f->conf.modules);
+
+			modules = (char *)malloc(modules_len +
+						 sizeof(":volicon"));
+			if (!modules) {
+				free(iconpath);
+				fprintf(stderr, "fuse: failed to allocate modules string\n");
+				goto out_free_fs;
+			}
+
+			modules_ptr = modules;
+			if (modules_len) {
+				modules_ptr = stpcpy(modules_ptr,
+						     f->conf.modules);
+				*modules_ptr = ':';
+				modules_ptr++;
+			}
+			modules_ptr = stpcpy(modules_ptr, "volicon");
+			*modules_ptr = '\0';
+
+			free(f->conf.modules);
+			f->conf.modules = modules;
+			f->conf.iconpath = iconpath;
+		}
+	}
+
+	if (f->conf.iconpath) {
+		char iconpath_arg[MAXPATHLEN + 12];
+
+		if (snprintf(iconpath_arg, sizeof(iconpath_arg),
+			     "-oiconpath=%s", f->conf.iconpath) <= 0) {
+			fprintf(stderr, "fuse: failed to create iconpath argument\n");
+			goto out_free_fs;
+		}
+		if (fuse_opt_add_arg(args, iconpath_arg) == -1) {
+			fprintf(stderr, "fuse: failed to add iconpath argument\n");
+			goto out_free_fs;
+		}
+	}
+#endif /* __APPLE__ */
 
 	if (f->conf.modules) {
 		char *module;
@@ -5253,6 +5318,9 @@ out_free_fs:
 	fs->op.destroy = NULL;
 	fuse_fs_destroy(f->fs);
 	free(f->conf.modules);
+#ifdef __APPLE__
+	free(f->conf.iconpath);
+#endif
 out_free:
 	free(f);
 out_delete_context_key:

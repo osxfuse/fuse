@@ -59,7 +59,7 @@ static size_t pagesize;
 
 static __attribute__((constructor)) void fuse_ll_init_pagesize(void)
 {
-#if __APPLE__
+#ifdef __APPLE__
 	pagesize = sysconf(_SC_PAGESIZE);
 #else
 	pagesize = getpagesize();
@@ -2690,7 +2690,7 @@ static const struct fuse_opt fuse_ll_opts[] = {
 
 static void fuse_ll_version(void)
 {
-#if __APPLE__
+#ifdef __APPLE__
 	fprintf(stderr, "using OSXFUSE kernel interface version %i.%i\n",
 		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
 #else
