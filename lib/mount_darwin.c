@@ -111,7 +111,6 @@ struct mount_opts {
 	int ishelp;
 	char *kernel_opts;
 	char *modules;
-	char *iconpath;
 	char *volicon;
 };
 
@@ -226,7 +225,6 @@ static const struct fuse_opt fuse_mount_opts[] = {
 	FUSE_OPT_KEY("slow_statfs",	      KEY_KERN),
 	FUSE_OPT_KEY("sparse",		      KEY_KERN),
 	FUSE_OPT_KEY("subtype=",	      KEY_IGNORED),
-	{ "iconpath=%s", offsetof(struct mount_opts, volicon), 0 },
 	{ "volicon=%s", offsetof(struct mount_opts, volicon), 0 },
 	FUSE_OPT_KEY("volname=",	      KEY_KERN),
 	FUSE_OPT_END
@@ -600,18 +598,6 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 		goto out;
 	}
 
-	if (!mo.iconpath && !mo.volicon) {
-		char *volicon;
-		struct stat sbuf;
-
-		volicon = fuse_resource_path(OSXFUSE_RESOURCES_PATH "/Volume.icns");
-		if (stat(volicon, &sbuf) == 0) {
-			mo.volicon = volicon;
-		} else {
-			free(volicon);
-		}
-	}
-
 	if (mo.volicon) {
 		size_t modules_len;
 		char *modules;
@@ -713,9 +699,6 @@ out:
 	free(mo.kernel_opts);
 	if (mo.modules) {
 		free(mo.modules);
-	}
-	if (mo.iconpath) {
-		free(mo.iconpath);
 	}
 	if (mo.volicon) {
 		free(mo.volicon);
