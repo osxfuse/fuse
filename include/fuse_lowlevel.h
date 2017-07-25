@@ -37,6 +37,20 @@
 #include <sys/statvfs.h>
 #include <sys/uio.h>
 
+#ifdef __APPLE__
+/*
+ * The following integer types do not exist unless _DARWIN_C_SOURCE is
+ * defined. However, doing so would alter struct stat, therefore we need
+ * to define them ourselves.
+ */
+typedef unsigned char u_char;
+typedef unsigned short u_short;
+typedef unsigned int u_int;
+typedef unsigned long u_long;
+
+#include <sys/mount.h>
+#endif /* __APPLE__ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1239,6 +1253,22 @@ int fuse_reply_iov(fuse_req_t req, const struct iovec *iov, int count);
  * @return zero for success, -errno for failure to send reply
  */
 int fuse_reply_statfs(fuse_req_t req, const struct statvfs *stbuf);
+
+#ifdef __APPLE__
+
+/**
+ * Reply with filesystem statistics
+ *
+ * Possible requests:
+ *   statfs
+ *
+ * @param req request handle
+ * @param stbuf filesystem statistics
+ * @return zero for success, -errno for failure to send reply
+ */
+int fuse_reply_statfs_x(fuse_req_t req, const struct statfs *stbuf);
+
+#endif /* __APPLE__ */
 
 /**
  * Reply with needed buffer size
