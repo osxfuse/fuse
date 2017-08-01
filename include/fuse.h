@@ -68,6 +68,11 @@ typedef struct fuse_dirhandle *fuse_dirh_t;
 typedef int (*fuse_dirfil_t) (fuse_dirh_t h, const char *name, int type,
 			      ino_t ino);
 
+#ifdef __APPLE__
+/* Used by (*statfs_x) (const char *, struct statfs *) */
+struct statfs;
+#endif
+
 /**
  * The file system operations:
  *
@@ -634,6 +639,8 @@ struct fuse_operations {
 
 	int (*fsetattr_x) (const char *, struct setattr_x *,
 			   struct fuse_file_info *);
+
+	int (*statfs_x) (const char *, struct statfs *);
 #endif /* __APPLE__ */
 };
 
@@ -898,6 +905,10 @@ int fuse_fs_fsync(struct fuse_fs *fs, const char *path, int datasync,
 int fuse_fs_flush(struct fuse_fs *fs, const char *path,
 		  struct fuse_file_info *fi);
 int fuse_fs_statfs(struct fuse_fs *fs, const char *path, struct statvfs *buf);
+#ifdef __APPLE__
+int fuse_fs_statfs_x(struct fuse_fs *fs, const char *path, struct statfs *buf);
+
+#endif
 int fuse_fs_opendir(struct fuse_fs *fs, const char *path,
 		    struct fuse_file_info *fi);
 int fuse_fs_readdir(struct fuse_fs *fs, const char *path, void *buf,

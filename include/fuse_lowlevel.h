@@ -1081,6 +1081,7 @@ struct fuse_lowlevel_ops {
 			   struct setattr_x *attr, int to_set,
 			   struct fuse_file_info *fi);
 
+	void (*statfs_x) (fuse_req_t req, fuse_ino_t ino);
 #endif /* __APPLE__ */
 };
 

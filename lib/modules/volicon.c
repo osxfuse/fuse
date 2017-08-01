@@ -359,6 +359,18 @@ volicon_statfs(const char *path, struct statvfs *stbuf)
 	return fuse_fs_statfs(volicon_get()->next, path, stbuf);
 }
 
+#ifdef __APPLE__
+static int
+volicon_statfs_x(const char *path, struct statfs *stbuf)
+{
+	if (volicon_is_a_magic_file(path)) {
+		return fuse_fs_statfs_x(volicon_get()->next, "/", stbuf);
+	}
+
+	return fuse_fs_statfs_x(volicon_get()->next, path, stbuf);
+}
+#endif
+
 static int
 volicon_flush(const char *path, struct fuse_file_info *fi)
 {
@@ -717,6 +729,7 @@ static struct fuse_operations volicon_oper = {
 	.chflags     = volicon_chflags,
 	.setattr_x   = volicon_setattr_x,
 	.fsetattr_x  = volicon_fsetattr_x,
+	.statfs_x    = volicon_statfs_x,
 
 	.flag_nullpath_ok = 0,
 	.flag_nopath = 0,

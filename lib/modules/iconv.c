@@ -563,6 +563,20 @@ static int iconv_statfs(const char *path, struct statvfs *stbuf)
 	return err;
 }
 
+#ifdef __APPLE__
+static int iconv_statfs_x(const char *path, struct statfs *stbuf)
+{
+	struct iconv *ic = iconv_get();
+	char *newpath;
+	int err = iconv_convpath(ic, path, &newpath, 0);
+	if (!err) {
+		err = fuse_fs_statfs_x(ic->next, newpath, stbuf);
+		free(newpath);
+	}
+	return err;
+}
+#endif
+
 static int iconv_flush(const char *path, struct fuse_file_info *fi)
 {
 	struct iconv *ic = iconv_get();
@@ -801,6 +815,7 @@ static const struct fuse_operations iconv_oper = {
 	.chflags	= iconv_chflags,
 	.setattr_x	= iconv_setattr_x,
 	.fsetattr_x	= iconv_fsetattr_x,
+	.statfs_x	= iconv_statfs_x,
 #endif
 
 	.flag_nullpath_ok = 1,
