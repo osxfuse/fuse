@@ -38,6 +38,10 @@
 #include <sys/statvfs.h>
 #include <sys/uio.h>
 
+#ifdef __APPLE__
+#  include <sys/mount.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -612,8 +616,8 @@ struct fuse_operations {
 			  void *, void *);
 	int (*reserved02)(void *, void *, void *, void *, void *, void *,
 			  void *, void *);
-	int (*reserved03)(void *, void *, void *, void *, void *, void *,
-			  void *, void *);
+
+	int (*statfs_x) (const char *, struct statfs *);
 
 	int (*setvolname) (const char *);
 
@@ -898,6 +902,9 @@ int fuse_fs_fsync(struct fuse_fs *fs, const char *path, int datasync,
 int fuse_fs_flush(struct fuse_fs *fs, const char *path,
 		  struct fuse_file_info *fi);
 int fuse_fs_statfs(struct fuse_fs *fs, const char *path, struct statvfs *buf);
+#ifdef __APPLE__
+int fuse_fs_statfs_x(struct fuse_fs *fs, const char *path, struct statfs *buf);
+#endif
 int fuse_fs_opendir(struct fuse_fs *fs, const char *path,
 		    struct fuse_file_info *fi);
 int fuse_fs_readdir(struct fuse_fs *fs, const char *path, void *buf,

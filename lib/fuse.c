@@ -2109,6 +2109,24 @@ int fuse_fs_statfs(struct fuse_fs *fs, const char *path, struct statvfs *buf)
 	}
 }
 
+#ifdef __APPLE__
+
+int fuse_fs_statfs_x(struct fuse_fs *fs, const char *path, struct statfs *buf)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.statfs_x) {
+		if (fs->debug)
+			fprintf(stderr, "statfs_x %s\n", path);
+
+		return fs->op.statfs_x(path, buf);
+	} else {
+		buf->f_bsize = 512;
+		return 0;
+	}
+}
+
+#endif /* __APPLE__ */
+
 int fuse_fs_releasedir(struct fuse_fs *fs, const char *path,
 		       struct fuse_file_info *fi)
 {
@@ -4043,7 +4061,12 @@ static void fuse_lib_fsyncdir(fuse_req_t req, fuse_ino_t ino, int datasync,
 static void fuse_lib_statfs(fuse_req_t req, fuse_ino_t ino)
 {
 	struct fuse *f = req_fuse_prepare(req);
-	struct statvfs buf;
+	union {
+		struct statvfs statvfs;
+#ifdef __APPLE__
+		struct statfs statfs;
+#endif
+	} buf;
 	char *path = NULL;
 	int err = 0;
 
@@ -4054,13 +4077,25 @@ static void fuse_lib_statfs(fuse_req_t req, fuse_ino_t ino)
 	if (!err) {
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
-		err = fuse_fs_statfs(f->fs, path ? path : "/", &buf);
+#ifdef __APPLE__
+                if (f->fs->op.statfs_x)
+			err = fuse_fs_statfs_x(f->fs, path ? path : "/",
+					       &buf.statfs);
+                else
+#endif
+			err = fuse_fs_statfs(f->fs, path ? path : "/",
+					     &buf.statvfs);
 		fuse_finish_interrupt(f, req, &d);
 		free_path(f, ino, path);
 	}
 
 	if (!err)
-		fuse_reply_statfs(req, &buf);
+#ifdef __APPLE__
+                if (f->fs->op.statfs_x)
+			fuse_reply_statfs_x(req, &buf.statfs);
+                else
+#endif
+			fuse_reply_statfs(req, &buf.statvfs);
 	else
 		reply_err(req, err);
 }

@@ -37,6 +37,10 @@
 #include <sys/statvfs.h>
 #include <sys/uio.h>
 
+#ifdef __APPLE__
+#  include <sys/mount.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1066,7 +1070,6 @@ struct fuse_lowlevel_ops {
 	void (*setattr_x) (fuse_req_t req, fuse_ino_t ino,
 			   struct setattr_x *attr, int to_set,
 			   struct fuse_file_info *fi);
-
 #endif /* __APPLE__ */
 };
 
@@ -1239,6 +1242,22 @@ int fuse_reply_iov(fuse_req_t req, const struct iovec *iov, int count);
  * @return zero for success, -errno for failure to send reply
  */
 int fuse_reply_statfs(fuse_req_t req, const struct statvfs *stbuf);
+
+#ifdef __APPLE__
+
+/**
+ * Reply with filesystem statistics
+ *
+ * Possible requests:
+ *   statfs
+ *
+ * @param req request handle
+ * @param stbuf filesystem statistics
+ * @return zero for success, -errno for failure to send reply
+ */
+int fuse_reply_statfs_x(fuse_req_t req, const struct statfs *stbuf);
+
+#endif /* __APPLE__ */
 
 /**
  * Reply with needed buffer size

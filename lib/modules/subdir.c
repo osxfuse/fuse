@@ -547,6 +547,22 @@ static int subdir_statfs(const char *path, struct statvfs *stbuf)
 	return err;
 }
 
+#ifdef __APPLE__
+
+static int subdir_statfs_x(const char *path, struct statfs *stbuf)
+{
+	struct subdir *d = subdir_get();
+	char *newpath;
+	int err = subdir_addpath(d, path, &newpath);
+	if (!err) {
+		err = fuse_fs_statfs_x(d->next, newpath, stbuf);
+		free(newpath);
+	}
+	return err;
+}
+
+#endif /* __APPLE__ */
+
 static int subdir_flush(const char *path, struct fuse_file_info *fi)
 {
 	struct subdir *d = subdir_get();
@@ -770,8 +786,9 @@ static const struct fuse_operations subdir_oper = {
 	.lock		= subdir_lock,
 	.flock		= subdir_flock,
 	.bmap		= subdir_bmap,
-    .fallocate  = subdir_fallocate,
+	.fallocate	= subdir_fallocate,
 #ifdef __APPLE__
+	.statfs_x	= subdir_statfs_x,
 	.setvolname	= subdir_setvolname,
 	.exchange	= subdir_exchange,
 	.getxtimes	= subdir_getxtimes,
@@ -781,7 +798,7 @@ static const struct fuse_operations subdir_oper = {
 	.chflags	= subdir_chflags,
 	.setattr_x	= subdir_setattr_x,
 	.fsetattr_x	= subdir_fsetattr_x,
-#endif
+#endif /* __APPLE__ */
 
 	.flag_nullpath_ok = 1,
 	.flag_nopath = 1,
