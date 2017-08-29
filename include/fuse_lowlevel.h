@@ -38,18 +38,8 @@
 #include <sys/uio.h>
 
 #ifdef __APPLE__
-/*
- * The following integer types do not exist unless _DARWIN_C_SOURCE is
- * defined. However, doing so would alter struct stat, therefore we need
- * to define them ourselves.
- */
-typedef unsigned char u_char;
-typedef unsigned short u_short;
-typedef unsigned int u_int;
-typedef unsigned long u_long;
-
-#include <sys/mount.h>
-#endif /* __APPLE__ */
+#  include <sys/mount.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -1080,8 +1070,6 @@ struct fuse_lowlevel_ops {
 	void (*setattr_x) (fuse_req_t req, fuse_ino_t ino,
 			   struct setattr_x *attr, int to_set,
 			   struct fuse_file_info *fi);
-
-	void (*statfs_x) (fuse_req_t req, fuse_ino_t ino);
 #endif /* __APPLE__ */
 };
 

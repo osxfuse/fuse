@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #ifdef __APPLE__
@@ -13,8 +13,6 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-
-/* Versioning */
 
 const char *osxfuse_version(void);
 

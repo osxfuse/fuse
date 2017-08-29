@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 /** @file */
@@ -19,6 +19,20 @@
 
 #ifndef _FUSE_COMMON_H_
 #define _FUSE_COMMON_H_
+
+#ifdef __APPLE__
+
+/*
+ * The following integer types do not exist unless _DARWIN_C_SOURCE is
+ * defined. However, doing so would alter struct stat, therefore we need to
+ * define them ourselves.
+ */
+typedef unsigned char u_char;
+typedef unsigned short u_short;
+typedef unsigned int u_int;
+typedef unsigned long u_long;
+
+#endif /* __APPLE__ */
 
 #include "fuse_opt.h"
 #include <stdint.h>
@@ -159,11 +173,11 @@ struct fuse_file_info {
 #define FUSE_CAP_IOCTL_DIR	(1 << 11)
 #ifdef __APPLE__
 #  define FUSE_CAP_ALLOCATE		(1 << 27)
-#  define FUSE_CAP_EXCHANGE_DATA		(1 << 28)
+#  define FUSE_CAP_EXCHANGE_DATA	(1 << 28)
 #  define FUSE_CAP_CASE_INSENSITIVE	(1 << 29)
 #  define FUSE_CAP_VOL_RENAME		(1 << 30)
 #  define FUSE_CAP_XTIMES		(1 << 31)
-#endif
+#endif /* __APPLE__ */
 
 /**
  * Ioctl flags
@@ -260,9 +274,9 @@ struct fuse_conn_info {
    /*
     * Deprecated, use capability flags directly
     */
-#  define FUSE_ENABLE_SETVOLNAME(i)		(i)->want |= FUSE_CAP_VOL_RENAME
-#  define FUSE_ENABLE_XTIMES(i)			(i)->want |= FUSE_CAP_XTIMES
-#  define FUSE_ENABLE_CASE_INSENSITIVE(i)	(i)->want |= FUSE_CAP_CASE_INSENSITIVE
+#  define FUSE_ENABLE_SETVOLNAME(i)	  (i)->want |= FUSE_CAP_VOL_RENAME
+#  define FUSE_ENABLE_XTIMES(i)		  (i)->want |= FUSE_CAP_XTIMES
+#  define FUSE_ENABLE_CASE_INSENSITIVE(i) (i)->want |= FUSE_CAP_CASE_INSENSITIVE
 #endif
 
 struct fuse_session;

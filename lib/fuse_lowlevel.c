@@ -1180,7 +1180,7 @@ static void do_setattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		stbuf.valid = arg->valid;
 		req->f->op.setattr_x(req, nodeid, &stbuf, arg->valid, fi);
 	} else
-#endif
+#endif /* __APPLE__ */
 	if (req->f->op.setattr) {
 		struct fuse_file_info *fi = NULL;
 		struct fuse_file_info fi_store;

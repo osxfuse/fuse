@@ -168,9 +168,6 @@ struct fuse {
 	struct list_head partial_slabs;
 	struct list_head full_slabs;
 	pthread_t prune_thread;
-#ifdef __APPLE__
-        int statfs_x_ok;
-#endif
 };
 
 struct lock {
@@ -2113,6 +2110,7 @@ int fuse_fs_statfs(struct fuse_fs *fs, const char *path, struct statvfs *buf)
 }
 
 #ifdef __APPLE__
+
 int fuse_fs_statfs_x(struct fuse_fs *fs, const char *path, struct statfs *buf)
 {
 	fuse_get_context()->private_data = fs->user_data;
@@ -2120,14 +2118,14 @@ int fuse_fs_statfs_x(struct fuse_fs *fs, const char *path, struct statfs *buf)
 		if (fs->debug)
 			fprintf(stderr, "statfs_x %s\n", path);
 
-               return fs->op.statfs_x(path, buf);
-               return 0;
+		return fs->op.statfs_x(path, buf);
 	} else {
 		buf->f_bsize = 512;
 		return 0;
 	}
 }
-#endif
+
+#endif /* __APPLE__ */
 
 int fuse_fs_releasedir(struct fuse_fs *fs, const char *path,
 		       struct fuse_file_info *fi)
@@ -4063,10 +4061,12 @@ static void fuse_lib_fsyncdir(fuse_req_t req, fuse_ino_t ino, int datasync,
 static void fuse_lib_statfs(fuse_req_t req, fuse_ino_t ino)
 {
 	struct fuse *f = req_fuse_prepare(req);
-	struct statvfs buf;
+	union {
+		struct statvfs statvfs;
 #ifdef __APPLE__
-        struct statfs buf_x;
+		struct statfs statfs;
 #endif
+	} buf;
 	char *path = NULL;
 	int err = 0;
 
@@ -4078,22 +4078,24 @@ static void fuse_lib_statfs(fuse_req_t req, fuse_ino_t ino)
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
 #ifdef __APPLE__
-                if(f->statfs_x_ok)
-			err = fuse_fs_statfs_x(f->fs, path ? path : "/", &buf_x);
+                if (f->fs->op.statfs_x)
+			err = fuse_fs_statfs_x(f->fs, path ? path : "/",
+					       &buf.statfs);
                 else
 #endif
-		err = fuse_fs_statfs(f->fs, path ? path : "/", &buf);
+			err = fuse_fs_statfs(f->fs, path ? path : "/",
+					     &buf.statvfs);
 		fuse_finish_interrupt(f, req, &d);
 		free_path(f, ino, path);
 	}
 
 	if (!err)
 #ifdef __APPLE__
-                if(f->statfs_x_ok)
-			fuse_reply_statfs_x(req, &buf_x);
+                if (f->fs->op.statfs_x)
+			fuse_reply_statfs_x(req, &buf.statfs);
                 else
 #endif
-		fuse_reply_statfs(req, &buf);
+			fuse_reply_statfs(req, &buf.statvfs);
 	else
 		reply_err(req, err);
 }
@@ -5183,10 +5185,6 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	f->nullpath_ok = fs->op.flag_nullpath_ok;
 	f->conf.nopath = fs->op.flag_nopath;
 	f->utime_omit_ok = fs->op.flag_utime_omit_ok;
-
-#ifdef __APPLE__
-        f->statfs_x_ok = fs->op.statfs_x ? 1 : 0;
-#endif
 
 	/* Oh f**k, this is ugly! */
 	if (!fs->op.lock) {

@@ -576,7 +576,8 @@ static struct fuse_operations threadid_oper = {
 	.lock        = threadid_lock,
 	.utimens     = threadid_utimens,
 	.bmap        = threadid_bmap,
-    .fallocate   = threadid_fallocate,
+	.fallocate   = threadid_fallocate,
+	.statfs_x    = threadid_statfs_x,
 	.setvolname  = threadid_setvolname,
 	.exchange    = threadid_exchange,
 	.getxtimes   = threadid_getxtimes,
@@ -586,7 +587,6 @@ static struct fuse_operations threadid_oper = {
 	.chflags     = threadid_chflags,
 	.setattr_x   = threadid_setattr_x,
 	.fsetattr_x  = threadid_fsetattr_x,
-	.statfs_x    = threadid_statfs_x,
 
 	.flag_nullpath_ok = 1,
 	.flag_nopath = 1,
