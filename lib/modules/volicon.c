@@ -1,5 +1,5 @@
 /*
- *  Custom volume icon support for OSXFUSE.
+ *  Custom volume icon support for macOS
  *
  *  - xattr'ification and overhaul by Amit Singh
  *  - Made into a libfuse stack module by Andrew de los Reyes
@@ -360,6 +360,16 @@ volicon_statfs(const char *path, struct statvfs *stbuf)
 }
 
 static int
+volicon_statfs_x(const char *path, struct statfs *stbuf)
+{
+	if (volicon_is_a_magic_file(path)) {
+		return fuse_fs_statfs_x(volicon_get()->next, "/", stbuf);
+	}
+
+	return fuse_fs_statfs_x(volicon_get()->next, path, stbuf);
+}
+
+static int
 volicon_flush(const char *path, struct fuse_file_info *fi)
 {
 	ERROR_IF_MAGIC_FILE(path, 0);
@@ -707,7 +717,8 @@ static struct fuse_operations volicon_oper = {
 	.lock        = volicon_lock,
 	.utimens     = volicon_utimens,
 	.bmap        = volicon_bmap,
-    .fallocate   = volicon_fallocate,
+	.fallocate   = volicon_fallocate,
+	.statfs_x    = volicon_statfs_x,
 	.setvolname  = volicon_setvolname,
 	.exchange    = volicon_exchange,
 	.getxtimes   = volicon_getxtimes,

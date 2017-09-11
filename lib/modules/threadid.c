@@ -306,6 +306,16 @@ threadid_statfs(const char *path, struct statvfs *stbuf)
 }
 
 static int
+threadid_statfs_x(const char *path, struct statfs *stbuf)
+{
+	THREADID_PRE()
+	int res = fuse_fs_statfs_x(threadid_get()->next, path, stbuf);
+	THREADID_POST()
+
+	return res;
+}
+
+static int
 threadid_flush(const char *path, struct fuse_file_info *fi)
 {
 	THREADID_PRE()
@@ -566,7 +576,8 @@ static struct fuse_operations threadid_oper = {
 	.lock        = threadid_lock,
 	.utimens     = threadid_utimens,
 	.bmap        = threadid_bmap,
-    .fallocate   = threadid_fallocate,
+	.fallocate   = threadid_fallocate,
+	.statfs_x    = threadid_statfs_x,
 	.setvolname  = threadid_setvolname,
 	.exchange    = threadid_exchange,
 	.getxtimes   = threadid_getxtimes,

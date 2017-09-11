@@ -12,7 +12,6 @@
 extern "C" {
 #endif
 
-#include "fuse_lowlevel.h"
 #include "fuse_darwin.h"
 
 #include <fuse_param.h>

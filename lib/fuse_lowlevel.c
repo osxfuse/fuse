@@ -350,6 +350,22 @@ static void convert_statfs(const struct statvfs *stbuf,
 	kstatfs->namelen = stbuf->f_namemax;
 }
 
+#ifdef __APPLE__
+
+static void convert_statfs_x(const struct statfs *stbuf,
+			     struct fuse_kstatfs *kstatfs)
+{
+	kstatfs->bsize	 = stbuf->f_iosize;
+	kstatfs->frsize	 = stbuf->f_bsize;
+	kstatfs->blocks	 = stbuf->f_blocks;
+	kstatfs->bfree	 = stbuf->f_bfree;
+	kstatfs->bavail	 = stbuf->f_bavail;
+	kstatfs->files	 = stbuf->f_files;
+	kstatfs->ffree	 = stbuf->f_ffree;
+}
+
+#endif /* __APPLE__ */
+
 static int send_reply_ok(fuse_req_t req, const void *arg, size_t argsize)
 {
 	return send_reply(req, 0, arg, argsize);
@@ -872,6 +888,21 @@ int fuse_reply_statfs(fuse_req_t req, const struct statvfs *stbuf)
 	return send_reply_ok(req, &arg, size);
 }
 
+#ifdef __APPLE__
+
+int fuse_reply_statfs_x(fuse_req_t req, const struct statfs *stbuf)
+{
+	struct fuse_statfs_out arg;
+	size_t size = sizeof(arg);
+
+	memset(&arg, 0, sizeof(arg));
+	convert_statfs_x(stbuf, &arg.st);
+
+	return send_reply_ok(req, &arg, size);
+}
+
+#endif /* __APPLE__ */
+
 int fuse_reply_xattr(fuse_req_t req, size_t count)
 {
 	struct fuse_getxattr_out arg;
@@ -1149,7 +1180,7 @@ static void do_setattr(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		stbuf.valid = arg->valid;
 		req->f->op.setattr_x(req, nodeid, &stbuf, arg->valid, fi);
 	} else
-#endif
+#endif /* __APPLE__ */
 	if (req->f->op.setattr) {
 		struct fuse_file_info *fi = NULL;
 		struct fuse_file_info fi_store;
