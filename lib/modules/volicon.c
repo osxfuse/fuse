@@ -61,6 +61,7 @@ struct volicon {
 	char *volicon_data;
 	off_t volicon_size;
 	uid_t volicon_uid;
+	time_t volicon_time;
 
 	struct fuse_fs *next;
 };
@@ -98,16 +99,16 @@ volicon_getattr(const char *path, struct stat *buf)
 	int res = 0;
 
 	if (volicon_is_icon_magic_file(path)) {
-
 		memset((void *)buf, 0, sizeof(struct stat));
 
-		buf->st_mode  = S_IFREG | 0444;
+		buf->st_mode = S_IFREG | 0444;
 		buf->st_nlink = 1;
-		buf->st_uid   = volicon_get()->volicon_uid;
+		buf->st_uid = volicon_get()->volicon_uid;
 		buf->st_gid = 0;
-		buf->st_size  = volicon_get()->volicon_size;
-		buf->st_atime = buf->st_ctime = buf->st_mtime = time(NULL);
-
+		buf->st_size = volicon_get()->volicon_size;
+		buf->st_atime = volicon_get()->volicon_time;
+		buf->st_ctime = buf->st_atime;
+		buf->st_mtime = buf->st_atime;
 	} else {
 		res = fuse_fs_getattr(volicon_get()->next, path, buf);
 	}
@@ -829,6 +830,7 @@ volicon_new(struct fuse_args *args, struct fuse_fs *next[])
 
 	d->volicon_size = sb.st_size;
 	d->volicon_uid = getuid();
+	d->volicon_time = time(NULL);
 
 	d->next = next[0];
 
