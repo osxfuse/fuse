@@ -28,12 +28,18 @@ extern int pthread_setugid_np(uid_t, gid_t);
 	int   needsettid = (issuser && calleruid);			\
 									\
 	if (needsettid) {						\
+    _Pragma("clang diagnostic push")    \
+    _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")    \
 		pthread_setugid_np(calleruid, callergid);		\
+    _Pragma("clang diagnostic pop")    \
 	}
 
 #define THREADID_POST()							\
 	if (needsettid) {						\
+    _Pragma("clang diagnostic push")    \
+    _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")    \
 		pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE);	\
+    _Pragma("clang diagnostic pop")    \
 	}
 
 struct threadid {
