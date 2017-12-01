@@ -8,12 +8,11 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
 
 if DARWIN
 AM_CPPFLAGS += -O -gdwarf-2
-endif
-
-if DARWIN
 lib_LTLIBRARIES = libosxfuse.la
+pthread_flag=
 else
 lib_LTLIBRARIES = libfuse.la libulockmgr.la
+pthread_flag=-pthread
 endif
 
 if BSD
@@ -61,9 +60,9 @@ libfuse_la_SOURCES = 		\
 
 if DARWIN
 libosxfuse_la_SOURCES = $(libfuse_la_SOURCES)
-libosxfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number)
+libosxfuse_la_LDFLAGS = $(pthread_flag) @libfuse_libs@ -version-number $(fuse_version_number)
 else
-libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number) \
+libfuse_la_LDFLAGS = $(pthread_flag) @libfuse_libs@ -version-number $(fuse_version_number) \
 	-Wl,--version-script,$(srcdir)/fuse_versionscript
 
 if NETBSD
@@ -71,7 +70,7 @@ libfuse_la_LIBADD = -lperfuse -lpuffs
 endif
 
 libulockmgr_la_SOURCES = ulockmgr.c
-libulockmgr_la_LDFLAGS = -pthread -version-number 1:0:1
+libulockmgr_la_LDFLAGS = $(pthread_flag) -version-number 1:0:1
 
 EXTRA_DIST = fuse_versionscript
 endif
