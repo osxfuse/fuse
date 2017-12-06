@@ -22,7 +22,6 @@
 #include <unistd.h>
 #include <signal.h>
 #ifdef __APPLE__
-#  define DARWIN_SEMAPHORE_COMPAT 1
 #  include "fuse_darwin_private.h"
 #else
 #  include <semaphore.h>
