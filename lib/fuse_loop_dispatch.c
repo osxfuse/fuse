@@ -25,13 +25,24 @@
 #include <errno.h>
 #include <signal.h>
 
-static register_signal_source(int sig,
-                              dispatch_queue_t queue,
-                              struct fuse_session *se) {
-  signal(sig, SIG_IGN);
-  dispatch_source_t sig_src =
-  dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, sig, 0, queue);
-  dispatch_source_set_event_handler(sig_src, ^{
+// Register a signal source for sig on queue that will clean up the session.
+// Returns the signal source, or NULL on failure.
+// Caller reponsible for releasing source.
+static dispatch_source_t register_signal_source(int sig,
+                                                dispatch_queue_t queue,
+                                                struct fuse_session *se) {
+  void (*old_signal)(int) = signal(sig, SIG_IGN);
+  if (old_signal == SIG_ERR) {
+    fprintf(stderr, "fuse: failed to set signal %d\n", sig);
+    return NULL;
+  }
+  dispatch_source_t src = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL,
+                                                 sig, 0, queue);
+  if (!src) {
+    fprintf(stderr, "fuse: unable to create signal source for %d\n", sig);
+    return NULL;
+  }
+  dispatch_source_set_event_handler(src, ^{
 #ifdef __APPLE__
     struct fuse_chan *ch = fuse_session_next_chan(se, NULL);
     if (ch)
@@ -40,7 +51,8 @@ static register_signal_source(int sig,
     fuse_session_exit(se);
 #endif
   });
-  dispatch_resume(sig_src);
+  dispatch_resume(src);
+  return src;
 }
 
 int fuse_session_loop_dispatch(struct fuse_session *se)
@@ -49,23 +61,39 @@ int fuse_session_loop_dispatch(struct fuse_session *se)
   struct fuse_chan *ch = fuse_session_next_chan(se, NULL);
   size_t bufsize = fuse_chan_bufsize(ch);
   
-  dispatch_queue_t queue =
-  dispatch_queue_create("fuse_session", DISPATCH_QUEUE_CONCURRENT);
+  dispatch_queue_t queue = dispatch_queue_create("fuse_session",
+                                                 DISPATCH_QUEUE_CONCURRENT);
+  if (!queue) {
+    fprintf(stderr, "fuse: failed to allocate session loop queue\n");
+    res = -1;
+    goto no_queue;
+  }
   dispatch_group_t group = dispatch_group_create();
-  
+  if (!group) {
+    fprintf(stderr, "fuse: failed to allocate session loop group\n");
+    res = -1;
+    goto no_group;
+  }
+
   // Set up signal handling.
   int signals[] = { SIGTERM, SIGINT, SIGHUP, SIGQUIT };
-  for (size_t i = 0; i < sizeof(signals) / sizeof(signals[0]); ++i) {
-    register_signal_source(signals[i], queue, se);
+  const int signal_count = sizeof(signals) / sizeof(signals[0]);
+  dispatch_source_t signal_sources[signal_count] = { NULL };
+  for (int i = 0; i < signal_count; ++i) {
+    signal_sources[i] = register_signal_source(signals[i], queue, se);
+    if (!signal_sources[i]) {
+      goto no_signal_sources;
+    }
   }
   
   char *buf = (char *) malloc(bufsize);
   if (!buf) {
-    fprintf(stderr, "fuse: failed to allocate read buffer\n");
-    return -1;
+    fprintf(stderr, "fuse: failed to allocate session loop read buffer\n");
+    res = -1;
+    goto no_buf;
   }
+
   while (!fuse_session_exited(se)) {
-    
     struct fuse_chan *tmpch = ch;
     struct fuse_buf fbuf = {
       .mem = buf,
@@ -73,7 +101,6 @@ int fuse_session_loop_dispatch(struct fuse_session *se)
     };
     
     res = fuse_session_receive_buf(se, &fbuf, &tmpch);
-    
     if (res == -EINTR) {
       continue;
     }
@@ -81,9 +108,11 @@ int fuse_session_loop_dispatch(struct fuse_session *se)
       break;
     }
     
-    char *newbuf = (char *)malloc(res);
+    // Create a new buffer and copy because buf is huge, and the data
+    // transferred is usually orders of magnitude smaller.
+    char *newbuf = (char *) malloc(res);
     if (!newbuf) {
-      fprintf(stderr, "fuse: failed to allocate process buffer\n");
+      fprintf(stderr, "fuse: failed to allocate session loop process buffer\n");
       res = -1;
       break;
     }
@@ -95,10 +124,26 @@ int fuse_session_loop_dispatch(struct fuse_session *se)
       free(fbuf.mem);
     });
   }
-  dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-  dispatch_release(group);
-  dispatch_release(queue);
+  if(dispatch_group_wait(group, DISPATCH_TIME_FOREVER) != 0) {
+    fprintf(stderr, "fuse: dispatch_group_wait timed out\n");
+    res = -1;
+  }
   free(buf);
+
+no_signal_sources:
+  for (int i = 0; i < signal_count; ++i) {
+    if (signal_sources[i]) {
+      dispatch_release(signal_sources[i]);
+    }
+  }
+
+no_buf:
+  dispatch_release(group);
+
+no_group:
+  dispatch_release(queue);
+  
+no_queue:
   fuse_session_reset(se);
   return res < 0 ? -1 : 0;
 }
