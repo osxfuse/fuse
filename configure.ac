@@ -63,7 +63,7 @@ AC_CHECK_MEMBERS([struct stat.st_atimensec])
 AC_CHECK_MEMBERS([struct stat.st_atimespec])
 AC_CHECK_HEADERS([dispatch/dispatch.h], [], [],
 [#ifdef HAVE_DISPATCH_DISPATCH_H
-# include <dispatch/dispatch.h>
+#include <dispatch/dispatch.h>
 #endif
 ])
 

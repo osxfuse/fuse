@@ -86,8 +86,8 @@ int fuse_session_loop_dispatch(struct fuse_session *se)
     }
   }
   
-  char *buf = (char *) malloc(bufsize);
-  if (!buf) {
+  char *session_buf = (char *) malloc(bufsize);
+  if (!session_buf) {
     fprintf(stderr, "fuse: failed to allocate session loop read buffer\n");
     res = -1;
     goto no_buf;
@@ -96,7 +96,7 @@ int fuse_session_loop_dispatch(struct fuse_session *se)
   while (!fuse_session_exited(se)) {
     struct fuse_chan *tmpch = ch;
     struct fuse_buf fbuf = {
-      .mem = buf,
+      .mem = session_buf,
       .size = bufsize,
     };
     
@@ -108,16 +108,16 @@ int fuse_session_loop_dispatch(struct fuse_session *se)
       break;
     }
     
-    // Create a new buffer and copy because buf is huge, and the data
+    // Create a local buffer and copy because buf is huge, and the data
     // transferred is usually orders of magnitude smaller.
-    char *newbuf = (char *) malloc(res);
-    if (!newbuf) {
+    char *local_buf = (char *) malloc(res);
+    if (!local_buf) {
       fprintf(stderr, "fuse: failed to allocate session loop process buffer\n");
       res = -1;
       break;
     }
-    memcpy(newbuf, fbuf.mem, res);
-    fbuf.mem = newbuf;
+    memcpy(local_buf, fbuf.mem, res);
+    fbuf.mem = local_buf;
     fbuf.size = res;
     dispatch_group_async(group, queue, ^{
       fuse_session_process_buf(se, &fbuf, tmpch);
@@ -128,7 +128,7 @@ int fuse_session_loop_dispatch(struct fuse_session *se)
     fprintf(stderr, "fuse: dispatch_group_wait timed out\n");
     res = -1;
   }
-  free(buf);
+  free(session_buf);
 
 no_signal_sources:
   for (int i = 0; i < signal_count; ++i) {
@@ -149,7 +149,17 @@ no_queue:
 }
 
 int fuse_loop_dispatch(struct fuse *f) {
-  return fuse_session_loop_dispatch(fuse_get_session(f));
+  if (f == NULL)
+    return -1;
+  
+  int res = fuse_start_cleanup_thread(f);
+  if (res)
+    return res;
+  
+  res = fuse_session_loop_dispatch(fuse_get_session(f));
+  
+  fuse_stop_cleanup_thread(f);
+  return res;
 }
 
 #endif // HAVE_DISPATCH_DISPATCH_H
