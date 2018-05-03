@@ -332,6 +332,27 @@ static int iconv_rename(const char *from, const char *to)
 	return err;
 }
 
+#ifdef __APPLE__
+
+static int iconv_renamex(const char *from, const char *to, unsigned int flags)
+{
+	struct iconv *ic = iconv_get();
+	char *newfrom;
+	char *newto;
+	int err = iconv_convpath(ic, from, &newfrom, 0);
+	if (!err) {
+		err = iconv_convpath(ic, to, &newto, 0);
+		if (!err) {
+			err = fuse_fs_renamex(ic->next, newfrom, newto, flags);
+			free(newto);
+		}
+		free(newfrom);
+	}
+	return err;
+}
+
+#endif /* __APPLE__ */
+
 static int iconv_link(const char *from, const char *to)
 {
 	struct iconv *ic = iconv_get();
@@ -808,6 +829,7 @@ static const struct fuse_operations iconv_oper = {
 	.bmap		= iconv_bmap,
 	.fallocate	= iconv_fallocate,
 #ifdef __APPLE__
+	.renamex	= iconv_renamex,
 	.statfs_x	= iconv_statfs_x,
 	.setvolname	= iconv_setvolname,
 	.exchange	= iconv_exchange,

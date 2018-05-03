@@ -437,6 +437,10 @@ struct fuse_mkdir_in {
 
 struct fuse_rename_in {
 	__u64	newdir;
+#ifdef __APPLE__
+	__u32	flags;
+	__u32	padding;
+#endif
 };
 
 #ifdef __APPLE__

@@ -1055,8 +1055,28 @@ struct fuse_lowlevel_ops {
 			    void *, void *, void *, void *, void *, void *);
 	void (*reserved02) (fuse_req_t req, fuse_ino_t ino,
 			    void *, void *, void *, void *, void *, void *);
-	void (*reserved03) (fuse_req_t req, fuse_ino_t ino,
-			    void *, void *, void *, void *, void *, void *);
+
+	/** Rename a file
+	 *
+	 * If the target exists it should be atomically replaced. If
+	 * the target's inode's lookup count is non-zero, the file
+	 * system is expected to postpone any removal of the inode
+	 * until the lookup count reaches zero (see description of the
+	 * forget function).
+	 *
+	 * Valid replies:
+	 *   fuse_reply_err
+	 *
+	 * @param req request handle
+	 * @param parent inode number of the old parent directory
+	 * @param name old name
+	 * @param newparent inode number of the new parent directory
+	 * @param newname new name
+	 * @param flags flags, see renamex_np(2)
+	 */
+	void (*renamex) (fuse_req_t req, fuse_ino_t parent, const char *name,
+			 fuse_ino_t newparent, const char *newname,
+			 unsigned int flags);
 
 	void (*setvolname) (fuse_req_t req, const char *name);
 

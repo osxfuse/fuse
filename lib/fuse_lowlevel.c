@@ -1295,6 +1295,15 @@ static void do_rename(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	char *oldname = PARAM(arg);
 	char *newname = oldname + strlen(oldname) + 1;
 
+#ifdef __APPLE__
+	if (arg->flags != 0) {
+		if (req->f->op.renamex)
+			req->f->op.renamex(req, nodeid, oldname, arg->newdir,
+					   newname, arg->flags);
+		else
+			fuse_reply_err(req, ENOSYS);
+	} else
+#endif /* __APPLE__ */
 	if (req->f->op.rename)
 		req->f->op.rename(req, nodeid, oldname, arg->newdir, newname);
 	else

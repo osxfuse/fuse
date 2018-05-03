@@ -317,6 +317,27 @@ static int subdir_rename(const char *from, const char *to)
 	return err;
 }
 
+#ifdef __APPLE__
+
+static int subdir_renamex(const char *from, const char *to, unsigned int flags)
+{
+	struct subdir *d = subdir_get();
+	char *newfrom;
+	char *newto;
+	int err = subdir_addpath(d, from, &newfrom);
+	if (!err) {
+		err = subdir_addpath(d, to, &newto);
+		if (!err) {
+			err = fuse_fs_renamex(d->next, newfrom, newto, flags);
+			free(newto);
+		}
+		free(newfrom);
+	}
+	return err;
+}
+
+#endif /* __APPLE__ */
+
 static int subdir_link(const char *from, const char *to)
 {
 	struct subdir *d = subdir_get();
@@ -788,6 +809,7 @@ static const struct fuse_operations subdir_oper = {
 	.bmap		= subdir_bmap,
 	.fallocate	= subdir_fallocate,
 #ifdef __APPLE__
+	.renamex	= subdir_renamex,
 	.statfs_x	= subdir_statfs_x,
 	.setvolname	= subdir_setvolname,
 	.exchange	= subdir_exchange,

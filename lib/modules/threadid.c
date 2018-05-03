@@ -149,6 +149,16 @@ static int threadid_rename(const char *from, const char *to)
 	return res;
 }
 
+static int threadid_renamex(const char *from, const char *to,
+			    unsigned int flags)
+{
+	THREADID_PRE()
+	int res = fuse_fs_renamex(threadid_get()->next, from, to, flags);
+	THREADID_POST()
+
+	return res;
+}
+
 static int
 threadid_link(const char *from, const char *to)
 {
@@ -548,6 +558,7 @@ static struct fuse_operations threadid_oper = {
 	.rmdir       = threadid_rmdir,
 	.symlink     = threadid_symlink,
 	.rename      = threadid_rename,
+	.renamex     = threadid_renamex,
 	.link        = threadid_link,
 	.chmod       = threadid_chmod,
 	.chown       = threadid_chown,

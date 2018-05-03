@@ -614,8 +614,9 @@ struct fuse_operations {
 			  void *, void *);
 	int (*reserved01)(void *, void *, void *, void *, void *, void *,
 			  void *, void *);
-	int (*reserved02)(void *, void *, void *, void *, void *, void *,
-			  void *, void *);
+	
+	/** Rename a file */
+	int (*renamex) (const char *, const char *, unsigned int);
 
 	int (*statfs_x) (const char *, struct statfs *);
 
@@ -887,6 +888,8 @@ int fuse_fs_fgetattr(struct fuse_fs *fs, const char *path, struct stat *buf,
 int fuse_fs_rename(struct fuse_fs *fs, const char *oldpath,
 		   const char *newpath);
 #ifdef __APPLE__
+int fuse_fs_renamex(struct fuse_fs *fs, const char *oldpath,
+		    const char *newpath, unsigned int flags);
 int fuse_fs_setvolname(struct fuse_fs *fs, const char *volname);
 int fuse_fs_exchange(struct fuse_fs *fs, const char *oldpath,
 		     const char *newpath, unsigned long flags);

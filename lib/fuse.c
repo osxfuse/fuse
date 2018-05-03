@@ -1722,6 +1722,21 @@ int fuse_fs_rename(struct fuse_fs *fs, const char *oldpath,
 
 #ifdef __APPLE__
 
+int fuse_fs_renamex(struct fuse_fs *fs, const char *oldpath,
+		    const char *newpath, unsigned int flags)
+{
+	fuse_get_context()->private_data = fs->user_data;
+	if (fs->op.renamex) {
+		if (fs->debug)
+			fprintf(stderr, "renamex %s %s flags: 0x%x\n", oldpath,
+				newpath, flags);
+		
+		return fs->op.renamex(oldpath, newpath, flags);
+	} else {
+		return -ENOSYS;
+	}
+}
+
 int fuse_fs_setvolname(struct fuse_fs *fs, const char *volname)
 {
 	fuse_get_context()->private_data = fs->user_data;
@@ -3449,6 +3464,47 @@ static void fuse_lib_rename(fuse_req_t req, fuse_ino_t olddir,
 
 #ifdef __APPLE__
 
+#define FUSE_RENAME_SWAP 0x00000002
+#define FUSE_RENAME_EXCL 0x00000004
+
+static void fuse_lib_renamex(fuse_req_t req, fuse_ino_t olddir,
+			     const char *oldname, fuse_ino_t newdir,
+			     const char *newname, unsigned int flags)
+{
+	struct fuse *f = req_fuse_prepare(req);
+	char *oldpath;
+	char *newpath;
+	struct node *wnode1;
+	struct node *wnode2;
+	int err;
+	
+	err = get_path2(f, olddir, oldname, newdir, newname,
+			&oldpath, &newpath, &wnode1, &wnode2);
+	if (!err) {
+		bool rename_swap = flags & FUSE_RENAME_SWAP == FUSE_RENAME_SWAP;
+		bool rename_excl = flags & FUSE_RENAME_EXCL == FUSE_RENAME_EXCL;
+		struct fuse_intr_data d;
+		err = 0;
+		fuse_prepare_interrupt(f, req, &d);
+		if (rename_excl && wnode2) {
+			err = EEXIST;
+		}
+		if (!err && !rename_swap && !f->conf.hard_remove
+		    && is_open(f, newdir, newname)) {
+			err = hide_node(f, newpath, newdir, newname);
+		}
+		if (!err) {
+			err = fuse_fs_renamex(f->fs, oldpath, newpath, flags);
+			if (!err && !rename_swap)
+				err = rename_node(f, olddir, oldname, newdir,
+						  newname, 0);
+		}
+		fuse_finish_interrupt(f, req, &d);
+		free_path2(f, olddir, newdir, wnode1, wnode2, oldpath, newpath);
+	}
+	reply_err(req, err);
+}
+
 static int exchange_node(struct fuse *f, fuse_ino_t olddir, const char *oldname,
 			 fuse_ino_t newdir, const char *newname,
 			 unsigned long options)
@@ -4768,6 +4824,7 @@ static struct fuse_lowlevel_ops fuse_path_ops = {
 	.poll = fuse_lib_poll,
 	.fallocate = fuse_lib_fallocate,
 #ifdef __APPLE__
+	.renamex = fuse_lib_renamex,
 	.setvolname = fuse_lib_setvolname,
 	.exchange = fuse_lib_exchange,
 	.getxtimes = fuse_lib_getxtimes,

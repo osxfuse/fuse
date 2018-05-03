@@ -186,6 +186,14 @@ static int volicon_rename(const char *from, const char *to)
 	return fuse_fs_rename(volicon_get()->next, from, to);
 }
 
+static int volicon_renamex(const char *from, const char *to, unsigned int flags)
+{
+	ERROR_IF_MAGIC_FILE(from, EACCES);
+	ERROR_IF_MAGIC_FILE(to, EACCES);
+
+	return fuse_fs_renamex(volicon_get()->next, from, to, flags);
+}
+
 static int
 volicon_link(const char *from, const char *to)
 {
@@ -690,6 +698,7 @@ static struct fuse_operations volicon_oper = {
 	.rmdir       = volicon_rmdir,
 	.symlink     = volicon_symlink,
 	.rename      = volicon_rename,
+	.renamex     = volicon_renamex,
 	.link        = volicon_link,
 	.chmod       = volicon_chmod,
 	.chown       = volicon_chown,
