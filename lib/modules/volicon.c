@@ -423,7 +423,7 @@ volicon_getxattr(const char *path, const char *name, char *value, size_t size,
 {
 	ERROR_IF_MAGIC_FILE(path, ENOATTR);
 
-	ssize_t res = 0;
+	int res = 0;
 
 	if ((strcmp(path, VOLICON_ROOT_MAGIC_PATH) == 0) &&
 	    (strcmp(name, XATTR_FINDERINFO_NAME) == 0)) {
@@ -436,8 +436,8 @@ volicon_getxattr(const char *path, const char *name, char *value, size_t size,
 			return -ERANGE;
 		}
 
-		res = fuse_fs_getxattr(volicon_get()->next, path, name, value, size,
-				       position);
+		res = fuse_fs_getxattr(volicon_get()->next, path, name, value,
+				       size, position);
 
 		if (res != XATTR_FINDERINFO_SIZE) {
 			memcpy(value, finder_info, XATTR_FINDERINFO_SIZE);
@@ -463,17 +463,24 @@ volicon_listxattr(const char *path, char *list, size_t size)
 {
 	ERROR_IF_MAGIC_FILE(path, 0);
 
-	ssize_t res = fuse_fs_listxattr(volicon_get()->next, path, list, size);
+	struct fuse_fs *next = volicon_get()->next;
+	int res = fuse_fs_listxattr(next, path, list, size);
 
 	if ((strcmp(path, VOLICON_ROOT_MAGIC_PATH) == 0)) {
 		int done = 0;
-		ssize_t sz = sizeof(XATTR_FINDERINFO_NAME);
 
 		if (res == -ENOSYS) {
 			res = 0;
 		}
 
 		if (!list) { /* size being queried */
+			ssize_t sz = 0;
+			int r = fuse_fs_getxattr(next, VOLICON_ROOT_MAGIC_PATH,
+						 XATTR_FINDERINFO_NAME, NULL, 0,
+						 0);
+			if (r < 0) {
+				sz += sizeof(XATTR_FINDERINFO_NAME);
+			}
 			if (res > 0) {
 				sz += res;
 			}
