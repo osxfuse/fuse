@@ -3086,6 +3086,7 @@ static void fuse_lib_setattr_x(fuse_req_t req, fuse_ino_t ino,
 	char *path;
 	int err;
 
+	memset(&buf, 0, sizeof(buf));
 	if ((f->fs->op.fsetattr_x || (!f->fs->op.setattr_x &&
 				      valid == FUSE_SET_ATTR_SIZE &&
 				      f->fs->op.ftruncate)) &&
