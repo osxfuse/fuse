@@ -160,6 +160,9 @@ struct fuse {
 	struct fuse_fs *fs;
 	int nullpath_ok;
 	int utime_omit_ok;
+#ifdef __APPLE__
+	int statfs_x_ok;
+#endif
 	struct lock_queue_element *lockq;
 	int pagesize;
 	struct list_head partial_slabs;
@@ -4075,10 +4078,10 @@ static void fuse_lib_statfs(fuse_req_t req, fuse_ino_t ino)
 		struct fuse_intr_data d;
 		fuse_prepare_interrupt(f, req, &d);
 #ifdef __APPLE__
-                if (f->fs->op.statfs_x)
+		if (f->statfs_x_ok)
 			err = fuse_fs_statfs_x(f->fs, path ? path : "/",
 					       &buf.statfs);
-                else
+		else
 #endif
 			err = fuse_fs_statfs(f->fs, path ? path : "/",
 					     &buf.statvfs);
@@ -4088,7 +4091,7 @@ static void fuse_lib_statfs(fuse_req_t req, fuse_ino_t ino)
 
 	if (!err)
 #ifdef __APPLE__
-                if (f->fs->op.statfs_x)
+                if (f->statfs_x_ok)
 			fuse_reply_statfs_x(req, &buf.statfs);
                 else
 #endif
@@ -5083,6 +5086,9 @@ static int fuse_push_module(struct fuse *f, const char *module,
 	f->nullpath_ok = newfs->op.flag_nullpath_ok && f->nullpath_ok;
 	f->conf.nopath = newfs->op.flag_nopath && f->conf.nopath;
 	f->utime_omit_ok = newfs->op.flag_utime_omit_ok && f->utime_omit_ok;
+#ifdef __APPLE__
+	f->statfs_x_ok = newfs->op.statfs_x != NULL && f->statfs_x_ok;
+#endif
 	return 0;
 }
 
@@ -5179,6 +5185,9 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	f->nullpath_ok = fs->op.flag_nullpath_ok;
 	f->conf.nopath = fs->op.flag_nopath;
 	f->utime_omit_ok = fs->op.flag_utime_omit_ok;
+#ifdef __APPLE__
+	f->statfs_x_ok = fs->op.statfs_x != NULL;
+#endif
 
 	/* Oh f**k, this is ugly! */
 	if (!fs->op.lock) {
