@@ -894,6 +894,36 @@ out_err:
 	return node;
 }
 
+static int lookup_path_in_cache(struct fuse *f, const char *path,
+				fuse_ino_t *inop)
+{
+	char *tmp = strdup(path);
+	if (!tmp)
+		return -ENOMEM;
+
+	pthread_mutex_lock(&f->lock);
+	fuse_ino_t ino = FUSE_ROOT_ID;
+
+	int err = 0;
+	char *save_ptr;
+	char *path_element = strtok_r(tmp, "/", &save_ptr);
+	while (path_element != NULL) {
+		struct node *node = lookup_node(f, ino, path_element);
+		if (node == NULL) {
+			err = -ENOENT;
+			break;
+		}
+		ino = node->nodeid;
+		path_element = strtok_r(NULL, "/", &save_ptr);
+	}
+	pthread_mutex_unlock(&f->lock);
+	free(tmp);
+
+	if (!err)
+		*inop = ino;
+	return err;
+}
+
 static char *add_name(char **buf, unsigned *bufsize, char *s, const char *name)
 {
 	size_t len = strlen(name);
@@ -1216,6 +1246,49 @@ static int get_path_wrlock(struct fuse *f, fuse_ino_t nodeid, const char *name,
 	return get_path_common(f, nodeid, name, path, wnode);
 }
 
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#define CHECK_DIR_LOOP
+#endif
+
+#if defined(CHECK_DIR_LOOP)
+static int check_dir_loop(struct fuse *f,
+			  fuse_ino_t nodeid1, const char *name1,
+			  fuse_ino_t nodeid2, const char *name2)
+{
+	struct node *node, *node1, *node2;
+	fuse_ino_t id1, id2;
+
+	node1 = lookup_node(f, nodeid1, name1);
+	id1 = node1 ? node1->nodeid : nodeid1;
+
+	node2 = lookup_node(f, nodeid2, name2);
+	id2 = node2 ? node2->nodeid : nodeid2;
+
+	for (node = get_node(f, id2); node->nodeid != FUSE_ROOT_ID;
+	     node = node->parent) {
+		if (node->name == NULL || node->parent == NULL)
+			break;
+
+		if (node->nodeid != id2 && node->nodeid == id1)
+			return -EINVAL;
+	}
+
+	if (node2)
+	{
+		for (node = get_node(f, id1); node->nodeid != FUSE_ROOT_ID;
+		     node = node->parent) {
+			if (node->name == NULL || node->parent == NULL)
+				break;
+
+			if (node->nodeid != id1 && node->nodeid == id2)
+				return -ENOTEMPTY;
+		}
+	}
+
+	return 0;
+}
+#endif
+
 static int try_get_path2(struct fuse *f, fuse_ino_t nodeid1, const char *name1,
 			 fuse_ino_t nodeid2, const char *name2,
 			 char **path1, char **path2,
@@ -1245,6 +1318,17 @@ static int get_path2(struct fuse *f, fuse_ino_t nodeid1, const char *name1,
 	int err;
 
 	pthread_mutex_lock(&f->lock);
+
+#if defined(CHECK_DIR_LOOP)
+	if (name1)
+	{
+		// called during rename; perform dir loop check
+		err = check_dir_loop(f, nodeid1, name1, nodeid2, name2);
+		if (err)
+			goto out_unlock;
+	}
+#endif
+
 	err = try_get_path2(f, nodeid1, name1, nodeid2, name2,
 			    path1, path2, wnode1, wnode2);
 	if (err == -EAGAIN) {
@@ -1265,6 +1349,10 @@ static int get_path2(struct fuse *f, fuse_ino_t nodeid1, const char *name1,
 		debug_path(f, "DEQUEUE PATH1", nodeid1, name1, !!wnode1);
 		debug_path(f, "        PATH2", nodeid2, name2, !!wnode2);
 	}
+
+#if defined(CHECK_DIR_LOOP)
+out_unlock:
+#endif
 	pthread_mutex_unlock(&f->lock);
 
 	return err;
@@ -2995,6 +3083,7 @@ static void fuse_lib_setattr_x(fuse_req_t req, fuse_ino_t ino,
 	char *path;
 	int err;
 
+	memset(&buf, 0, sizeof(buf));
 	if ((f->fs->op.fsetattr_x || (!f->fs->op.setattr_x &&
 				      valid == FUSE_SET_ATTR_SIZE &&
 				      f->fs->op.ftruncate)) &&
@@ -4915,6 +5004,18 @@ int fuse_getgroups(int size, gid_t list[])
 int fuse_interrupted(void)
 {
 	return fuse_req_interrupted(fuse_get_context_internal()->req);
+}
+
+int fuse_invalidate_path(struct fuse *f, const char *path)
+{
+	struct fuse_chan *ch = fuse_session_next_chan(f->se, NULL);
+	fuse_ino_t ino;
+
+	int err = lookup_path_in_cache(f, path, &ino);
+	if (err)
+		return err;
+
+	return fuse_lowlevel_notify_inval_inode(ch, ino, 0, 0);
 }
 
 void fuse_set_getcontext_func(struct fuse_context *(*func)(void))

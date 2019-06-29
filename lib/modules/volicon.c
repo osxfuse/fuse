@@ -61,6 +61,7 @@ struct volicon {
 	char *volicon_data;
 	off_t volicon_size;
 	uid_t volicon_uid;
+	time_t volicon_time;
 
 	struct fuse_fs *next;
 };
@@ -98,16 +99,16 @@ volicon_getattr(const char *path, struct stat *buf)
 	int res = 0;
 
 	if (volicon_is_icon_magic_file(path)) {
-
 		memset((void *)buf, 0, sizeof(struct stat));
 
-		buf->st_mode  = S_IFREG | 0444;
+		buf->st_mode = S_IFREG | 0444;
 		buf->st_nlink = 1;
-		buf->st_uid   = volicon_get()->volicon_uid;
+		buf->st_uid = volicon_get()->volicon_uid;
 		buf->st_gid = 0;
-		buf->st_size  = volicon_get()->volicon_size;
-		buf->st_atime = buf->st_ctime = buf->st_mtime = time(NULL);
-
+		buf->st_size = volicon_get()->volicon_size;
+		buf->st_atime = volicon_get()->volicon_time;
+		buf->st_ctime = buf->st_atime;
+		buf->st_mtime = buf->st_atime;
 	} else {
 		res = fuse_fs_getattr(volicon_get()->next, path, buf);
 	}
@@ -422,7 +423,7 @@ volicon_getxattr(const char *path, const char *name, char *value, size_t size,
 {
 	ERROR_IF_MAGIC_FILE(path, ENOATTR);
 
-	ssize_t res = 0;
+	int res = 0;
 
 	if ((strcmp(path, VOLICON_ROOT_MAGIC_PATH) == 0) &&
 	    (strcmp(name, XATTR_FINDERINFO_NAME) == 0)) {
@@ -435,8 +436,8 @@ volicon_getxattr(const char *path, const char *name, char *value, size_t size,
 			return -ERANGE;
 		}
 
-		res = fuse_fs_getxattr(volicon_get()->next, path, name, value, size,
-				       position);
+		res = fuse_fs_getxattr(volicon_get()->next, path, name, value,
+				       size, position);
 
 		if (res != XATTR_FINDERINFO_SIZE) {
 			memcpy(value, finder_info, XATTR_FINDERINFO_SIZE);
@@ -462,17 +463,24 @@ volicon_listxattr(const char *path, char *list, size_t size)
 {
 	ERROR_IF_MAGIC_FILE(path, 0);
 
-	ssize_t res = fuse_fs_listxattr(volicon_get()->next, path, list, size);
+	struct fuse_fs *next = volicon_get()->next;
+	int res = fuse_fs_listxattr(next, path, list, size);
 
 	if ((strcmp(path, VOLICON_ROOT_MAGIC_PATH) == 0)) {
 		int done = 0;
-		ssize_t sz = sizeof(XATTR_FINDERINFO_NAME);
 
 		if (res == -ENOSYS) {
 			res = 0;
 		}
 
 		if (!list) { /* size being queried */
+			ssize_t sz = 0;
+			int r = fuse_fs_getxattr(next, VOLICON_ROOT_MAGIC_PATH,
+						 XATTR_FINDERINFO_NAME, NULL, 0,
+						 0);
+			if (r < 0) {
+				sz += sizeof(XATTR_FINDERINFO_NAME);
+			}
 			if (res > 0) {
 				sz += res;
 			}
@@ -829,6 +837,7 @@ volicon_new(struct fuse_args *args, struct fuse_fs *next[])
 
 	d->volicon_size = sb.st_size;
 	d->volicon_uid = getuid();
+	d->volicon_time = time(NULL);
 
 	d->next = next[0];
 
