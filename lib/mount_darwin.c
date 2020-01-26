@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2017 Benjamin Fleischer
+ * Copyright (c) 2011-2020 Benjamin Fleischer
  *
  * Derived from mount_bsd.c from the FUSE distribution.
  *
@@ -467,8 +467,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
 	if (fuse_running_under_rosetta()) {
-		fprintf(stderr, "%s does not work under Rosetta\n",
-			OSXFUSE_DISPLAY_NAME);
+		fprintf(stderr, "fuse: does not work under Rosetta\n");
 		return -1;
 	}
 #endif

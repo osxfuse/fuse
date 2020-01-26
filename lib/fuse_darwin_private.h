@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2017 Benjamin Fleischer
+ * Copyright (c) 2011-2020 Benjamin Fleischer
  */
 
 #ifdef __APPLE__
@@ -14,19 +14,70 @@ extern "C" {
 
 #include "fuse_darwin.h"
 
-#include <fuse_param.h>
-#include <fuse_ioctl.h>
-#include <fuse_version.h>
-
 #include <pthread.h>
 #include <strhash.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/ioctl.h>
 #include <time.h>
-    
+
 #ifdef __cplusplus
 }
 #endif
+
+#ifndef FUSE_DEFAULT_USERKERNEL_BUFSIZE
+#  define FUSE_DEFAULT_USERKERNEL_BUFSIZE 33554432
+#endif
+
+#ifndef OSXFUSE_NDEVICES
+#  define OSXFUSE_NDEVICES 64
+#endif
+
+#ifndef OSXFUSE_DEVICE_BASENAME
+#  define OSXFUSE_DEVICE_BASENAME "osxfuse"
+#endif
+
+#ifndef OSXFUSE_MOUNT_PROG
+#  define OSXFUSE_MOUNT_PROG "/Library/Filesystems/osxfuse.fs/Contents/Resources/mount_osxfuse"
+#endif
+
+#ifndef OSXFUSE_VOLUME_ICON
+#  define OSXFUSE_VOLUME_ICON "/Library/Filesystems/osxfuse.fs/Contents/Resources/Volume.icns"
+#endif
+
+// Mark the daemon as dead
+#define FUSEDEVIOCSETDAEMONDEAD _IOW('F', 3,  u_int32_t)
+
+/*
+ * The "AVFI" (alter-vnode-for-inode) ioctls all require an inode number as an
+ * argument. In the user-space library, you can get the inode number from a
+ * path by using fuse_lookup_inode_by_path_np().
+ *
+ * To see an example of using this, see the implementation of
+ * fuse_purge_path_np() in lib/fuse_darwin.c.
+ */
+
+struct fuse_avfi_ioctl
+{
+    uint64_t inode;
+    uint64_t cmd;
+    uint32_t ubc_flags;
+    uint32_t note;
+    off_t    size;
+};
+
+// Alter the vnode (if any) specified by the given inode
+#define FUSEDEVIOCALTERVNODEFORINODE  _IOW('F', 6,  struct fuse_avfi_ioctl)
+#define FSCTLALTERVNODEFORINODE       IOCBASECMD(FUSEDEVIOCALTERVNODEFORINODE)
+
+/* Possible cmd values for AVFI */
+
+#define FUSE_AVFI_MARKGONE       0x00000001 // no ubc_flags
+#define FUSE_AVFI_PURGEATTRCACHE 0x00000002 // no ubc_flags
+#define FUSE_AVFI_PURGEVNCACHE   0x00000004 // no ubc_flags
+#define FUSE_AVFI_UBC            0x00000008 // uses ubc_flags
+#define FUSE_AVFI_UBC_SETSIZE    0x00000010 // uses ubc_flags, size
+#define FUSE_AVFI_KNOTE          0x00000020 // uses note
 
 /* Semaphores */
 
