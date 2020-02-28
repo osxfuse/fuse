@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2017 Benjamin Fleischer
+ * Copyright (c) 2011-2020 Benjamin Fleischer
  */
 
 #ifdef __APPLE__
@@ -14,14 +14,11 @@ extern "C" {
 
 #include "fuse_darwin.h"
 
-#include <fuse_param.h>
-#include <fuse_ioctl.h>
-#include <fuse_version.h>
-
 #include <pthread.h>
 #include <strhash.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/ioctl.h>
 #include <time.h>
 
 #include <DiskArbitration/DiskArbitration.h>
@@ -29,6 +26,29 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+#ifndef FUSE_DEFAULT_USERKERNEL_BUFSIZE
+#  define FUSE_DEFAULT_USERKERNEL_BUFSIZE 33554432
+#endif
+
+#ifndef OSXFUSE_NDEVICES
+#  define OSXFUSE_NDEVICES 64
+#endif
+
+#ifndef OSXFUSE_DEVICE_BASENAME
+#  define OSXFUSE_DEVICE_BASENAME "osxfuse"
+#endif
+
+#ifndef OSXFUSE_MOUNT_PROG
+#  define OSXFUSE_MOUNT_PROG "/Library/Filesystems/osxfuse.fs/Contents/Resources/mount_osxfuse"
+#endif
+
+#ifndef OSXFUSE_VOLUME_ICON
+#  define OSXFUSE_VOLUME_ICON "/Library/Filesystems/osxfuse.fs/Contents/Resources/Volume.icns"
+#endif
+
+// Mark the daemon as dead
+#define FUSEDEVIOCSETDAEMONDEAD _IOW('F', 3,  u_int32_t)
 
 /* Semaphores */
 
