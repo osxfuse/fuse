@@ -60,7 +60,7 @@ struct fuse_cmd;
  *
  * @param buf the buffer passed to the readdir() operation
  * @param name the file name of the directory entry
- * @param stat file attributes, can be NULL
+ * @param stbuf file attributes, can be NULL
  * @param off offset of the next entry or zero
  * @return 1 if buffer is full, zero otherwise
  */
