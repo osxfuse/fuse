@@ -2,8 +2,8 @@
 declare -r ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd -P)"
 declare -r VARIANTS_DIR="${ROOT_DIR}/variants"
 
-declare -r VERSION="3.10.4"
-declare -r COMMIT=844da56d0864cf3a522f58b475e10fd6e7e6ee5b
+declare -r VERSION="3.10.5"
+declare -r COMMIT=8d54048c015166c5a53f1026d91344443d1d9f30
 
 function main
 {
