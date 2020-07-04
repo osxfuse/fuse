@@ -54,7 +54,6 @@ if test "$enable_mtab" = "no"; then
 	AC_DEFINE(IGNORE_MTAB, 1, [Don't update /etc/mtab])
 fi
 if test "$arch" = darwin; then
-	AC_DEFINE(_DARWIN_USE_64_BIT_INODE, 1, [Enable 64 bit inode support])
 	AC_DEFINE(_POSIX_C_SOURCE, 200809L, [Build with POSIX-compliant stat structure])
 fi
 AC_CHECK_FUNCS([fork setxattr fdatasync splice vmsplice utimensat])
