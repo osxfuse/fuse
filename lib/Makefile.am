@@ -47,7 +47,7 @@ libfuse_la_SOURCES = 		\
 	$(iconv_source)		\
 	$(target_source)
 
-libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number 2:9:7
+libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number 2:9:9
 
 if !DARWIN
 libfuse_la_LDFLAGS += -Wl,--version-script,$(srcdir)/fuse_versionscript
