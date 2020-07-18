@@ -2721,13 +2721,8 @@ static const struct fuse_opt fuse_ll_opts[] = {
 
 static void fuse_ll_version(void)
 {
-#ifdef __APPLE__
-	fprintf(stderr, "using OSXFUSE kernel interface version %i.%i\n",
-		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
-#else
 	fprintf(stderr, "using FUSE kernel interface version %i.%i\n",
 		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
-#endif
 }
 
 static void fuse_ll_help(void)

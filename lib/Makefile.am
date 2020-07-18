@@ -1,35 +1,24 @@
 ## Process this file with automake to produce Makefile.in
 
-fuse_version_number=2:9:7
-
 AUTOMAKE_OPTIONS = subdir-objects
 AM_CPPFLAGS = -I$(top_srcdir)/include -DFUSERMOUNT_DIR=\"$(bindir)\" \
  -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=26
 
+lib_LTLIBRARIES = libfuse.la
+
 if DARWIN
 AM_CPPFLAGS += -O -gdwarf-2
-endif
-
-if DARWIN
-lib_LTLIBRARIES = libosxfuse.la
+target_source =            \
+    fuse_darwin.c        \
+    modules/threadid.c    \
+    modules/volicon.c    \
+    mount_darwin.c
 else
-lib_LTLIBRARIES = libfuse.la libulockmgr.la
-endif
-
+lib_LTLIBRARIES += libulockmgr.la
 if BSD
 target_source = mount_bsd.c
 else
-if DARWIN
-target_source =			\
-	fuse_darwin.c		\
-	modules/threadid.c	\
-	modules/volicon.c	\
-	mount_darwin.c
-else
-target_source =			\
-	mount.c			\
-	mount_util.c		\
-	mount_util.h
+target_source = mount.c mount_util.c mount_util.h
 endif
 endif
 
@@ -55,16 +44,13 @@ libfuse_la_SOURCES = 		\
 	cuse_lowlevel.c		\
 	helper.c		\
 	modules/subdir.c	\
-	$(target_source)	\
-	$(iconv_source)
+	$(iconv_source)		\
+	$(target_source)
 
+libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number 2:9:7
 
-if DARWIN
-libosxfuse_la_SOURCES = $(libfuse_la_SOURCES)
-libosxfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number)
-else
-libfuse_la_LDFLAGS = -pthread @libfuse_libs@ -version-number $(fuse_version_number) \
-	-Wl,--version-script,$(srcdir)/fuse_versionscript
+if !DARWIN
+libfuse_la_LDFLAGS += -Wl,--version-script,$(srcdir)/fuse_versionscript
 
 if NETBSD
 libfuse_la_LIBADD = -lperfuse -lpuffs

@@ -105,12 +105,6 @@ AM_CONDITIONAL(NETBSD, test "$arch" = netbsd)
 AM_CONDITIONAL(BSD, test "$arch" = bsd)
 AM_CONDITIONAL(DARWIN, test "$arch" = darwin)
 
-if test "$arch" = darwin; then
-	fuse_pc=osxfuse.pc
-else
-	fuse_pc=fuse.pc
-fi
-
 util_linux_ok=yes
 if test "$arch" = linux -a "$cross_compiling" != "yes"; then
 	AC_MSG_CHECKING([if umount supports --fake --no-canonicalize])
@@ -129,7 +123,7 @@ if test "$arch" = linux -a "$cross_compiling" != "yes"; then
 	fi
 fi
 
-AC_CONFIG_FILES([$fuse_pc Makefile lib/Makefile util/Makefile example/Makefile include/Makefile doc/Makefile])
+AC_CONFIG_FILES([fuse.pc Makefile lib/Makefile util/Makefile example/Makefile include/Makefile doc/Makefile])
 AC_OUTPUT
 
 if test "$util_linux_ok" = no; then

@@ -473,8 +473,8 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
 	memset(&mo, 0, sizeof(mo));
 
-	/* to notify mount_osxfuse it's called from lib */
-	setenv("MOUNT_OSXFUSE_CALL_BY_LIB", "1", 1);
+	/* to notify mount_macfuse it's called from lib */
+	setenv("MOUNT_MACFUSE_CALL_BY_LIB", "1", 1);
 
 	if (args &&
 		fuse_opt_parse(args, &mo, fuse_mount_opts, fuse_mount_opt_proc) == -1) {

@@ -12,8 +12,6 @@
 extern "C" {
 #endif
 
-#include "fuse_darwin.h"
-
 #include <pthread.h>
 #include <strhash.h>
 #include <stdbool.h>
@@ -36,15 +34,15 @@ extern "C" {
 #endif
 
 #ifndef OSXFUSE_DEVICE_BASENAME
-#  define OSXFUSE_DEVICE_BASENAME "osxfuse"
+#  define OSXFUSE_DEVICE_BASENAME "macfuse"
 #endif
 
 #ifndef OSXFUSE_MOUNT_PROG
-#  define OSXFUSE_MOUNT_PROG "/Library/Filesystems/osxfuse.fs/Contents/Resources/mount_osxfuse"
+#  define OSXFUSE_MOUNT_PROG "/Library/Filesystems/macfuse.fs/Contents/Resources/mount_macfuse"
 #endif
 
 #ifndef OSXFUSE_VOLUME_ICON
-#  define OSXFUSE_VOLUME_ICON "/Library/Filesystems/osxfuse.fs/Contents/Resources/Volume.icns"
+#  define OSXFUSE_VOLUME_ICON "/Library/Filesystems/macfuse.fs/Contents/Resources/Volume.icns"
 #endif
 
 // Mark the daemon as dead
@@ -100,6 +98,8 @@ typedef fuse_sem_t sem_t;
 #  define LOCK_NB         0x04            /* don't block when locking */
 #  define LOCK_UN         0x08            /* unlock file */
 #endif /* !LOCK_SH */
+
+const char *osxfuse_version(void);
 
 char *fuse_resource_path(const char *path);
 
