@@ -21,6 +21,7 @@ static char testname[256];
 static char testdata[] = "abcdefghijklmnopqrstuvwxyz";
 static char testdata2[] = "1234567890-=qwertyuiop[]\asdfghjkl;'zxcvbnm,./";
 static const char *testdir_files[] = { "f1", "f2", NULL};
+static long seekdir_offsets[4];
 static char zerodata[4096];
 static int testdatalen = sizeof(testdata) - 1;
 static int testdata2len = sizeof(testdata2) - 1;
@@ -79,6 +80,8 @@ static void __start_test(const char *fmt, ...)
 
 #define PERROR(msg) test_perror(__FUNCTION__, msg)
 #define ERROR(msg, args...) test_error(__FUNCTION__, msg, ##args)
+
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 static int check_size(const char *path, int len)
 {
@@ -642,6 +645,63 @@ static int test_ftruncate(int len, int mode)
 
 	success();
 	return 0;
+}
+
+static int test_seekdir(void)
+{
+	int i;
+	int res;
+	DIR *dp;
+	struct dirent *de;
+
+	start_test("seekdir");
+	res = create_dir(testdir, testdir_files);
+	if (res == -1)
+		return res;
+
+	dp = opendir(testdir);
+	if (dp == NULL) {
+		PERROR("opendir");
+		return -1;
+	}
+
+	/* Remember dir offsets */
+	for (i = 0; i < ARRAY_SIZE(seekdir_offsets); i++) {
+		seekdir_offsets[i] = telldir(dp);
+		errno = 0;
+		de = readdir(dp);
+		if (de == NULL) {
+			if (errno) {
+				PERROR("readdir");
+				goto fail;
+			}
+			break;
+		}
+	}
+
+	/* Walk until the end of directory */
+	while (de)
+		de = readdir(dp);
+
+	/* Start from the last valid dir offset and seek backwards */
+	for (i--; i >= 0; i--) {
+		seekdir(dp, seekdir_offsets[i]);
+		de = readdir(dp);
+		if (de == NULL) {
+			ERROR("Unexpected end of directory after seekdir()");
+			goto fail;
+		}
+	}
+
+	closedir(dp);
+	res = cleanup_dir(testdir, testdir_files, 0);
+	if (!res)
+		success();
+	return res;
+fail:
+	closedir(dp);
+	cleanup_dir(testdir, testdir_files, 1);
+	return -1;
 }
 
 static int test_utime(void)
@@ -1270,6 +1330,221 @@ static int test_rename_dir(void)
 	return 0;
 }
 
+static int test_rename_dir_loop(void)
+{
+#define PATH(p)		(snprintf(path, sizeof path, "%s/%s", testdir, p), path)
+#define PATH2(p)	(snprintf(path2, sizeof path2, "%s/%s", testdir, p), path2)
+
+	char path[1024], path2[1024];
+	int err = 0;
+	int res;
+
+	start_test("rename dir loop");
+
+	res = create_dir(testdir, testdir_files);
+	if (res == -1)
+		return -1;
+
+	res = mkdir(PATH("a"), 0755);
+	if (res == -1) {
+		PERROR("mkdir");
+		goto fail;
+	}
+
+	res = rename(PATH("a"), PATH2("a"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	errno = 0;
+	res = rename(PATH("a"), PATH2("a/b"));
+	if (res == 0 || errno != EINVAL) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = mkdir(PATH("a/b"), 0755);
+	if (res == -1) {
+		PERROR("mkdir");
+		goto fail;
+	}
+
+	res = mkdir(PATH("a/b/c"), 0755);
+	if (res == -1) {
+		PERROR("mkdir");
+		goto fail;
+	}
+
+	errno = 0;
+	res = rename(PATH("a"), PATH2("a/b/c"));
+	if (res == 0 || errno != EINVAL) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	errno = 0;
+	res = rename(PATH("a"), PATH2("a/b/c/a"));
+	if (res == 0 || errno != EINVAL) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	errno = 0;
+	res = rename(PATH("a/b/c"), PATH2("a"));
+	if (res == 0 || errno != ENOTEMPTY) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = open(PATH("a/foo"), O_CREAT, 0644);
+	if (res == -1) {
+		PERROR("open");
+		goto fail;
+	}
+	close(res);
+
+	res = rename(PATH("a/foo"), PATH2("a/bar"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = rename(PATH("a/bar"), PATH2("a/foo"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = rename(PATH("a/foo"), PATH2("a/b/bar"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = rename(PATH("a/b/bar"), PATH2("a/foo"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = rename(PATH("a/foo"), PATH2("a/b/c/bar"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = rename(PATH("a/b/c/bar"), PATH2("a/foo"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = open(PATH("a/bar"), O_CREAT, 0644);
+	if (res == -1) {
+		PERROR("open");
+		goto fail;
+	}
+	close(res);
+
+	res = rename(PATH("a/foo"), PATH2("a/bar"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	unlink(PATH("a/bar"));
+
+	res = rename(PATH("a/b"), PATH2("a/d"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = rename(PATH("a/d"), PATH2("a/b"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = mkdir(PATH("a/d"), 0755);
+	if (res == -1) {
+		PERROR("mkdir");
+		goto fail;
+	}
+
+	res = rename(PATH("a/b"), PATH2("a/d"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = rename(PATH("a/d"), PATH2("a/b"));
+	if (res == -1) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	res = mkdir(PATH("a/d"), 0755);
+	if (res == -1) {
+		PERROR("mkdir");
+		goto fail;
+	}
+
+	res = mkdir(PATH("a/d/e"), 0755);
+	if (res == -1) {
+		PERROR("mkdir");
+		goto fail;
+	}
+
+	errno = 0;
+	res = rename(PATH("a/b"), PATH2("a/d"));
+	if (res == 0 || errno != ENOTEMPTY) {
+		PERROR("rename");
+		goto fail;
+	}
+
+	rmdir(PATH("a/d/e"));
+	rmdir(PATH("a/d"));
+
+ 	rmdir(PATH("a/b/c"));
+	rmdir(PATH("a/b"));
+	rmdir(PATH("a"));
+
+	err += cleanup_dir(testdir, testdir_files, 0);
+	res = rmdir(testdir);
+	if (res == -1) {
+		PERROR("rmdir");
+		goto fail;
+	}
+	res = check_nonexist(testdir);
+	if (res == -1)
+		return -1;
+	if (err)
+		return -1;
+
+	success();
+	return 0;
+
+fail:
+	unlink(PATH("a/bar"));
+
+	rmdir(PATH("a/d/e"));
+	rmdir(PATH("a/d"));
+ 
+ 	rmdir(PATH("a/b/c"));
+	rmdir(PATH("a/b"));
+	rmdir(PATH("a"));
+
+	cleanup_dir(testdir, testdir_files, 1);
+	rmdir(testdir);
+
+	return -1;
+
+#undef PATH2
+#undef PATH
+}
+
 static int test_mkfifo(void)
 {
 	int res;
@@ -1425,6 +1700,8 @@ int main(int argc, char *argv[])
 	err += test_mkdir();
 	err += test_rename_file();
 	err += test_rename_dir();
+	err += test_rename_dir_loop();
+	err += test_seekdir();
 	err += test_utime();
 	err += test_truncate(0);
 	err += test_truncate(testdatalen / 2);

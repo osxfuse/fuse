@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2016 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #include "config.h"
@@ -29,6 +29,11 @@
 #include <limits.h>
 #include <errno.h>
 #include <sys/param.h>
+
+#ifdef __APPLE__
+#  include <CoreFoundation/CoreFoundation.h>
+#  include <DiskArbitration/DiskArbitration.h>
+#endif
 
 enum  {
 	KEY_HELP,
@@ -90,12 +95,7 @@ static void helper_help(void)
 
 static void helper_version(void)
 {
-#ifdef __APPLE__
-	fprintf(stderr, "OSXFUSE %s\nFUSE library version: %s\n",
-		OSXFUSE_VERSION, PACKAGE_VERSION);
-#else
 	fprintf(stderr, "FUSE library version: %s\n", PACKAGE_VERSION);
-#endif
 }
 
 static int fuse_helper_opt_proc(void *data, const char *arg, int key,
@@ -243,10 +243,6 @@ int fuse_daemonize(int foreground)
 		write(waiter[1], &completed, sizeof(completed));
 		close(waiter[0]);
 		close(waiter[1]);
-
-#ifdef __APPLE__
-		did_daemonize = 1;
-#endif
 	}
 	return 0;
 }
@@ -256,6 +252,10 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 {
 	struct fuse_chan *ch;
 	int fd;
+
+#ifdef __APPLE__
+	DADiskRef disk;
+#endif
 
 	/*
 	 * Make sure file descriptors 0, 1 and 2 are open, otherwise chaos
@@ -271,10 +271,28 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 	if (fd == -1)
 		return NULL;
 
+#ifdef __APPLE__
+	{
+		CFURLRef url = CFURLCreateFromFileSystemRepresentation(
+			NULL, (const UInt8 *)mountpoint, strlen(mountpoint),
+			TRUE);
+		disk = DADiskCreateFromVolumePath(NULL, fuse_dasession, url);
+		CFRelease(url);
+	}
+#endif
+	
 	ch = fuse_kern_chan_new(fd);
 	if (!ch)
+#ifndef __APPLE__
 		fuse_kern_unmount(mountpoint, fd);
-
+#else
+		fuse_kern_unmount(disk, fd);
+	else
+		fuse_chan_set_disk(ch, disk);
+	
+	CFRelease(disk);
+#endif
+	
 	return ch;
 }
 
@@ -284,13 +302,37 @@ struct fuse_chan *fuse_mount(const char *mountpoint, struct fuse_args *args)
 }
 
 static void fuse_unmount_common(const char *mountpoint, struct fuse_chan *ch)
-{
+{	
+#ifdef __APPLE__
+	int fd = ch ? fuse_chan_fd(ch) : -1;
+	DADiskRef disk = NULL;
+
+	if (mountpoint) {
+		CFURLRef url = CFURLCreateFromFileSystemRepresentation(
+			NULL, (const UInt8 *)mountpoint, strlen(mountpoint),
+			TRUE);
+		disk = DADiskCreateFromVolumePath(NULL, fuse_dasession, url);
+		CFRelease(url);
+	} else if (ch) {
+		disk = fuse_chan_disk(ch);
+		if (disk)
+			CFRetain(disk);
+	}
+
+	fuse_kern_unmount(disk, fd);
+
+	if (disk)
+		CFRelease(disk);
+	else if (ch)
+		fuse_chan_destroy(ch);
+#else /* __APPLE__ */
 	if (mountpoint) {
 		int fd = ch ? fuse_chan_clearfd(ch) : -1;
 		fuse_kern_unmount(mountpoint, fd);
 		if (ch)
 			fuse_chan_destroy(ch);
 	}
+#endif /* __APPLE__ */
 }
 
 void fuse_unmount(const char *mountpoint, struct fuse_chan *ch)
@@ -370,7 +412,11 @@ static void fuse_teardown_common(struct fuse *fuse, char *mountpoint)
 	struct fuse_session *se = fuse_get_session(fuse);
 	struct fuse_chan *ch = fuse_session_next_chan(se, NULL);
 	fuse_remove_signal_handlers(se);
+#if __APPLE__
+	fuse_unmount_common(NULL, ch);
+#else
 	fuse_unmount_common(mountpoint, ch);
+#endif
 	fuse_destroy(fuse);
 	free(mountpoint);
 }

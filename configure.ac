@@ -1,4 +1,4 @@
-AC_INIT(fuse, 2.9.7)
+AC_INIT(fuse, 2.9.9)
 
 AC_PREREQ(2.59d)
 AC_CONFIG_MACRO_DIR([m4])
@@ -54,7 +54,7 @@ if test "$enable_mtab" = "no"; then
 	AC_DEFINE(IGNORE_MTAB, 1, [Don't update /etc/mtab])
 fi
 if test "$arch" = darwin; then
-	AC_DEFINE(_POSIX_C_SOURCE, 200809L, [Define to 200809L to build with POSIX-compliant stat structure])
+	AC_DEFINE(_POSIX_C_SOURCE, 200809L, [Build with POSIX-compliant stat structure])
 fi
 AC_CHECK_FUNCS([fork setxattr fdatasync splice vmsplice utimensat])
 AC_CHECK_FUNCS([posix_fallocate])
@@ -77,6 +77,9 @@ AC_ARG_WITH([libiconv-prefix],
 AM_ICONV
 libfuse_libs="$libfuse_libs $LTLIBICONV"
 AM_CONDITIONAL(ICONV, test "$am_cv_func_iconv" = yes)
+if test "$arch" = darwin; then
+    libfuse_libs="$libfuse_libs -framework CoreFoundation -framework DiskArbitration"
+fi
 AC_SUBST(libfuse_libs)
 
 if test -z "$MOUNT_FUSE_PATH"; then
@@ -102,12 +105,6 @@ AM_CONDITIONAL(NETBSD, test "$arch" = netbsd)
 AM_CONDITIONAL(BSD, test "$arch" = bsd)
 AM_CONDITIONAL(DARWIN, test "$arch" = darwin)
 
-if test "$arch" = darwin; then
-	fuse_pc=osxfuse.pc
-else
-	fuse_pc=fuse.pc
-fi
-
 util_linux_ok=yes
 if test "$arch" = linux -a "$cross_compiling" != "yes"; then
 	AC_MSG_CHECKING([if umount supports --fake --no-canonicalize])
@@ -126,7 +123,7 @@ if test "$arch" = linux -a "$cross_compiling" != "yes"; then
 	fi
 fi
 
-AC_CONFIG_FILES([$fuse_pc Makefile lib/Makefile util/Makefile example/Makefile include/Makefile doc/Makefile])
+AC_CONFIG_FILES([fuse.pc Makefile lib/Makefile util/Makefile example/Makefile include/Makefile doc/Makefile])
 AC_OUTPUT
 
 if test "$util_linux_ok" = no; then

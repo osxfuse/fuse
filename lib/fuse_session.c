@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #include "fuse_i.h"
@@ -25,12 +25,20 @@
 #  include <sys/param.h>
 #endif
 
+#ifdef __APPLE__
+#  include <CoreFoundation/CoreFoundation.h>
+#endif
+
 struct fuse_chan {
 	struct fuse_chan_ops op;
 
 	struct fuse_session *se;
 
 	int fd;
+
+#ifdef __APPLE__
+	DADiskRef disk;
+#endif
 
 	size_t bufsize;
 
@@ -185,6 +193,29 @@ struct fuse_chan *fuse_chan_new_compat24(struct fuse_chan_ops_compat24 *op,
 				    data, 24);
 }
 
+#ifdef __APPLE__
+
+DADiskRef fuse_chan_disk(struct fuse_chan *ch)
+{
+	return ch->disk;
+}
+
+void fuse_chan_set_disk(struct fuse_chan *ch, DADiskRef disk)
+{
+	if (ch->disk)
+		CFRelease(ch->disk);
+	if (disk)
+		CFRetain(disk);
+	ch->disk = disk;
+}
+
+void fuse_chan_cleardisk(struct fuse_chan *ch)
+{
+	fuse_chan_set_disk(ch, NULL);
+}
+
+#endif /* __APPLE__ */
+
 int fuse_chan_fd(struct fuse_chan *ch)
 {
 	return ch->fd;
@@ -240,6 +271,10 @@ void fuse_chan_destroy(struct fuse_chan *ch)
 	fuse_session_remove_chan(ch);
 	if (ch->op.destroy)
 		ch->op.destroy(ch);
+#ifdef __APPLE__
+	if (ch->disk)
+		CFRelease(ch->disk);
+#endif
 	free(ch);
 }
 

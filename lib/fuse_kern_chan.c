@@ -60,6 +60,7 @@ restart:
 		fprintf(stderr, "short read on fuse device\n");
 		return -EIO;
 	}
+
 	return res;
 }
 

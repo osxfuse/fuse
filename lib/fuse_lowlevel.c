@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #define _GNU_SOURCE
@@ -85,7 +85,7 @@ static void convert_stat(const struct stat *stbuf, struct fuse_attr *attr)
 	attr->ctimensec = ST_CTIM_NSEC(stbuf);
 #ifdef __APPLE__
 	attr->flags	= stbuf->st_flags;
-#ifdef _DARWIN_USE_64_BIT_INODE
+#ifdef _DARWIN_FEATURE_64_BIT_INODE
 	attr->crtime	= stbuf->st_birthtime;
 	attr->crtimensec= (uint32_t)(stbuf->st_birthtimensec);
 #else
@@ -2116,6 +2116,10 @@ static void do_destroy(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	if (f->op.destroy)
 		f->op.destroy(f->userdata);
 
+#ifdef __APPLE__
+	fuse_chan_cleardisk(req->ch);
+#endif
+
 	send_reply_ok(req, NULL, 0);
 }
 
@@ -2726,13 +2730,8 @@ static const struct fuse_opt fuse_ll_opts[] = {
 
 static void fuse_ll_version(void)
 {
-#ifdef __APPLE__
-	fprintf(stderr, "using OSXFUSE kernel interface version %i.%i\n",
-		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
-#else
 	fprintf(stderr, "using FUSE kernel interface version %i.%i\n",
 		FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
-#endif
 }
 
 static void fuse_ll_help(void)

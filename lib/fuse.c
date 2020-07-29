@@ -97,9 +97,6 @@ struct fuse_fs {
 	void *user_data;
 	int compat;
 	int debug;
-#ifdef __APPLE__
-	struct fuse *fuse;
-#endif
 };
 
 struct fusemod_so {
@@ -1249,6 +1246,49 @@ static int get_path_wrlock(struct fuse *f, fuse_ino_t nodeid, const char *name,
 	return get_path_common(f, nodeid, name, path, wnode);
 }
 
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#define CHECK_DIR_LOOP
+#endif
+
+#if defined(CHECK_DIR_LOOP)
+static int check_dir_loop(struct fuse *f,
+			  fuse_ino_t nodeid1, const char *name1,
+			  fuse_ino_t nodeid2, const char *name2)
+{
+	struct node *node, *node1, *node2;
+	fuse_ino_t id1, id2;
+
+	node1 = lookup_node(f, nodeid1, name1);
+	id1 = node1 ? node1->nodeid : nodeid1;
+
+	node2 = lookup_node(f, nodeid2, name2);
+	id2 = node2 ? node2->nodeid : nodeid2;
+
+	for (node = get_node(f, id2); node->nodeid != FUSE_ROOT_ID;
+	     node = node->parent) {
+		if (node->name == NULL || node->parent == NULL)
+			break;
+
+		if (node->nodeid != id2 && node->nodeid == id1)
+			return -EINVAL;
+	}
+
+	if (node2)
+	{
+		for (node = get_node(f, id1); node->nodeid != FUSE_ROOT_ID;
+		     node = node->parent) {
+			if (node->name == NULL || node->parent == NULL)
+				break;
+
+			if (node->nodeid != id1 && node->nodeid == id2)
+				return -ENOTEMPTY;
+		}
+	}
+
+	return 0;
+}
+#endif
+
 static int try_get_path2(struct fuse *f, fuse_ino_t nodeid1, const char *name1,
 			 fuse_ino_t nodeid2, const char *name2,
 			 char **path1, char **path2,
@@ -1278,6 +1318,17 @@ static int get_path2(struct fuse *f, fuse_ino_t nodeid1, const char *name1,
 	int err;
 
 	pthread_mutex_lock(&f->lock);
+
+#if defined(CHECK_DIR_LOOP)
+	if (name1)
+	{
+		// called during rename; perform dir loop check
+		err = check_dir_loop(f, nodeid1, name1, nodeid2, name2);
+		if (err)
+			goto out_unlock;
+	}
+#endif
+
 	err = try_get_path2(f, nodeid1, name1, nodeid2, name2,
 			    path1, path2, wnode1, wnode2);
 	if (err == -EAGAIN) {
@@ -1298,6 +1349,10 @@ static int get_path2(struct fuse *f, fuse_ino_t nodeid1, const char *name1,
 		debug_path(f, "DEQUEUE PATH1", nodeid1, name1, !!wnode1);
 		debug_path(f, "        PATH2", nodeid2, name2, !!wnode2);
 	}
+
+#if defined(CHECK_DIR_LOOP)
+out_unlock:
+#endif
 	pthread_mutex_unlock(&f->lock);
 
 	return err;
@@ -2696,7 +2751,7 @@ static void curr_time(struct timespec *now)
 		perror("fuse: clock_gettime");
 		abort();
 	}
-#endif /* !(_POSIX_TIMERS > 0) */
+#endif /* _POSIX_TIMERS > 0 */
 }
 
 static void update_stat(struct node *node, const struct stat *stbuf)
@@ -3043,6 +3098,7 @@ static void fuse_lib_setattr_x(fuse_req_t req, fuse_ino_t ino,
 	char *path;
 	int err;
 
+	memset(&buf, 0, sizeof(buf));
 	if ((f->fs->op.fsetattr_x || (!f->fs->op.setattr_x &&
 				      valid == FUSE_SET_ATTR_SIZE &&
 				      f->fs->op.ftruncate)) &&
@@ -4007,10 +4063,14 @@ static int fill_dir(void *dh_, const char *name, const struct stat *statp,
 	}
 
 	if (off) {
+		if (dh->filled) {
+			dh->error = -EIO;
+			return 1;
+		}
+
 		if (extend_contents(dh, dh->needlen) == -1)
 			return 1;
 
-		dh->filled = 0;
 		newlen = dh->len +
 			fuse_add_direntry(dh->req, dh->contents + dh->len,
 					  dh->needlen - dh->len, name,
@@ -4018,6 +4078,8 @@ static int fill_dir(void *dh_, const char *name, const struct stat *statp,
 		if (newlen > dh->needlen)
 			return 1;
 	} else {
+		dh->filled = 1;
+
 		newlen = dh->len +
 			fuse_add_direntry(dh->req, NULL, 0, name, NULL, 0);
 		if (extend_contents(dh, newlen) == -1)
@@ -4047,7 +4109,7 @@ static int readdir_fill(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
 		dh->len = 0;
 		dh->error = 0;
 		dh->needlen = size;
-		dh->filled = 1;
+		dh->filled = 0;
 		dh->req = req;
 		fuse_prepare_interrupt(f, req, &d);
 		err = fuse_fs_readdir(f->fs, path, dh, fill_dir, off, fi);
@@ -5004,7 +5066,9 @@ int fuse_getgroups(int size, gid_t list[])
 
 int fuse_interrupted(void)
 {
-	return fuse_req_interrupted(fuse_get_context_internal()->req);
+	struct fuse_context_i *c = fuse_get_context_internal();
+
+	return c->req ? fuse_req_interrupted(c->req) : 0;
 }
 
 int fuse_invalidate_path(struct fuse *f, const char *path)
@@ -5211,9 +5275,6 @@ struct fuse_fs *fuse_fs_new(const struct fuse_operations *op, size_t op_size,
 	}
 
 	fs->user_data = user_data;
-#ifdef __APPLE__
-	fs->fuse = NULL;
-#endif
 	if (op)
 		memcpy(&fs->op, op, op_size);
 	return fs;
@@ -5451,11 +5512,6 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	inc_nlookup(root);
 	hash_id(f, root);
 
-#ifdef __APPLE__
-	f->fs->fuse = f;
-	fuse_set_fuse_internal_np(fuse_chan_fd(ch), f);
-#endif
-
 	return f;
 
 out_free_root:
@@ -5493,10 +5549,6 @@ struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
 void fuse_destroy(struct fuse *f)
 {
 	size_t i;
-
-#ifdef __APPLE__
-	fuse_unset_fuse_internal_np(f);
-#endif
 
 	if (f->conf.intr && f->intr_installed)
 		fuse_restore_intr_signal(f->conf.intr_signal);
@@ -5568,126 +5620,6 @@ void fuse_register_module(struct fuse_module *mod)
 	mod->next = fuse_modules;
 	fuse_modules = mod;
 }
-
-#ifdef __APPLE__
-
-struct find_mountpoint_arg {
-	struct fuse *fuse;
-	const char *mountpoint;
-};
-
-static int
-find_mountpoint_helper(const char *mountpoint, struct mount_info *mi,
-		       struct find_mountpoint_arg *arg)
-{
-	if (mi->fuse == arg->fuse) {
-		arg->mountpoint = mountpoint;
-		return 0;
-	}
-
-	return 1;
-}
-
-const char *
-fuse_mountpoint_for_fs_np(struct fuse_fs *fs)
-{
-	if (!fs) {
-		return (const char *)0;
-	}
-
-	struct find_mountpoint_arg arg;
-
-	arg.fuse = fs->fuse;
-	arg.mountpoint = NULL;
-
-	pthread_mutex_lock(&mount_lock);
-	hash_traverse(mount_hash, (int(*)())find_mountpoint_helper, &arg);
-	pthread_mutex_unlock(&mount_lock);
-
-	return arg.mountpoint;
-}
-
-struct fuse *
-fuse_get_internal_np(const char *mountpoint)
-{
-	struct fuse *fuse = NULL;
-	if (mountpoint) {
-		pthread_mutex_lock(&mount_lock);
-		struct mount_info *mi =
-		hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
-		if (mi) {
-			fuse = mi->fuse;
-			pthread_mutex_lock(&fuse->lock);
-		}
-		pthread_mutex_unlock(&mount_lock);
-	}
-	return fuse;
-}
-
-void
-fuse_put_internal_np(struct fuse *fuse)
-{
-	if (fuse) {
-		pthread_mutex_unlock(&fuse->lock);
-	}
-}
-
-fuse_ino_t
-fuse_lookup_inode_internal_np(const char *mountpoint, const char *path)
-{
-	fuse_ino_t ino = 0; /* invalid */
-	fuse_ino_t parent_ino = FUSE_ROOT_ID;
-	char scratch[MAXPATHLEN];
-
-	if (!path) {
-		return ino;
-	}
-
-	if (*path != '/') {
-		return ino;
-	}
-
-	strncpy(scratch, path + 1, sizeof(scratch));
-	char* p = scratch;
-	char* q = p; /* First (and maybe last) path component */
-
-	struct node *node = NULL;
-
-	struct fuse *f = fuse_get_internal_np(mountpoint);
-	if (f == NULL) {
-		return ino;
-	}
-
-	while (p) {
-		p = strchr(p, '/');
-		if (p) {
-			*p = '\0'; /* Terminate string for use by q */
-			++p;	   /* One past the NULL (or former '/') */
-		}
-		if (*q == '.' && *(q+1) == '\0') {
-			fuse_put_internal_np(f);
-			goto out;
-		}
-		if (*q) { /* ignore consecutive '/'s */
-			node = lookup_node(f, parent_ino, q);
-			if (!node) {
-				fuse_put_internal_np(f);
-				goto out;
-			}
-			parent_ino = node->nodeid;
-		}
-		q = p;
-	}
-	if (node) {
-		ino = node->nodeid;
-	}
-	fuse_put_internal_np(f);
-
-out:
-	return ino;
-}
-
-#endif /* __APPLE__ */
 
 #if !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__APPLE__)
 

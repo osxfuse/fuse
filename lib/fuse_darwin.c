@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
  * Copyright (c) 2012 Anatol Pomozov
- * Copyright (c) 2011-2015 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #include "fuse_i.h"
@@ -19,6 +19,8 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include <CoreFoundation/CoreFoundation.h>
 
 /*
  * Semaphore implementation based on:
@@ -327,190 +329,9 @@ fuse_resource_path(const char *path)
     return resource_path;
 }
 
-static int
-schedule_umount(char* mountpoint, struct mount_info* mi, void* arg)
-{
-	int fd;
-	pid_t pid;
-
-	fd = mi->fd;
-	pid = fork();
-	if (pid == 0) { /* child */
-		fcntl(fd, F_SETFD, 1); /* close-on-exec */
-		execl("/sbin/umount", "/sbin/umount", mountpoint, NULL);
-	} else {
-		/* We do nothing in the parent. */
-	}
-	return 1;  /* Keep processing mountpoints. */
-}
-
-void
-fuse_exit_handler_internal_np(void)
-{
-	pthread_mutex_lock(&mount_lock);
-	hash_traverse(mount_hash, (int(*)())schedule_umount, NULL);
-	pthread_mutex_unlock(&mount_lock);
-}
-
-int
-fuse_remove_signal_handlers_internal_np(void)
-{
-	int res = 0;
-	pthread_mutex_lock(&mount_lock);
-	if (mount_count > 1) {
-		/* Leave signal handlers up if we have > 1 mouned fs. */
-		res = -1;
-	}
-	pthread_mutex_unlock(&mount_lock);
-	return res;
-}
-
-static int
-set_fuse_helper(char *mountpoint, struct mount_info *mi, struct mount_info *arg)
-{
-	if (mi->fd == arg->fd) {
-		mi->fuse = arg->fuse;
-		return 0;
-	}
-	return 1;
-}
-
-static int
-unset_fuse_helper(char *mountpoint, struct mount_info *mi, struct fuse *f)
-{
-	if (mi->fuse == f) {
-		mi->fuse = NULL;
-		return 0;
-	}
-	return 1;
-}
-
-void
-fuse_set_fuse_internal_np(int fd, struct fuse *f)
-{
-	struct mount_info mi;
-
-	mi.fd = fd;
-	mi.fuse = f;
-
-	pthread_mutex_lock(&mount_lock);
-	hash_traverse(mount_hash, (int(*)())set_fuse_helper, &mi);
-	pthread_mutex_unlock(&mount_lock);
-}
-
-void
-fuse_unset_fuse_internal_np(struct fuse *f)
-{
-	pthread_mutex_lock(&mount_lock);
-	hash_traverse(mount_hash, (int(*)())unset_fuse_helper, f);
-	pthread_mutex_unlock(&mount_lock);
-}
-
-int
-fuse_device_fd_np(const char *mountpoint)
-{
-	int fd = -1;
-	pthread_mutex_lock(&mount_lock);
-	struct mount_info* mi =
-        hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
-	if (mi != NULL) {
-		fd = mi->fd;
-	}
-	pthread_mutex_unlock(&mount_lock);
-	return fd;
-}
-
-/*
- * Note: fuse_purge_np is deprecated and will be removed in a future release.
- *
- * Use fuse_lowlevel_notify_inval_inode instead.
- */
-int
-fuse_purge_np(const char *mountpoint, const char *path, off_t *newsize)
-{
-	(void) newsize;
-	
-	struct fuse_avfi_ioctl avfi;
-	fuse_ino_t ino = 0;
-	struct fuse *f;
-	struct fuse_chan *ch = NULL;
-
-	if (!path) {
-		return EINVAL;
-	}
-
-	ino = fuse_lookup_inode_internal_np(mountpoint, path);
-	if (ino == 0) { /* invalid */
-		return ENOENT;
-	}
-
-	f = fuse_get_internal_np(mountpoint);
-	if (f) {
-		struct fuse_session *se = fuse_get_session(f);
-		ch = fuse_session_next_chan(se, NULL);
-		fuse_put_internal_np(f);
-	}
-	if (!ch) {
-		return ENXIO;
-	}
-
-	return fuse_lowlevel_notify_inval_inode(ch, ino, 0, 0);
-}
-
-/*
- * Note: fuse_knote_np is deprecated and will be removed in a future release.
- *
- * In Mac OS X 10.5 the file system implementation is responsible for posting
- * kqueue events. Starting with Mac OS X 10.6 the VFS layer takes over the job.
- */
-int
-fuse_knote_np(const char *mountpoint, const char *path, uint32_t note)
-{
-	struct fuse_avfi_ioctl avfi;
-	fuse_ino_t ino = 0;
-	int fd = -1;
-
-	if (!path) {
-		return EINVAL;
-	}
-
-	ino = fuse_lookup_inode_internal_np(mountpoint, path);
-	if (ino == 0) { /* invalid */
-		return ENOENT;
-	}
-
-	fd = fuse_device_fd_np(mountpoint);
-	if (fd < 0) {
-		return ENXIO;
-	}
-
-	avfi.inode = ino;
-	avfi.cmd = FUSE_AVFI_KNOTE;
-	avfi.ubc_flags = 0;
-	avfi.note = note;
-	avfi.size = 0;
-
-	return ioctl(fd, FUSEDEVIOCALTERVNODEFORINODE, (void *)&avfi);
-}
-
 /********************/
 
-#ifdef MACFUSE_MODE
-static bool osxfuse_macfuse_mode = false;
-
-void osxfuse_enable_macfuse_mode(bool arg) {
-	osxfuse_macfuse_mode = arg;
-}
-
-bool osxfuse_is_macfuse_mode_enabled() {
-	return osxfuse_macfuse_mode;
-}
-#endif
-
-pthread_mutex_t mount_lock;
-hash_table     *mount_hash;
-int             mount_count;
-int             did_daemonize;
+DASessionRef fuse_dasession;
 
 static void fuse_lib_constructor(void) __attribute__((constructor));
 static void fuse_lib_destructor(void)  __attribute__((destructor));
@@ -518,24 +339,12 @@ static void fuse_lib_destructor(void)  __attribute__((destructor));
 static void
 fuse_lib_constructor(void)
 {
-	pthread_mutex_init(&mount_lock, NULL);
-	mount_hash = hash_create(OSXFUSE_NDEVICES);
-	mount_count = 0;
-	did_daemonize = 0;
-}
-
-static void
-mount_hash_purge_helper(char *key, void *value)
-{
-	free(key);
-	free(value);
+	fuse_dasession = DASessionCreate(NULL);
 }
 
 static void
 fuse_lib_destructor(void)
 {
-	hash_purge(mount_hash, mount_hash_purge_helper);
-	free(mount_hash);
-	mount_hash = NULL;
-	mount_count = 0;
+	CFRelease(fuse_dasession);
+	fuse_dasession = NULL;
 }

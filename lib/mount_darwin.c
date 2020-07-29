@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2017 Benjamin Fleischer
+ * Copyright (c) 2011-2020 Benjamin Fleischer
  *
  * Derived from mount_bsd.c from the FUSE distribution.
  *
@@ -15,7 +15,6 @@
 #include "fuse_opt.h"
 #include "fuse_darwin_private.h"
 
-#include <AvailabilityMacros.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libproc.h>
@@ -36,62 +35,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#ifdef MACFUSE_MODE
-#define OSXFUSE_MACFUSE_MODE_ENV "OSXFUSE_MACFUSE_MODE"
-#endif
+#include <DiskArbitration/DiskArbitration.h>
 
 static int quiet_mode = 0;
-
-long
-fuse_os_version_major_np(void)
-{
-	int ret = 0;
-	long major = 0;
-	char *c = NULL;
-	struct utsname u;
-	size_t oldlen;
-
-	oldlen = sizeof(u.release);
-
-	ret = sysctlbyname("kern.osrelease", u.release, &oldlen, NULL, 0);
-	if (ret != 0) {
-		return -1;
-	}
-
-	c = strchr(u.release, '.');
-	if (c == NULL) {
-		return -1;
-	}
-
-	*c = '\0';
-
-	errno = 0;
-	major = strtol(u.release, NULL, 10);
-	if ((errno == EINVAL) || (errno == ERANGE)) {
-		return -1;
-	}
-
-	return major;
-}
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
-
-int
-fuse_running_under_rosetta(void)
-{
-	int result = 0;
-	int is_native = 1;
-	size_t sz = sizeof(result);
-
-	int ret = sysctlbyname("sysctl.proc_native", &result, &sz, NULL, (size_t)0);
-	if ((ret == 0) && !result) {
-		is_native = 0;
-	}
-
-	return !is_native;
-}
-
-#endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1070 */
 
 enum {
 	KEY_ALLOW_ROOT,
@@ -212,6 +158,7 @@ static const struct fuse_opt fuse_mount_opts[] = {
 	FUSE_OPT_KEY("noappledouble",	      KEY_KERN),
 	FUSE_OPT_KEY("noapplexattr",	      KEY_KERN),
 	FUSE_OPT_KEY("noattrcache",	      KEY_KERN),
+	FUSE_OPT_KEY("noautonotify",	      KEY_KERN),
 	FUSE_OPT_KEY("nobrowse",	      KEY_KERN),
 	FUSE_OPT_KEY("nolocalcaches",	      KEY_KERN),
 	FUSE_OPT_KEY("noping_diskarb",	      KEY_IGNORED),
@@ -321,58 +268,40 @@ fuse_mount_opt_proc(void *data, const char *arg, int key,
 	return 1;
 }
 
-static void
-mount_hash_purge_helper(char *key, void *data)
-{
-	free(key);
-	free(data);
-}
-
 void
-fuse_kern_unmount(const char *mountpoint, int fd)
+fuse_kern_unmount(DADiskRef disk, int fd)
 {
 	struct stat sbuf;
 	char dev[128];
 	char *ep, *rp = NULL, *umount_cmd;
 
-	unsigned int hs_complete = 0;
-
-	pthread_mutex_lock(&mount_lock);
-	if ((mount_count > 0) && mountpoint) {
-		struct mount_info* mi =
-		hash_search(mount_hash, (char *)mountpoint, NULL, NULL);
-		if (mi) {
-			hash_destroy(mount_hash, (char *)mountpoint,
-				     mount_hash_purge_helper);
-			--mount_count;
-		}
-	}
-	pthread_mutex_unlock(&mount_lock);
-
-	if (fd == -1) {
+	if (!disk) {
+		/*
+		 * Filesystem has already been unmounted, all we need to do is
+		 * make sure fd is closed.
+		 */
+		if (fd != -1)
+			close(fd);
 		return;
 	}
 
 	if (fstat(fd, &sbuf) == -1) {
-		goto out;
+		return;
 	}
 
 	devname_r(sbuf.st_rdev, S_IFCHR, dev, 128);
 
 	if (strncmp(dev, OSXFUSE_DEVICE_BASENAME,
 		    sizeof(OSXFUSE_DEVICE_BASENAME) - 1)) {
-		goto out;
+		return;
 	}
 
 	strtol(dev + sizeof(OSXFUSE_DEVICE_BASENAME) - 1, &ep, 10);
 	if (*ep != '\0') {
-		goto out;
+		return;
 	}
 
-	(void)unmount(mountpoint, 0);
-
-out:
-	close(fd);
+	DADiskUnmount(disk, kDADiskUnmountOptionDefault, NULL, NULL);
 }
 
 void
@@ -380,27 +309,6 @@ fuse_unmount_compat22(const char *mountpoint)
 {
 	(void)unmount(mountpoint, 0);
 }
-
-#if MAC_OS_X_VERSION_MAX_ALLOWED <= 1050
-
-#define FUSE_ALIGNBYTES32 (sizeof(__uint32_t) - 1)
-#define FUSE_ALIGN32(p) \
-	((__darwin_size_t)((char *)(__darwin_size_t)(p) + FUSE_ALIGNBYTES32) \
-	 & ~FUSE_ALIGNBYTES32)
-
-#define FUSE_CMSG_DATA(cmsg) \
-	((unsigned char *)(cmsg) + FUSE_ALIGN32(sizeof(struct cmsghdr)))
-#define FUSE_CMSG_SPACE(l) \
-	(FUSE_ALIGN32(sizeof(struct cmsghdr)) + FUSE_ALIGN32(l))
-#define FUSE_CMSG_LEN(l) (FUSE_ALIGN32(sizeof(struct cmsghdr)) + (l))
-
-#else /* MAC_OS_X_VERSION_MAX_ALLOWED <= 1050 */
-
-#define FUSE_CMSG_DATA(cmsg) CMSG_DATA(cmsg)
-#define FUSE_CMSG_SPACE(l) CMSG_SPACE(l)
-#define FUSE_CMSG_LEN(l) CMSG_LEN(l)
-
-#endif /* MAC_OS_X_VERSION_MAX_ALLOWED <= 1050 */
 
 /* return value:
  * >= 0	 => fd
@@ -412,7 +320,7 @@ static int receive_fd(int sock_fd)
 	struct iovec iov;
 	char buf[1];
 	size_t rv;
-	char ccmsg[FUSE_CMSG_SPACE(sizeof(int))];
+	char ccmsg[CMSG_SPACE(sizeof(int))];
 	struct cmsghdr *cmsg;
 	int fd;
 
@@ -444,7 +352,7 @@ static int receive_fd(int sock_fd)
 		return -1;
 	}
 
-	memcpy(&fd, FUSE_CMSG_DATA(cmsg), sizeof(fd));
+	memcpy(&fd, CMSG_DATA(cmsg), sizeof(fd));
 	return fd;
 }
 
@@ -463,14 +371,6 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 		fprintf(stderr, "missing or invalid mount point\n");
 		return -1;
 	}
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
-	if (fuse_running_under_rosetta()) {
-		fprintf(stderr, "%s does not work under Rosetta\n",
-			OSXFUSE_DISPLAY_NAME);
-		return -1;
-	}
-#endif
 
 	signal(SIGCHLD, SIG_DFL); /* So that we can wait4() below. */
 
@@ -573,14 +473,8 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 
 	memset(&mo, 0, sizeof(mo));
 
-	/* to notify mount_osxfuse it's called from lib */
-	setenv("MOUNT_OSXFUSE_CALL_BY_LIB", "1", 1);
-
-#ifdef MACFUSE_MODE
-	if (osxfuse_is_macfuse_mode_enabled()) {
-		setenv(OSXFUSE_MACFUSE_MODE_ENV, "1", 1);
-	}
-#endif
+	/* to notify mount_macfuse it's called from lib */
+	setenv("MOUNT_MACFUSE_CALL_BY_LIB", "1", 1);
 
 	if (args &&
 		fuse_opt_parse(args, &mo, fuse_mount_opts, fuse_mount_opt_proc) == -1) {
@@ -667,33 +561,7 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 		}
 	}
 
-	pthread_mutex_lock(&mount_lock);
-	if (hash_search(mount_hash, (char *)mountpoint, NULL, NULL) != NULL) {
-		fprintf(stderr, "fuse: attempt to remount on active mount point: %s",
-			mountpoint);
-		goto out_unlock;
-	}
-	if (did_daemonize && mount_count > 0) {
-		fprintf(stderr, "fuse: attempt to multi-mount after daemonized: %s",
-			mountpoint);
-		goto out_unlock;
-	}
-	struct mount_info *mi = calloc(1, sizeof(struct mount_info));
-	if (!mi) {
-		goto out_unlock;
-	}
-
 	res = fuse_mount_core(mountpoint, mo.kernel_opts);
-	if (res < 0) {
-		free(mi);
-	} else {
-		mi->fd = res;
-		hash_search(mount_hash, (char *)mountpoint, mi, NULL);
-		++mount_count;
-	}
-
-out_unlock:
-	pthread_mutex_unlock(&mount_lock);
 
 out:
 	free(mo.kernel_opts);

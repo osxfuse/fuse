@@ -60,7 +60,7 @@ struct fuse_cmd;
  *
  * @param buf the buffer passed to the readdir() operation
  * @param name the file name of the directory entry
- * @param stat file attributes, can be NULL
+ * @param stbuf file attributes, can be NULL
  * @param off offset of the next entry or zero
  * @return 1 if buffer is full, zero otherwise
  */
@@ -291,7 +291,7 @@ struct fuse_operations {
 	 * this method should check if opendir is permitted for this
 	 * directory. Optionally opendir may also return an arbitrary
 	 * filehandle in the fuse_file_info structure, which will be
-	 * passed to readdir, closedir and fsyncdir.
+	 * passed to readdir, releasedir and fsyncdir.
 	 *
 	 * Introduced in version 2.3
 	 */

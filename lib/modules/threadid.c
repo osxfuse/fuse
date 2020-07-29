@@ -1,5 +1,5 @@
 /*
- * Per-thread override identity support for OSXFUSE.
+ * Per-thread override identity support for macFUSE.
  *
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
  *

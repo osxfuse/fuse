@@ -5,12 +5,11 @@ noinst_HEADERS = fioc.h
 noinst_PROGRAMS = fusexmp fusexmp_fh null hello hello_ll fioc fioclient \
 		  fsel fselclient cusexmp
 
-if DARWIN
-AM_CPPFLAGS += -D_DARWIN_USE_64_BIT_INODE
-LDADD = ../lib/libosxfuse.la
-fusexmp_fh_LDADD = ../lib/libosxfuse.la
-else
 LDADD = ../lib/libfuse.la
+
+if DARWIN
+fusexmp_fh_LDADD = ../lib/libfuse.la
+else
 fusexmp_fh_LDADD = ../lib/libfuse.la ../lib/libulockmgr.la
 endif
 

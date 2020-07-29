@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2012 Benjamin Fleischer
+ * Copyright (c) 2011-2017 Benjamin Fleischer
  */
 
 #ifndef _FUSE_LOWLEVEL_H_
@@ -39,6 +39,7 @@
 
 #ifdef __APPLE__
 #  include <sys/mount.h>
+#  include <DiskArbitration/DiskArbitration.h>
 #endif
 
 #ifdef __cplusplus
@@ -115,7 +116,14 @@ struct fuse_entry_param {
 	double entry_timeout;
 };
 
-/** Additional context associated with requests */
+/**
+ * Additional context associated with requests.
+ *
+ * Note that the reported client uid, gid and pid may be zero in some
+ * situations. For example, if the FUSE file system is running in a
+ * PID or user namespace but then accessed from outside the namespace,
+ * there is no valid uid/pid/gid that could be reported.
+ */
 struct fuse_ctx {
 	/** User ID of the calling process */
 	uid_t uid;
@@ -1854,6 +1862,25 @@ struct fuse_chan *fuse_chan_new(struct fuse_chan_ops *op, int fd,
  * @return the file descriptor passed to fuse_chan_new()
  */
 int fuse_chan_fd(struct fuse_chan *ch);
+
+#ifdef __APPLE__
+
+/**
+ * Query the disk of the channel
+ *
+ * @param ch the channel
+ * @return the disk set by fuse_mount()
+ */
+DADiskRef fuse_chan_disk(struct fuse_chan *ch);
+
+/**
+ * Clear the disk of the channel after the filesystem has been unmounted
+ *
+ * @param ch the channel
+ */
+void fuse_chan_cleardisk(struct fuse_chan *ch);
+
+#endif /* __APPLE__ */
 
 /**
  * Query the minimal receive buffer size
