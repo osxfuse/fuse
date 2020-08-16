@@ -1482,6 +1482,72 @@ out:
 	return err;
 }
 
+#ifdef __APPLE__
+
+static int swap_nodes(struct fuse *f, fuse_ino_t dir1, const char *name1,
+		      fuse_ino_t dir2, const char *name2)
+{
+	struct node *node1;
+	struct node *node2;
+	int err = 0;
+
+	pthread_mutex_lock(&f->lock);
+	node1 = lookup_node(f, dir1, name1);
+	node2 = lookup_node(f, dir2, name2);
+	if (node1 == NULL || node2 == NULL)
+		goto out;
+
+	unhash_name(f, node1);
+	unhash_name(f, node2);
+	if (hash_name(f, node1, dir2, name2) == -1 ||
+	    hash_name(f, node2, dir1, name1) == -1) {
+		err = -ENOMEM;
+		goto out;
+	}
+
+out:
+	pthread_mutex_unlock(&f->lock);
+	return err;
+}
+
+static int exchange_node(struct fuse *f, fuse_ino_t dir1, const char *name1,
+			 fuse_ino_t dir2, const char *name2)
+{
+	struct node *node1;
+	struct node *node2;
+	off_t tmpsize;
+	struct timespec tmpspec;
+	int err = 0;
+
+	pthread_mutex_lock(&f->lock);
+	node1 = lookup_node(f, dir1, name1);
+	node2 = lookup_node(f, dir2, name2);
+	if (node1 == NULL || node2 == NULL)
+		goto out;
+
+	tmpsize = node1->size;
+	node1->size = node2->size;
+	node2->size = tmpsize;
+
+	tmpspec.tv_sec = node1->mtime.tv_sec;
+	tmpspec.tv_nsec = node1->mtime.tv_nsec;
+	node1->mtime.tv_sec = node2->mtime.tv_sec;
+	node1->mtime.tv_nsec = node2->mtime.tv_nsec;
+	node2->mtime.tv_sec = tmpspec.tv_sec;
+	node2->mtime.tv_nsec = tmpspec.tv_nsec;
+
+	node1->cache_valid = node2->cache_valid = 0;
+
+	curr_time(&node1->stat_updated);
+	curr_time(&node2->stat_updated);
+
+out:
+	pthread_mutex_unlock(&f->lock);
+	return err;
+}
+
+#endif /* __APPLE__ */
+
 static void set_stat(struct fuse *f, fuse_ino_t nodeid, struct stat *stbuf)
 {
 	if (!f->conf.use_ino)
@@ -3523,82 +3589,43 @@ static void fuse_lib_rename(fuse_req_t req, fuse_ino_t olddir,
 #define FUSE_RENAME_SWAP 0x00000002
 #define FUSE_RENAME_EXCL 0x00000004
 
-static void fuse_lib_renamex(fuse_req_t req, fuse_ino_t olddir,
-			     const char *oldname, fuse_ino_t newdir,
-			     const char *newname, unsigned int flags)
+static void fuse_lib_renamex(fuse_req_t req, fuse_ino_t dir1, const char *name1,
+			     fuse_ino_t dir2, const char *name2,
+			     unsigned int flags)
 {
 	struct fuse *f = req_fuse_prepare(req);
-	char *oldpath;
-	char *newpath;
+	char *path1;
+	char *path2;
 	struct node *wnode1;
 	struct node *wnode2;
 	int err;
 	
-	err = get_path2(f, olddir, oldname, newdir, newname,
-			&oldpath, &newpath, &wnode1, &wnode2);
+	err = get_path2(f, dir1, name1, dir2, name2, &path1, &path2, &wnode1,
+			&wnode2);
 	if (!err) {
-		bool rename_swap = flags & FUSE_RENAME_SWAP == FUSE_RENAME_SWAP;
-		bool rename_excl = flags & FUSE_RENAME_EXCL == FUSE_RENAME_EXCL;
 		struct fuse_intr_data d;
 		err = 0;
 		fuse_prepare_interrupt(f, req, &d);
-		if (rename_excl && wnode2) {
+		if ((flags & FUSE_RENAME_EXCL) && wnode2)
 			err = EEXIST;
-		}
-		if (!err && !rename_swap && !f->conf.hard_remove
-		    && is_open(f, newdir, newname)) {
-			err = hide_node(f, newpath, newdir, newname);
-		}
+		if (!err && !(flags & FUSE_RENAME_SWAP) && !f->conf.hard_remove
+		    && is_open(f, dir2, name2))
+			err = hide_node(f, path2, dir2, name2);
 		if (!err) {
-			err = fuse_fs_renamex(f->fs, oldpath, newpath, flags);
-			if (!err && !rename_swap)
-				err = rename_node(f, olddir, oldname, newdir,
-						  newname, 0);
+			err = fuse_fs_renamex(f->fs, path1, path2, flags);
+			if (!err) {
+				if (flags & FUSE_RENAME_SWAP)
+					err = swap_nodes(f, dir1, name1, dir2,
+							 name2);
+				else
+					err = rename_node(f, dir1, name1, dir2,
+							  name2, 0);
+			}
 		}
 		fuse_finish_interrupt(f, req, &d);
-		free_path2(f, olddir, newdir, wnode1, wnode2, oldpath, newpath);
+		free_path2(f, dir1, dir2, wnode1, wnode2, path1, path2);
 	}
 	reply_err(req, err);
-}
-
-static int exchange_node(struct fuse *f, fuse_ino_t olddir, const char *oldname,
-			 fuse_ino_t newdir, const char *newname,
-			 unsigned long options)
-{
-	struct node *node;
-	struct node *newnode;
-	int err = 0;
-
-	pthread_mutex_lock(&f->lock);
-	node  = lookup_node(f, olddir, oldname);
-	newnode	 = lookup_node(f, newdir, newname);
-	if (node == NULL)
-		goto out;
-
-	if (newnode != NULL) {
-		off_t tmpsize;
-		struct timespec tmpspec;
-
-		tmpsize = node->size;
-		node->size = newnode->size;
-		newnode->size = tmpsize;
-
-		tmpspec.tv_sec = node->mtime.tv_sec;
-		tmpspec.tv_nsec = node->mtime.tv_nsec;
-		node->mtime.tv_sec = newnode->mtime.tv_sec;
-		node->mtime.tv_nsec = newnode->mtime.tv_nsec;
-		newnode->mtime.tv_sec = tmpspec.tv_sec;
-		newnode->mtime.tv_nsec = tmpspec.tv_nsec;
-
-		node->cache_valid = newnode->cache_valid = 0;
-
-		curr_time(&node->stat_updated);
-		curr_time(&newnode->stat_updated);
-	}
-
-out:
-	pthread_mutex_unlock(&f->lock);
-	return err;
 }
 
 static void fuse_lib_setvolname(fuse_req_t req, const char *volname)
@@ -3616,37 +3643,30 @@ static void fuse_lib_setvolname(fuse_req_t req, const char *volname)
 	reply_err(req, err);
 }
 
-static void fuse_lib_exchange(fuse_req_t req, fuse_ino_t olddir,
-			      const char *oldname, fuse_ino_t newdir,
-			      const char *newname, unsigned long options)
+static void fuse_lib_exchange(fuse_req_t req, fuse_ino_t dir1,
+			      const char *name1, fuse_ino_t dir2,
+			      const char *name2, unsigned long options)
 {
 	struct fuse *f = req_fuse_prepare(req);
-	char *oldpath;
-	char *newpath;
+	char *path1;
+	char *path2;
+	struct node *wnode1;
+	struct node *wnode2;
 	int err;
 
-	err = get_path_name(f, olddir, oldname, &oldpath);
+	err = get_path2(f, dir1, name1, dir2, name2, &path1, &path2, &wnode1,
+			&wnode2);
 	if (!err) {
-		err = get_path_name(f, newdir, newname, &newpath);
-		if (!err) {
-			struct fuse_intr_data d;
-			if (f->conf.debug)
-				fprintf(stderr, "EXCHANGE %s -> %s\n", oldpath,
-					newpath);
-			err = 0;
-			fuse_prepare_interrupt(f, req, &d);
-			if (!err) {
-				err = fuse_fs_exchange(f->fs, oldpath, newpath,
-						       options);
-				if (!err)
-					err = exchange_node(f, olddir, oldname,
-							    newdir, newname,
-							    options);
-			}
-			fuse_finish_interrupt(f, req, &d);
-			free_path(f, newdir, newpath);
-		}
-		free_path(f, olddir, oldpath);
+		struct fuse_intr_data d;
+		err = 0;
+		fuse_prepare_interrupt(f, req, &d);
+		if (f->conf.debug)
+			fprintf(stderr, "EXCHANGE %s <-> %s\n", path1, path2);
+		err = fuse_fs_exchange(f->fs, path1, path2, options);
+		if (!err)
+			err = exchange_node(f, dir1, name1, dir2, name2);
+		fuse_finish_interrupt(f, req, &d);
+		free_path2(f, dir1, dir2, wnode1, wnode2, path1, path2);
 	}
 	reply_err(req, err);
 }
