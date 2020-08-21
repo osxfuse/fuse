@@ -2965,6 +2965,8 @@ void fuse_fs_init(struct fuse_fs *fs, struct fuse_conn_info *conn)
 	if (!fs->op.flock)
 		conn->want &= ~FUSE_CAP_FLOCK_LOCKS;
 #ifdef __APPLE__
+	if (!fs->op.renamex)
+		conn->want &= ~(FUSE_CAP_RENAME_SWAP | FUSE_CAP_RENAME_EXCL);
 	if (!fs->op.fallocate)
 		conn->want &= ~FUSE_CAP_ALLOCATE;
 	if (!fs->op.exchange)
@@ -3586,8 +3588,12 @@ static void fuse_lib_rename(fuse_req_t req, fuse_ino_t olddir,
 
 #ifdef __APPLE__
 
-#define FUSE_RENAME_SWAP 0x00000002
-#define FUSE_RENAME_EXCL 0x00000004
+#ifndef RENAME_SWAP
+#  define RENAME_SWAP 0x00000002
+#endif
+#ifndef RENAME_EXCL
+#  define RENAME_EXCL 0x00000004
+#endif
 
 static void fuse_lib_renamex(fuse_req_t req, fuse_ino_t dir1, const char *name1,
 			     fuse_ino_t dir2, const char *name2,
@@ -3606,15 +3612,15 @@ static void fuse_lib_renamex(fuse_req_t req, fuse_ino_t dir1, const char *name1,
 		struct fuse_intr_data d;
 		err = 0;
 		fuse_prepare_interrupt(f, req, &d);
-		if ((flags & FUSE_RENAME_EXCL) && wnode2)
+		if ((flags & RENAME_EXCL) && wnode2)
 			err = EEXIST;
-		if (!err && !(flags & FUSE_RENAME_SWAP) && !f->conf.hard_remove
+		if (!err && !(flags & RENAME_SWAP) && !f->conf.hard_remove
 		    && is_open(f, dir2, name2))
 			err = hide_node(f, path2, dir2, name2);
 		if (!err) {
 			err = fuse_fs_renamex(f->fs, path1, path2, flags);
 			if (!err) {
-				if (flags & FUSE_RENAME_SWAP)
+				if (flags & RENAME_SWAP)
 					err = swap_nodes(f, dir1, name1, dir2,
 							 name2);
 				else

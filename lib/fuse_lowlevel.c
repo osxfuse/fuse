@@ -1292,11 +1292,23 @@ static void do_symlink(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 static void do_rename(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 {
 	struct fuse_rename_in *arg = (struct fuse_rename_in *) inarg;
-	char *oldname = PARAM(arg);
-	char *newname = oldname + strlen(oldname) + 1;
+	char *oldname;
+	char *newname;
 
 #ifdef __APPLE__
-	if (arg->flags != 0) {
+	/*
+	 * Older versions of macFUSE implement ABI 7.19, but do not support
+	 * renamex_np(2). Check for FUSE_CAP_RENAME_SWAP.
+	 */
+	if (!(req->f->conn.capable & FUSE_CAP_RENAME_SWAP)) {
+		oldname = ((char *) arg) + FUSE_COMPAT_RENAME_IN_SIZE;
+	} else
+#endif /* __APPLE__ */
+	oldname = PARAM(arg);
+	newname = oldname + strlen(oldname) + 1;
+
+#ifdef __APPLE__
+	if ((req->f->conn.capable & FUSE_CAP_RENAME_SWAP) && arg->flags != 0) {
 		if (req->f->op.renamex)
 			req->f->op.renamex(req, nodeid, oldname, arg->newdir,
 					   newname, arg->flags);
@@ -1975,6 +1987,10 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		if (arg->flags & FUSE_FLOCK_LOCKS)
 			f->conn.capable |= FUSE_CAP_FLOCK_LOCKS;
 #ifdef __APPLE__
+		if (arg->flags & FUSE_RENAME_SWAP)
+			f->conn.capable |= FUSE_CAP_RENAME_SWAP;
+		if (arg->flags & FUSE_RENAME_EXCL)
+			f->conn.capable |= FUSE_CAP_RENAME_EXCL;
 		if (arg->flags & FUSE_ALLOCATE)
 			f->conn.capable |= FUSE_CAP_ALLOCATE;
 		if (arg->flags & FUSE_EXCHANGE_DATA)
@@ -2017,6 +2033,8 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	if (f->big_writes)
 		f->conn.want |= FUSE_CAP_BIG_WRITES;
 #ifdef __APPLE__
+	if (f->op.renamex)
+		f->conn.want |= FUSE_CAP_RENAME_SWAP | FUSE_CAP_RENAME_EXCL;
 	if (f->op.fallocate)
 		f->conn.want |= FUSE_CAP_ALLOCATE;
 	if (f->op.exchange)
@@ -2063,6 +2081,10 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	if (f->conn.want & FUSE_CAP_FLOCK_LOCKS)
 		outarg.flags |= FUSE_FLOCK_LOCKS;
 #ifdef __APPLE__
+	if (f->conn.want & FUSE_CAP_RENAME_SWAP)
+		outarg.flags |= FUSE_RENAME_SWAP;
+	if (f->conn.want & FUSE_CAP_RENAME_EXCL)
+		outarg.flags |= FUSE_RENAME_EXCL;
 	if (f->conn.want & FUSE_CAP_ALLOCATE)
 		outarg.flags |= FUSE_ALLOCATE;
 	if (f->conn.want & FUSE_CAP_EXCHANGE_DATA)

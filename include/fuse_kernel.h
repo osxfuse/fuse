@@ -227,6 +227,8 @@ struct fuse_file_lock {
 #define FUSE_DONT_MASK		(1 << 6)
 #define FUSE_FLOCK_LOCKS	(1 << 10)
 #ifdef __APPLE__
+#  define FUSE_RENAME_SWAP	(1 << 25)
+#  define FUSE_RENAME_EXCL	(1 << 26)
 #  define FUSE_ALLOCATE		(1 << 27)
 #  define FUSE_EXCHANGE_DATA	(1 << 28)
 #  define FUSE_CASE_INSENSITIVE	(1 << 29)
@@ -434,6 +436,10 @@ struct fuse_mkdir_in {
 	__u32	mode;
 	__u32	umask;
 };
+
+#ifdef __APPLE__
+#  define FUSE_COMPAT_RENAME_IN_SIZE 8
+#endif
 
 struct fuse_rename_in {
 	__u64	newdir;
