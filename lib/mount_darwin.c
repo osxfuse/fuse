@@ -420,7 +420,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 			fcntl(fds[0], F_SETFD, 0);
 
 			if (proc_pidpath(getpid(), daemon_path, PROC_PIDPATHINFO_MAXSIZE)) {
-				setenv("MOUNT_OSXFUSE_DAEMON_PATH", daemon_path, 1);
+				setenv("_FUSE_DAEMON_PATH", daemon_path, 1);
 			}
 
 			snprintf(commfd, sizeof(commfd), "%i", fds[0]);
@@ -474,7 +474,7 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 	memset(&mo, 0, sizeof(mo));
 
 	/* to notify mount_macfuse it's called from lib */
-	setenv("MOUNT_MACFUSE_CALL_BY_LIB", "1", 1);
+	setenv("_FUSE_CALL_BY_LIB", "1", 1);
 
 	if (args &&
 		fuse_opt_parse(args, &mo, fuse_mount_opts, fuse_mount_opt_proc) == -1) {
