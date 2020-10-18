@@ -124,7 +124,13 @@ void fuse_kern_unmount(DADiskRef disk, int fd);
 void fuse_kern_unmount(const char *mountpoint, int fd);
 #endif
 
+#ifdef __APPLE__
+int fuse_kern_mount(const char *mountpoint, struct fuse_args *args,
+		    void (*callback)(void *, int),
+		    void *context);
+#else
 int fuse_kern_mount(const char *mountpoint, struct fuse_args *args);
+#endif
 
 int fuse_send_reply_iov_nofree(fuse_req_t req, int error, struct iovec *iov,
 			       int count);

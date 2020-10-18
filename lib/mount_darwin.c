@@ -356,8 +356,55 @@ static int receive_fd(int sock_fd)
 	return fd;
 }
 
+struct fuse_mount_core_wait_arg {
+	int fd;
+	void (*callback)(void *context, int res);
+	void *context;
+};
+
+static void *
+fuse_mount_core_wait(void *arg)
+{
+	int fd;
+	void (*callback)(void *context, int res);
+	void *context;
+
+	int32_t status = -1;
+	ssize_t rv = 0;
+
+	{
+		struct fuse_mount_core_wait_arg *a =
+			(struct fuse_mount_core_wait_arg *)arg;
+		fd = a->fd;
+		callback = a->callback;
+		context = a->context;
+	}
+
+	if (!callback) {
+		goto out;
+	}
+
+	while (((rv = recv(fd, &status, sizeof(status), 0)) == -1) &&
+	       errno == EINTR);
+	if (rv == -1) {
+		perror("receive mount status");
+		goto out;
+	}
+	if (!rv) {
+		/* EOF */
+		goto out;
+	}
+
+	callback(context, status);
+
+out:
+	free(arg);
+	return NULL;
+}
+
 static int
-fuse_mount_core(const char *mountpoint, const char *opts)
+fuse_mount_core(const char *mountpoint, const char *opts,
+		void (*callback)(void *, int), void *context)
 {
 	int fd;
 	int result;
@@ -425,6 +472,7 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 
 			snprintf(commfd, sizeof(commfd), "%i", fds[0]);
 			setenv("_FUSE_COMMFD", commfd, 1);
+			setenv("_FUSE_COMMVERS", "2", 1);
 
 			argv[a++] = mount_prog_path;
 			if (opts) {
@@ -450,6 +498,22 @@ fuse_mount_core(const char *mountpoint, const char *opts)
 	close(fds[0]);
 	fd = receive_fd(fds[1]);
 
+	if (callback) {
+		struct fuse_mount_core_wait_arg *arg =
+			calloc(1, sizeof(struct fuse_mount_core_wait_arg));
+		arg->fd = fds[1];
+		arg->callback = callback;
+		arg->context = context;
+
+		pthread_t mount_wait_thread;
+		int res = pthread_create(&mount_wait_thread, NULL,
+					 &fuse_mount_core_wait, (void *)arg);
+		if (res) {
+			perror("fuse: failed to wait for mount status");
+			goto mount_err_out;
+		}
+	}
+
 	if (waitpid(pid, &status, 0) == -1 || WEXITSTATUS(status) != 0) {
 		perror("fuse: failed to mount file system");
 		goto mount_err_out;
@@ -466,7 +530,8 @@ out:
 }
 
 int
-fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
+fuse_kern_mount(const char *mountpoint, struct fuse_args *args,
+		void (*callback)(void *, int), void *context)
 {
 	struct mount_opts mo;
 	int res = -1;
@@ -561,7 +626,7 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 		}
 	}
 
-	res = fuse_mount_core(mountpoint, mo.kernel_opts);
+	res = fuse_mount_core(mountpoint, mo.kernel_opts, callback, context);
 
 out:
 	free(mo.kernel_opts);

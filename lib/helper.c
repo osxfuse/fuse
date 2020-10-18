@@ -247,6 +247,46 @@ int fuse_daemonize(int foreground)
 	return 0;
 }
 
+#ifdef __APPLE__
+
+struct fuse_mount_common_context {
+	struct fuse_chan *ch;
+	char mountpoint[MAXPATHLEN];
+};
+
+static void fuse_mount_common_callback(void *context, int status)
+{
+	struct fuse_chan *ch;
+	char *mountpoint;
+
+	{
+		struct fuse_mount_common_context *c =
+			(struct fuse_mount_common_context *)context;
+		ch = c->ch;
+		mountpoint = c->mountpoint;
+	}
+
+	if (status == 0) {
+		CFURLRef url = CFURLCreateFromFileSystemRepresentation(
+			NULL, (const UInt8 *)mountpoint, strlen(mountpoint),
+			TRUE);
+		DADiskRef disk = DADiskCreateFromVolumePath(
+			NULL, fuse_dasession, url);
+
+		fuse_chan_set_disk(ch, disk);
+
+		CFRelease(disk);
+		CFRelease(url);
+	} else {
+		fprintf(stderr, "fuse: mount failed with errro: %d\n", status);
+	}
+
+out:
+	free(context);
+}
+
+#endif /* __APPLE__ */
+
 static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 					   struct fuse_args *args)
 {
@@ -254,7 +294,7 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 	int fd;
 
 #ifdef __APPLE__
-	DADiskRef disk;
+	struct fuse_mount_common_context *context;
 #endif
 
 	/*
@@ -267,32 +307,27 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 			close(fd);
 	} while (fd >= 0 && fd <= 2);
 
+#ifdef __APPLE__
+	context = calloc(1, sizeof(struct fuse_mount_common_context));
+	strncpy(context->mountpoint, mountpoint,
+		sizeof(context->mountpoint) - 1);
+	fd = fuse_kern_mount(mountpoint, args, &fuse_mount_common_callback,
+			     (void *)context);
+#else
 	fd = fuse_mount_compat25(mountpoint, args);
+#endif
 	if (fd == -1)
 		return NULL;
 
-#ifdef __APPLE__
-	{
-		CFURLRef url = CFURLCreateFromFileSystemRepresentation(
-			NULL, (const UInt8 *)mountpoint, strlen(mountpoint),
-			TRUE);
-		disk = DADiskCreateFromVolumePath(NULL, fuse_dasession, url);
-		CFRelease(url);
-	}
-#endif
-	
 	ch = fuse_kern_chan_new(fd);
-	if (!ch)
-#ifndef __APPLE__
-		fuse_kern_unmount(mountpoint, fd);
+#ifdef __APPLE__
+	if (ch)
+		context->ch = ch;
 #else
-		fuse_kern_unmount(disk, fd);
-	else
-		fuse_chan_set_disk(ch, disk);
-	
-	CFRelease(disk);
+	if (!ch)
+		fuse_kern_unmount(mountpoint, fd);
 #endif
-	
+
 	return ch;
 }
 
@@ -560,7 +595,11 @@ void fuse_teardown_compat22(struct fuse *fuse, int fd, char *mountpoint)
 
 int fuse_mount_compat25(const char *mountpoint, struct fuse_args *args)
 {
+#ifdef __APPLE__
+	return fuse_kern_mount(mountpoint, args, NULL, NULL);
+#else
 	return fuse_kern_mount(mountpoint, args);
+#endif
 }
 
 FUSE_SYMVER(".symver fuse_setup_compat25,fuse_setup@FUSE_2.5");
