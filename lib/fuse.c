@@ -1851,7 +1851,7 @@ int fuse_fs_renamex(struct fuse_fs *fs, const char *oldpath,
 		if (fs->debug)
 			fprintf(stderr, "renamex %s %s flags: 0x%x\n", oldpath,
 				newpath, flags);
-		
+
 		return fs->op.renamex(oldpath, newpath, flags);
 	} else {
 		return -ENOSYS;
@@ -3605,7 +3605,7 @@ static void fuse_lib_renamex(fuse_req_t req, fuse_ino_t dir1, const char *name1,
 	struct node *wnode1;
 	struct node *wnode2;
 	int err;
-	
+
 	err = get_path2(f, dir1, name1, dir2, name2, &path1, &path2, &wnode1,
 			&wnode2);
 	if (!err) {

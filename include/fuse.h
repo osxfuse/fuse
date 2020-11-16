@@ -614,7 +614,7 @@ struct fuse_operations {
 			  void *, void *);
 	int (*reserved01)(void *, void *, void *, void *, void *, void *,
 			  void *, void *);
-	
+
 	/** Rename a file */
 	int (*renamex) (const char *, const char *, unsigned int);
 
