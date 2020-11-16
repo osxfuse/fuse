@@ -4,9 +4,6 @@ FUSE 2.9.9 (2019-01-04)
 * Added OpenAFS to whitelist (so users can now mount FUSE filesystems
   on mountpoints within OpenAFS filesystems).
 * Added a test of `seekdir` to test_syscalls.
-* Fixed `readdir` bug when non-zero offsets are given to filler and the
-  filesystem client, after reading a whole directory, re-reads it from a
-  non-zero offset e. g. by calling `seekdir` followed by `readdir`.
 
 FUSE 2.9.8 (2018-07-24)
 =======================
