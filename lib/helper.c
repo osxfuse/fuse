@@ -275,7 +275,8 @@ static void fuse_mount_common_callback(void *context, int status)
 
 		fuse_chan_set_disk(ch, disk);
 
-		CFRelease(disk);
+		if (disk)
+			CFRelease(disk);
 		CFRelease(url);
 	} else {
 		fprintf(stderr, "fuse: mount failed with errro: %d\n", status);
