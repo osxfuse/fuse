@@ -301,7 +301,7 @@ fuse_kern_unmount(DADiskRef disk, int fd)
 		return;
 	}
 
-	DADiskUnmount(disk, kDADiskUnmountOptionDefault, NULL, NULL);
+	DADiskUnmount(disk, kDADiskUnmountOptionForce, NULL, NULL);
 }
 
 void
