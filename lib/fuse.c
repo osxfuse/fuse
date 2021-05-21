@@ -48,6 +48,10 @@
 #include <sys/mman.h>
 #include <sys/file.h>
 
+#ifdef __APPLE__
+#  include <CoreFoundation/CoreFoundation.h>
+#endif
+
 #define FUSE_NODE_SLAB 1
 
 #ifndef MAP_ANONYMOUS
@@ -88,6 +92,7 @@ struct fuse_config {
 	char *modules;
 #ifdef __APPLE__
 	char *iconpath;
+	int norm_insensitive;
 #endif
 };
 
@@ -778,6 +783,28 @@ static void rehash_name(struct fuse *f)
 static int hash_name(struct fuse *f, struct node *node, fuse_ino_t parentid,
 		     const char *name)
 {
+#ifdef __APPLE__
+	if (f->conf.norm_insensitive) {
+		CFStringRef name_cfstr;
+		CFMutableStringRef name_cfmstr;
+		char name_nfc[MAXPATHLEN];
+
+		name_cfstr = CFStringCreateWithCString(kCFAllocatorDefault,
+						       name,
+						       kCFStringEncodingUTF8);
+		name_cfmstr = CFStringCreateMutableCopy(NULL, 0, name_cfstr);
+
+		CFStringNormalize(name_cfmstr, kCFStringNormalizationFormC);
+		CFStringGetCString(name_cfmstr, name_nfc, sizeof(name_nfc),
+				   kCFStringEncodingUTF8);
+
+		CFRelease(name_cfstr);
+		CFRelease(name_cfmstr);
+
+		name = name_nfc;
+	}
+#endif /* __APPLE__ */
+
 	size_t hash = name_hash(f, parentid, name);
 	struct node *parent = get_node(f, parentid);
 	if (strlen(name) < sizeof(node->inline_name)) {
@@ -837,6 +864,28 @@ static fuse_ino_t next_id(struct fuse *f)
 static struct node *lookup_node(struct fuse *f, fuse_ino_t parent,
 				const char *name)
 {
+#ifdef __APPLE__
+	if (f->conf.norm_insensitive) {
+		CFStringRef name_cfstr;
+		CFMutableStringRef name_cfmstr;
+		char name_nfc[MAXPATHLEN];
+
+		name_cfstr = CFStringCreateWithCString(kCFAllocatorDefault,
+						       name,
+						       kCFStringEncodingUTF8);
+		name_cfmstr = CFStringCreateMutableCopy(NULL, 0, name_cfstr);
+
+		CFStringNormalize(name_cfmstr, kCFStringNormalizationFormC);
+		CFStringGetCString(name_cfmstr, name_nfc, sizeof(name_nfc),
+				   kCFStringEncodingUTF8);
+
+		CFRelease(name_cfstr);
+		CFRelease(name_cfmstr);
+
+		name = name_nfc;
+	}
+#endif /* __APPLE__ */
+
 	size_t hash = name_hash(f, parent, name);
 	struct node *node;
 
@@ -5148,6 +5197,7 @@ static const struct fuse_opt fuse_lib_opts[] = {
 	FUSE_LIB_OPT("modules=%s",	      modules, 0),
 #ifdef __APPLE__
 	FUSE_LIB_OPT("iconpath=%s",	      iconpath, 0),
+	FUSE_LIB_OPT("norm_insensitive",      norm_insensitive, 1),
 #endif
 	FUSE_OPT_END
 };
