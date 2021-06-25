@@ -1801,6 +1801,14 @@ int fuse_session_loop(struct fuse_session *se);
  */
 int fuse_session_loop_mt(struct fuse_session *se);
 
+/**
+ * Enter a multi-threaded event loop based on libdispatch
+ *
+ * @param se the session
+ * @return 0 on success, -1 on error
+ */
+int fuse_session_loop_dispatch(struct fuse_session *se);
+
 /* ----------------------------------------------------------- *
  * Channel interface					       *
  * ----------------------------------------------------------- */

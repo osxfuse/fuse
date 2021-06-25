@@ -761,6 +761,21 @@ void fuse_exit(struct fuse *f);
 int fuse_loop_mt(struct fuse *f);
 
 /**
+ * FUSE event loop based on libdispatch
+ *
+ * Requests from the kernel are processed, and the appropriate
+ * operations are called.  Request are processed in parallel by
+ * distributing them onto an dispatch queue asynchronously.
+ *
+ * Calling this function requires libdispatch to be linked to
+ * the application.
+ *
+ * @param f the FUSE handle
+ * @return 0 if no error occurred, -1 otherwise
+ */
+int fuse_loop_dispatch(struct fuse *f);
+
+/**
  * Get the current context
  *
  * The context is only valid for the duration of a filesystem

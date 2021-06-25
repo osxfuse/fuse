@@ -476,10 +476,15 @@ static int fuse_main_common(int argc, char *argv[],
 	if (fuse == NULL)
 		return 1;
 
-	if (multithreaded)
+	if (multithreaded) {
+#if HAVE_DISPATCH_DISPATCH_H
+		res = fuse_loop_dispatch(fuse);
+#else
 		res = fuse_loop_mt(fuse);
-	else
+#endif
+	} else {
 		res = fuse_loop(fuse);
+	}
 
 	fuse_teardown_common(fuse, mountpoint);
 	if (res == -1)
