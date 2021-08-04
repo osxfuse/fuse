@@ -61,6 +61,8 @@ typedef unsigned long  u_long;
 
 #include <sys/attr.h>
 
+// Prevent ACL from passing through by redirecting. Mostly for
+// easier experimentation.
 #define G_PREFIX			"org"
 #define G_KAUTH_FILESEC_XATTR G_PREFIX 	".apple.system.Security"
 #define A_PREFIX			"com"
