@@ -1987,6 +1987,8 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		if (arg->flags & FUSE_FLOCK_LOCKS)
 			f->conn.capable |= FUSE_CAP_FLOCK_LOCKS;
 #ifdef __APPLE__
+		if (arg->flags & FUSE_NODE_RWLOCK)
+			f->conn.capable |= FUSE_CAP_NODE_RWLOCK;
 		if (arg->flags & FUSE_RENAME_SWAP)
 			f->conn.capable |= FUSE_CAP_RENAME_SWAP;
 		if (arg->flags & FUSE_RENAME_EXCL)
@@ -2081,6 +2083,8 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	if (f->conn.want & FUSE_CAP_FLOCK_LOCKS)
 		outarg.flags |= FUSE_FLOCK_LOCKS;
 #ifdef __APPLE__
+	if (f->conn.want & FUSE_CAP_NODE_RWLOCK)
+		outarg.flags |= FUSE_NODE_RWLOCK;
 	if (f->conn.want & FUSE_CAP_RENAME_SWAP)
 		outarg.flags |= FUSE_RENAME_SWAP;
 	if (f->conn.want & FUSE_CAP_RENAME_EXCL)

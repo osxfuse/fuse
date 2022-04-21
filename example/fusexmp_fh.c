@@ -912,8 +912,8 @@ void *
 xmp_init(struct fuse_conn_info *conn)
 {
 #ifdef __APPLE__
-	FUSE_ENABLE_SETVOLNAME(conn);
-	FUSE_ENABLE_XTIMES(conn);
+	conn->want |= FUSE_CAP_VOL_RENAME;
+	conn->want |= FUSE_CAP_XTIMES;
 #endif
 	return NULL;
 }
