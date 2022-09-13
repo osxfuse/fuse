@@ -14,6 +14,7 @@
 #include "fuse_lowlevel.h"
 
 #ifdef __APPLE__
+#  include <pthread.h>
 #  include <DiskArbitration/DiskArbitration.h>
 #endif
 
@@ -119,6 +120,8 @@ int fuse_chan_clearfd(struct fuse_chan *ch);
 
 #ifdef __APPLE__
 void fuse_chan_set_disk(struct fuse_chan *ch, DADiskRef disk);
+void fuse_chan_set_mount_auxiliary_thread(struct fuse_chan* ch, pthread_t thread);
+void fuse_chan_join_mount_auxiliary_thread(struct fuse_chan* ch);
 void fuse_kern_unmount(DADiskRef disk, int fd);
 #else
 void fuse_kern_unmount(const char *mountpoint, int fd);
@@ -127,7 +130,7 @@ void fuse_kern_unmount(const char *mountpoint, int fd);
 #ifdef __APPLE__
 int fuse_kern_mount(const char *mountpoint, struct fuse_args *args,
 		    void (*callback)(void *, int),
-		    void *context);
+		    void *context, pthread_t* callback_thread_id);
 #else
 int fuse_kern_mount(const char *mountpoint, struct fuse_args *args);
 #endif

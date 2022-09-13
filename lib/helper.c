@@ -273,7 +273,7 @@ static void fuse_mount_common_callback(void *context, int status)
 		DADiskRef disk = DADiskCreateFromVolumePath(
 			NULL, fuse_dasession, url);
 
-		fuse_chan_set_disk(ch, disk);
+ 		fuse_chan_set_disk(ch, disk);
 
 		if (disk)
 			CFRelease(disk);
@@ -296,6 +296,7 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 
 #ifdef __APPLE__
 	struct fuse_mount_common_context *context;
+	pthread_t callback_thread_id = 0;
 #endif
 
 	/*
@@ -313,7 +314,7 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 	strncpy(context->mountpoint, mountpoint,
 		sizeof(context->mountpoint) - 1);
 	fd = fuse_kern_mount(mountpoint, args, &fuse_mount_common_callback,
-			     (void *)context);
+			     (void *)context, &callback_thread_id);
 #else
 	fd = fuse_mount_compat25(mountpoint, args);
 #endif
@@ -324,6 +325,8 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 #ifdef __APPLE__
 	if (ch)
 		context->ch = ch;
+
+	fuse_chan_set_mount_auxiliary_thread(ch, callback_thread_id);
 #else
 	if (!ch)
 		fuse_kern_unmount(mountpoint, fd);
@@ -340,6 +343,9 @@ struct fuse_chan *fuse_mount(const char *mountpoint, struct fuse_args *args)
 static void fuse_unmount_common(const char *mountpoint, struct fuse_chan *ch)
 {	
 #ifdef __APPLE__
+	if (ch)
+		fuse_chan_join_mount_auxiliary_thread(ch);
+	
 	int fd = ch ? fuse_chan_fd(ch) : -1;
 	DADiskRef disk = NULL;
 
@@ -597,7 +603,7 @@ void fuse_teardown_compat22(struct fuse *fuse, int fd, char *mountpoint)
 int fuse_mount_compat25(const char *mountpoint, struct fuse_args *args)
 {
 #ifdef __APPLE__
-	return fuse_kern_mount(mountpoint, args, NULL, NULL);
+	return fuse_kern_mount(mountpoint, args, NULL, NULL, NULL);
 #else
 	return fuse_kern_mount(mountpoint, args);
 #endif

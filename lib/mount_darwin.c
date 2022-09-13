@@ -404,7 +404,7 @@ out:
 
 static int
 fuse_mount_core(const char *mountpoint, const char *opts,
-		void (*callback)(void *, int), void *context)
+		void (*callback)(void *, int), void *context, pthread_t* callback_thread_id)
 {
 	int fd;
 	int result;
@@ -413,7 +413,14 @@ fuse_mount_core(const char *mountpoint, const char *opts,
 	int fds[2];
 	pid_t pid;
 	int status;
+	pthread_t thread_id_buf;
 
+	if (!callback_thread_id) {
+		callback_thread_id = &thread_id_buf;
+	}
+
+	*callback_thread_id = 0;
+	
 	if (!mountpoint) {
 		fprintf(stderr, "missing or invalid mount point\n");
 		return -1;
@@ -505,8 +512,7 @@ fuse_mount_core(const char *mountpoint, const char *opts,
 		arg->callback = callback;
 		arg->context = context;
 
-		pthread_t mount_wait_thread;
-		int res = pthread_create(&mount_wait_thread, NULL,
+		int res = pthread_create(callback_thread_id, NULL,
 					 &fuse_mount_core_wait, (void *)arg);
 		if (res) {
 			perror("fuse: failed to wait for mount status");
@@ -531,12 +537,16 @@ out:
 
 int
 fuse_kern_mount(const char *mountpoint, struct fuse_args *args,
-		void (*callback)(void *, int), void *context)
+		void (*callback)(void *, int), void *context, pthread_t* callback_thread_id)
 {
 	struct mount_opts mo;
 	int res = -1;
 
 	memset(&mo, 0, sizeof(mo));
+
+	if (callback_thread_id) {
+		*callback_thread_id = 0;
+	}
 
 	/* to notify mount_macfuse it's called from lib */
 	setenv("_FUSE_CALL_BY_LIB", "1", 1);
@@ -626,7 +636,7 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args,
 		}
 	}
 
-	res = fuse_mount_core(mountpoint, mo.kernel_opts, callback, context);
+	res = fuse_mount_core(mountpoint, mo.kernel_opts, callback, context, callback_thread_id);
 
 out:
 	free(mo.kernel_opts);
