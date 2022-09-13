@@ -23,6 +23,7 @@
 #include <errno.h>
 #ifdef __APPLE__
 #  include <sys/param.h>
+#  include <pthread.h>
 #endif
 
 #ifdef __APPLE__
@@ -38,6 +39,7 @@ struct fuse_chan {
 
 #ifdef __APPLE__
 	DADiskRef disk;
+	pthread_t mount_auxiliary_thread;
 #endif
 
 	size_t bufsize;
@@ -212,6 +214,23 @@ void fuse_chan_set_disk(struct fuse_chan *ch, DADiskRef disk)
 void fuse_chan_cleardisk(struct fuse_chan *ch)
 {
 	fuse_chan_set_disk(ch, NULL);
+}
+
+void fuse_chan_set_mount_auxiliary_thread(struct fuse_chan* ch, pthread_t thread)
+{
+    ch->mount_auxiliary_thread = thread;
+}
+
+void fuse_chan_join_mount_auxiliary_thread(struct fuse_chan* ch)
+{
+    pthread_t thread;
+
+    if (ch->mount_auxiliary_thread)
+    {
+        thread = ch->mount_auxiliary_thread;
+        ch->mount_auxiliary_thread = 0;
+        pthread_join(thread, NULL);
+    }
 }
 
 #endif /* __APPLE__ */
