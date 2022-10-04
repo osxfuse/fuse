@@ -279,7 +279,7 @@ static void fuse_mount_common_callback(void *context, int status)
 			CFRelease(disk);
 		CFRelease(url);
 	} else {
-		fprintf(stderr, "fuse: mount failed with errro: %d\n", status);
+		fprintf(stderr, "fuse: mount failed with error: %d\n", status);
 	}
 
 out:
