@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2017 Benjamin Fleischer
+ * Copyright (c) 2011-2023 Benjamin Fleischer
  */
 
 /** @file */
@@ -172,6 +172,7 @@ struct fuse_file_info {
 #define FUSE_CAP_FLOCK_LOCKS	(1 << 10)
 #define FUSE_CAP_IOCTL_DIR	(1 << 11)
 #ifdef __APPLE__
+#  define FUSE_CAP_ACCESS_EXTENDED	(1 << 23)
 #  define FUSE_CAP_NODE_RWLOCK		(1 << 24)
 #  define FUSE_CAP_RENAME_SWAP		(1 << 25)
 #  define FUSE_CAP_RENAME_EXCL		(1 << 26)

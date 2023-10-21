@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2017 Benjamin Fleischer
+ * Copyright (c) 2011-2023 Benjamin Fleischer
  */
 
 #define _GNU_SOURCE
@@ -1987,6 +1987,8 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 		if (arg->flags & FUSE_FLOCK_LOCKS)
 			f->conn.capable |= FUSE_CAP_FLOCK_LOCKS;
 #ifdef __APPLE__
+		if (arg->flags & FUSE_ACCESS_EXTENDED)
+			f->conn.capable |= FUSE_CAP_ACCESS_EXTENDED;
 		if (arg->flags & FUSE_NODE_RWLOCK)
 			f->conn.capable |= FUSE_CAP_NODE_RWLOCK;
 		if (arg->flags & FUSE_RENAME_SWAP)
@@ -2083,6 +2085,8 @@ static void do_init(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 	if (f->conn.want & FUSE_CAP_FLOCK_LOCKS)
 		outarg.flags |= FUSE_FLOCK_LOCKS;
 #ifdef __APPLE__
+	if (f->conn.want & FUSE_CAP_ACCESS_EXTENDED)
+		outarg.flags |= FUSE_ACCESS_EXTENDED;
 	if (f->conn.want & FUSE_CAP_NODE_RWLOCK)
 		outarg.flags |= FUSE_NODE_RWLOCK;
 	if (f->conn.want & FUSE_CAP_RENAME_SWAP)

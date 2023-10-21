@@ -227,6 +227,7 @@ struct fuse_file_lock {
 #define FUSE_DONT_MASK		(1 << 6)
 #define FUSE_FLOCK_LOCKS	(1 << 10)
 #ifdef __APPLE__
+#  define FUSE_ACCESS_EXTENDED 	(1 << 23)
 #  define FUSE_NODE_RWLOCK	(1 << 24)
 #  define FUSE_RENAME_SWAP	(1 << 25)
 #  define FUSE_RENAME_EXCL	(1 << 26)
