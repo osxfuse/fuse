@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2020 Benjamin Fleischer
+ * Copyright (c) 2011-2023 Benjamin Fleischer
  *
  * Derived from mount_bsd.c from the FUSE distribution.
  *
@@ -143,6 +143,7 @@ static const struct fuse_opt fuse_mount_opts[] = {
 	FUSE_OPT_KEY("direct_io",	      KEY_DIO),
 	FUSE_OPT_KEY("excl_create",	      KEY_KERN),
 	FUSE_OPT_KEY("extended_security",     KEY_KERN),
+	FUSE_OPT_KEY("fair_locking",	      KEY_KERN),
 	FUSE_OPT_KEY("fsid=",		      KEY_KERN),
 	FUSE_OPT_KEY("fsname=",		      KEY_KERN),
 	FUSE_OPT_KEY("fssubtype=",	      KEY_KERN),
