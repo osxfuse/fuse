@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2023 Benjamin Fleischer
+ * Copyright (c) 2011-2024 Benjamin Fleischer
  *
  * Derived from mount_bsd.c from the FUSE distribution.
  *
@@ -56,14 +56,11 @@ struct mount_opts {
 	int allow_root;
 	int ishelp;
 	char *kernel_opts;
-	char *modules;
-	char *volicon;
 };
 
 static const struct fuse_opt fuse_mount_opts[] = {
 	{ "allow_other", offsetof(struct mount_opts, allow_other), 1 },
 	{ "allow_root", offsetof(struct mount_opts, allow_root), 1 },
-	{ "modules=%s", offsetof(struct mount_opts, modules), 0 },
 	FUSE_OPT_KEY("allow_root",	      KEY_ALLOW_ROOT),
 	FUSE_OPT_KEY("auto_cache",	      KEY_AUTO_CACHE),
 	FUSE_OPT_KEY("-r",		      KEY_RO),
@@ -173,7 +170,6 @@ static const struct fuse_opt fuse_mount_opts[] = {
 	FUSE_OPT_KEY("slow_statfs",	      KEY_KERN),
 	FUSE_OPT_KEY("sparse",		      KEY_KERN),
 	FUSE_OPT_KEY("subtype=",	      KEY_IGNORED),
-	{ "volicon=%s", offsetof(struct mount_opts, volicon), 0 },
 	FUSE_OPT_KEY("volname=",	      KEY_KERN),
 	FUSE_OPT_END
 };
@@ -223,7 +219,6 @@ fuse_mount_opt_proc(void *data, const char *arg, int key,
 	struct mount_opts *mo = data;
 
 	switch (key) {
-
 		case KEY_AUTO_CACHE:
 			if (fuse_opt_add_opt(&mo->kernel_opts, "auto_cache") == -1 ||
 			    fuse_opt_add_arg(outargs, "-oauto_cache") == -1)
@@ -241,7 +236,7 @@ fuse_mount_opt_proc(void *data, const char *arg, int key,
 			/* fall through */
 
 		case KEY_KERN:
-			return fuse_opt_add_opt(&mo->kernel_opts, arg);
+			return fuse_opt_add_opt_escaped(&mo->kernel_opts, arg);
 
 		case KEY_DIO:
 			if (fuse_opt_add_opt(&mo->kernel_opts, "direct_io") == -1 ||
@@ -542,8 +537,8 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args,
 	/* to notify mount_macfuse it's called from lib */
 	setenv("_FUSE_CALL_BY_LIB", "1", 1);
 
-	if (args &&
-		fuse_opt_parse(args, &mo, fuse_mount_opts, fuse_mount_opt_proc) == -1) {
+	if (args && fuse_opt_parse(args, &mo, fuse_mount_opts,
+				   fuse_mount_opt_proc) == -1) {
 		return -1;
 	}
 
@@ -558,85 +553,9 @@ fuse_kern_mount(const char *mountpoint, struct fuse_args *args,
 		goto out;
 	}
 
-	if (mo.volicon) {
-		size_t modules_len;
-		char *modules;
-		char *modules_ptr;
-
-		char iconpath_arg[MAXPATHLEN + 12];
-
-		if (mo.modules) {
-			modules_len = strlen(mo.modules);
-		} else {
-			modules_len = 0;
-		}
-
-		modules = (char *)malloc(modules_len + sizeof(":volicon"));
-		if (!modules) {
-			fprintf(stderr, "fuse: failed to allocate modules string\n");
-			goto out;
-		}
-
-		/* build new modules string */
-		modules_ptr = modules;
-		if (modules_len) {
-			modules_ptr = stpcpy(modules_ptr, mo.modules);
-			*modules_ptr = ':';
-			modules_ptr++;
-		}
-		modules_ptr = stpcpy(modules_ptr, "volicon");
-		*modules_ptr = '\0';
-
-		/* replace old modules string */
-		if (mo.modules) {
-			free(mo.modules);
-		}
-		mo.modules = modules;
-
-		/* add iconpath argument */
-		if (snprintf(iconpath_arg, sizeof(iconpath_arg),
-			     "-oiconpath=%s", mo.volicon) <= 0) {
-			fprintf(stderr, "fuse: failed to create iconpath argument\n");
-			goto out;
-		}
-		if (fuse_opt_add_arg(args, iconpath_arg) == -1) {
-			fprintf(stderr, "fuse: failed to add iconpath argument\n");
-			goto out;
-		}
-	}
-
-	if (mo.modules) {
-		int err;
-
-		size_t modules_arg_len = sizeof("-omodules=") + strlen(mo.modules);
-		char *modules_arg = (char *)malloc(modules_arg_len);
-
-		/* add modules argument */
-		err = snprintf(modules_arg, modules_arg_len, "-omodules=%s",
-			       mo.modules);
-		if (err <= 0) {
-			fprintf(stderr, "fuse: failed to create modules argument\n");
-			free(modules_arg);
-			goto out;
-		}
-		err = fuse_opt_add_arg(args, modules_arg);
-		free(modules_arg);
-		if (err == -1) {
-			fprintf(stderr, "fuse: failed to add modules argument\n");
-			goto out;
-		}
-	}
-
 	res = fuse_mount_core(mountpoint, mo.kernel_opts, callback, context);
 
 out:
 	free(mo.kernel_opts);
-	if (mo.modules) {
-		free(mo.modules);
-	}
-	if (mo.volicon) {
-		free(mo.volicon);
-	}
-
 	return res;
 }

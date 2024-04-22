@@ -8,7 +8,7 @@
 
 /*
  * Copyright (c) 2006-2008 Amit Singh/Google Inc.
- * Copyright (c) 2011-2017 Benjamin Fleischer
+ * Copyright (c) 2011-2024 Benjamin Fleischer
  */
 
 #include "config.h"
@@ -92,6 +92,7 @@ struct fuse_config {
 	char *modules;
 #ifdef __APPLE__
 	char *iconpath;
+	char *volicon;
 	int norm_insensitive;
 #endif
 };
@@ -5203,6 +5204,7 @@ static const struct fuse_opt fuse_lib_opts[] = {
 	FUSE_LIB_OPT("modules=%s",	      modules, 0),
 #ifdef __APPLE__
 	FUSE_LIB_OPT("iconpath=%s",	      iconpath, 0),
+	FUSE_LIB_OPT("volicon=%s",	      volicon, 0),
 	FUSE_LIB_OPT("norm_insensitive",      norm_insensitive, 1),
 #endif
 	FUSE_OPT_END
@@ -5409,6 +5411,10 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	struct fuse_fs *fs;
 	struct fuse_lowlevel_ops llop = fuse_path_ops;
 
+#ifdef __APPLE__
+	bool add_module_volicon = false;
+#endif
+
 	if (fuse_create_context_key() == -1)
 		goto out;
 
@@ -5456,54 +5462,76 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 		goto out_free_fs;
 
 #ifdef __APPLE__
+	if (f->conf.volicon) {
+		add_module_volicon = true;
+		f->conf.iconpath = f->conf.volicon;
+		f->conf.volicon = NULL;
+	}
 	if (!f->conf.iconpath) {
 		char *iconpath = fuse_resource_path(OSXFUSE_VOLUME_ICON);
-		struct stat stbuf;
-
-		if (stat(iconpath, &stbuf) == 0) {
-			char *modules;
-			size_t modules_len = 0;
-			char *modules_ptr;
-
-			if (f->conf.modules)
-				modules_len = strlen(f->conf.modules);
-
-			modules = (char *)malloc(modules_len +
-						 sizeof(":volicon"));
-			if (!modules) {
-				free(iconpath);
-				fprintf(stderr, "fuse: failed to allocate modules string\n");
-				goto out_free_fs;
-			}
-
-			modules_ptr = modules;
-			if (modules_len) {
-				modules_ptr = stpcpy(modules_ptr,
-						     f->conf.modules);
-				*modules_ptr = ':';
-				modules_ptr++;
-			}
-			modules_ptr = stpcpy(modules_ptr, "volicon");
-			*modules_ptr = '\0';
-
-			free(f->conf.modules);
-			f->conf.modules = modules;
+		if (access(iconpath, F_OK) == 0) {
+			add_module_volicon = true;
 			f->conf.iconpath = iconpath;
 		}
 	}
-
 	if (f->conf.iconpath) {
-		char iconpath_arg[MAXPATHLEN + 12];
+		char *iconpath;
+		char *d;
 
-		if (snprintf(iconpath_arg, sizeof(iconpath_arg),
-			     "-oiconpath=%s", f->conf.iconpath) <= 0) {
-			fprintf(stderr, "fuse: failed to create iconpath argument\n");
+		iconpath = malloc(sizeof("-oiconpath=") + strlen(f->conf.iconpath) * 2);
+		if (!iconpath) {
+			fprintf(stderr, "fuse: failed to allocate iconpath string\n");
 			goto out_free_fs;
 		}
-		if (fuse_opt_add_arg(args, iconpath_arg) == -1) {
+
+		d = stpcpy(iconpath, "-oiconpath=");
+		for (char *s = f->conf.iconpath; *s; s++) {
+			if (*s == ',' || *s == '\\')
+				*d++ = '\\';
+			*d++ = *s;
+		}
+		*d = '\0';
+
+		if (fuse_opt_add_arg(args, iconpath) == -1) {
 			fprintf(stderr, "fuse: failed to add iconpath argument\n");
 			goto out_free_fs;
 		}
+	}
+	if (add_module_volicon && f->conf.modules) {
+		char *module;
+		char *next;
+		bool found = false;
+
+		for (module = f->conf.modules; module && !found; module = next) {
+			char *p;
+			for (p = module; *p && *p != ':'; p++);
+			next = *p ? p + 1 : NULL;
+			found = (p - module) == 7 && strncmp(module, "volicon", 7) == 0;
+		}
+		add_module_volicon = !found;
+	}
+	if (add_module_volicon) {
+		size_t len = f->conf.modules ? strlen(f->conf.modules) : 0;
+		char *modules;
+		char *p;
+
+		modules = malloc(len + sizeof("volicon:"));
+		if (!modules) {
+			fprintf(stderr, "fuse: failed to allocate modules string\n");
+			goto out_free_fs;
+		}
+
+		p = modules;
+		if (len) {
+			p = stpcpy(p, f->conf.modules);
+			*p++ = ':';
+		}
+		p = stpcpy(p, "volicon");
+		*p = '\0';
+
+		/* replace old modules string */
+		free(f->conf.modules);
+		f->conf.modules = modules;
 	}
 #endif /* __APPLE__ */
 
@@ -5606,6 +5634,7 @@ out_free_fs:
 	free(f->conf.modules);
 #ifdef __APPLE__
 	free(f->conf.iconpath);
+	free(f->conf.volicon);
 #endif
 out_free:
 	free(f);
