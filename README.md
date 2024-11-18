@@ -1,3 +1,5 @@
+The source code of the macFUSE port of libfuse has been moved to https://github.com/macfuse/library.
+
 libfuse
 =======
 
